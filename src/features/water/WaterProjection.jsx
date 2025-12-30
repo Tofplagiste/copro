@@ -3,6 +3,8 @@
  */
 import { useCopro } from '../../context/CoproContext';
 import { fmtMoney } from '../../utils/formatters';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 export default function WaterProjection() {
     const { state, updateState } = useCopro();
@@ -56,6 +58,30 @@ export default function WaterProjection() {
             return { owner, quarters, totalN, projM3, budgetN1 };
         });
 
+    // Exporter PDF
+    const handleExportPDF = () => {
+        const doc = new jsPDF('landscape');
+        doc.text("Bilan & Projection Eau", 14, 15);
+        doc.autoTable({ html: '#table-water-proj', startY: 20, theme: 'grid' });
+        doc.save('Projections_Eau.pdf');
+    };
+
+    // Copier Tableau
+    const handleCopyTable = () => {
+        const range = document.createRange();
+        const table = document.getElementById('table-water-proj');
+        range.selectNode(table);
+        window.getSelection().removeAllRanges();
+        window.getSelection().addRange(range);
+        try {
+            document.execCommand('copy');
+            alert("Tableau copié !");
+        } catch (err) {
+            alert("Erreur lors de la copie.");
+        }
+        window.getSelection().removeAllRanges();
+    };
+
     return (
         <div>
             <div className="flex justify-between items-center mb-4">
@@ -63,10 +89,16 @@ export default function WaterProjection() {
                     📈 Bilan Annuel & Projection N+1
                 </h3>
                 <div className="flex gap-2">
-                    <button className="px-3 py-1.5 text-sm border border-red-300 text-red-600 rounded-lg hover:bg-red-50">
+                    <button
+                        onClick={handleExportPDF}
+                        className="px-3 py-1.5 text-sm border border-red-300 text-red-600 rounded-lg hover:bg-red-50 flex items-center gap-2"
+                    >
                         📄 Exporter PDF
                     </button>
-                    <button className="px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-500">
+                    <button
+                        onClick={handleCopyTable}
+                        className="px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-500 flex items-center gap-2"
+                    >
                         📋 Copier Tableau
                     </button>
                 </div>
@@ -107,7 +139,7 @@ export default function WaterProjection() {
             {/* Tableau de projection */}
             <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
+                    <table id="table-water-proj" className="w-full text-sm">
                         <thead className="bg-slate-800 text-white">
                             <tr>
                                 <th rowSpan={2} className="text-left px-4 py-3 align-middle">Propriétaire</th>

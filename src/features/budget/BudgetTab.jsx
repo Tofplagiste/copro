@@ -2,9 +2,14 @@
  * BudgetTab - Onglet Budget & Appels de Fonds
  */
 import { useState } from 'react';
-import { FileText, Mail, Download, Table2 } from 'lucide-react';
+import { FileText, Mail, Download, Table2, Settings } from 'lucide-react';
 import { useCopro } from '../../context/CoproContext';
 import { fmtMoney } from '../../utils/formatters';
+import MailingModal from './MailingModal';
+import GererPostesModal from './GererPostesModal';
+import RecapTableModal from './RecapTableModal';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 const BUDGET_MODES = [
     { id: 'previ', label: '1. Budget Prévisionnel (Année N)' },
@@ -161,8 +166,105 @@ export default function BudgetTab() {
         return { partGen, partSpe, partMen, partTra, subTotal, wCost, total };
     };
 
+    const [isMailingModalOpen, setIsMailingModalOpen] = useState(false);
+    const [mailingOwnerId, setMailingOwnerId] = useState(null);
+
+    // Ouvrir le modal mailing
+    const openMailing = (ownerId = null) => {
+        setMailingOwnerId(ownerId);
+        setIsMailingModalOpen(true);
+    };
+
+    // Gestion Postes
+    const [isManageModalOpen, setIsManageModalOpen] = useState(false);
+    // Recap Table
+    const [isRecapModalOpen, setIsRecapModalOpen] = useState(false);
+
+    const handleAddPoste = (category, name) => {
+        const newBudget = { ...budget };
+        if (!newBudget[category]) newBudget[category] = [];
+        newBudget[category].push({ name, reel: 0, previ: 0, previ_n1: 0 });
+        updateState({ budget: newBudget });
+    };
+
+    const handleDeletePoste = (category, index) => {
+        if (!confirm("Supprimer ce poste ?")) return;
+        const newBudget = { ...budget };
+        newBudget[category].splice(index, 1);
+        updateState({ budget: newBudget });
+    };
+
+    // Dates
+    const [dateCompta, setDateCompta] = useState(new Date().toISOString().split('T')[0]);
+    const [dueDate, setDueDate] = useState(new Date().toISOString().split('T')[0]);
+
+
+    // Génération PDF Appel de Fonds
+    const handleGeneratePDF = (ownerId) => {
+        const owner = state.owners.find(o => o.id === ownerId);
+        if (!owner) return;
+
+        const call = computeOwnerCall(owner);
+        const doc = new jsPDF();
+
+        // En-tête
+        doc.setFontSize(18);
+        doc.setTextColor(40);
+        doc.text("Appel de Fonds", 105, 20, { align: 'center' });
+        doc.setFontSize(12);
+        doc.text(`Copropriété Les Pyrénées - ${selectedQuarter} 2026`, 105, 28, { align: 'center' });
+
+        // Info Propriétaire
+        doc.setFillColor(245, 245, 245);
+        doc.rect(120, 40, 75, 25, 'F');
+        doc.setFontSize(11);
+        doc.text(owner.name, 125, 48);
+        doc.setFontSize(10);
+        doc.text(`Appt: ${owner.apt} - Lot: ${owner.lot}`, 125, 54);
+        doc.text(`Tantièmes: ${owner.tantiemes} / 1000`, 125, 60);
+
+        // Tableau Détails
+        const rows = [
+            ['Charges Générales', fmtMoney(call.partGen) + ' €'],
+            ['Charges Spéciales (Syndic/Ent.)', owner.exoGest ? "EXONÉRÉ" : fmtMoney(call.partSpe) + ' €'],
+            ['Charges Ménage', owner.exoMen ? "EXONÉRÉ" : fmtMoney(call.partMen) + ' €'],
+            ['Travaux / Exceptionnel', fmtMoney(call.partTra) + ' €'],
+            ['Eau (Avance sur consommation)', fmtMoney(call.wCost) + ' €']
+        ];
+
+        doc.autoTable({
+            startY: 75,
+            head: [['Nature des charges', 'Montant']],
+            body: rows,
+            theme: 'grid',
+            headStyles: { fillColor: [66, 66, 66], halign: 'center' },
+            bodyStyles: { valign: 'middle' },
+            columnStyles: { 1: { halign: 'right', fontStyle: 'bold' } },
+        });
+
+        const finalY = doc.lastAutoTable.finalY + 10;
+        doc.setFontSize(14);
+        doc.setTextColor(0, 100, 0);
+        doc.text(`TOTAL À RÉGLER : ${fmtMoney(call.total)} €`, 190, finalY, { align: 'right' });
+
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        doc.text(`Date limite de paiement : ${new Date(dueDate).toLocaleDateString()}`, 190, finalY + 7, { align: 'right' });
+
+        doc.save(`Appel_${owner.name}_${selectedQuarter}.pdf`);
+    };
+
     return (
         <div className="p-6 space-y-4">
+            <MailingModal
+                isOpen={isMailingModalOpen}
+                onClose={() => setIsMailingModalOpen(false)}
+                owners={state.owners.filter(o => !o.isCommon)}
+                initialOwnerId={mailingOwnerId}
+                currentQuarter={selectedQuarter}
+                year={2026}
+            />
+
             {/* Toolbar */}
             <div className="bg-white rounded-xl shadow-sm p-4 flex flex-wrap gap-4 items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -195,17 +297,51 @@ export default function BudgetTab() {
                         <input
                             type="number"
                             defaultValue={2026}
-                            className="w-16 px-2 py-1 border rounded font-bold"
+                            className="w-20 px-2 py-1 border rounded font-bold"
                         />
+                    </div>
+
+                    {/* Dates */}
+                    <div className="flex gap-4 border-l pl-4">
+                        <div className="flex flex-col">
+                            <span className="text-xs font-bold text-gray-500 mb-1">Date Compta :</span>
+                            <input
+                                type="date"
+                                value={dateCompta}
+                                onChange={(e) => setDateCompta(e.target.value)}
+                                className="px-2 py-1 border rounded text-xs font-bold w-28"
+                            />
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-xs font-bold text-gray-500 mb-1">Échéance :</span>
+                            <input
+                                type="date"
+                                value={dueDate}
+                                onChange={(e) => setDueDate(e.target.value)}
+                                className="px-2 py-1 border rounded text-xs font-bold w-28 text-red-600"
+                            />
+                        </div>
                     </div>
                 </div>
 
                 {/* Actions */}
                 <div className="flex gap-2">
-                    <button className="px-3 py-2 bg-cyan-500 text-white rounded-lg font-bold flex items-center gap-2 hover:bg-cyan-400">
+                    <button
+                        onClick={() => setIsManageModalOpen(true)}
+                        className="px-3 py-2 border border-gray-300 text-gray-600 rounded-lg font-bold flex items-center gap-2 hover:bg-gray-50 transition-colors"
+                    >
+                        <Settings size={16} /> Gérer Postes
+                    </button>
+                    <button
+                        onClick={() => setIsRecapModalOpen(true)}
+                        className="px-3 py-2 bg-cyan-500 text-white rounded-lg font-bold flex items-center gap-2 hover:bg-cyan-400"
+                    >
                         <Table2 size={16} /> Tableau Détails
                     </button>
-                    <button className="px-3 py-2 bg-amber-500 text-white rounded-lg font-bold flex items-center gap-2 hover:bg-amber-400">
+                    <button
+                        onClick={() => openMailing(null)}
+                        className="px-3 py-2 bg-amber-500 text-white rounded-lg font-bold flex items-center gap-2 hover:bg-amber-400"
+                    >
                         <Mail size={16} /> Mailing
                     </button>
                 </div>
@@ -265,10 +401,18 @@ export default function BudgetTab() {
                                         <td className="px-2 py-3 text-center font-bold bg-green-600 text-white">{fmtMoney(call.total)}</td>
                                         <td className="px-2 py-3">
                                             <div className="flex gap-1 justify-center">
-                                                <button className="p-1.5 border rounded hover:bg-gray-100" title="Email">
+                                                <button
+                                                    onClick={() => openMailing(owner.id)}
+                                                    className="p-1.5 border rounded hover:bg-gray-100"
+                                                    title="Email"
+                                                >
                                                     <Mail size={14} className="text-amber-500" />
                                                 </button>
-                                                <button className="p-1.5 border rounded hover:bg-gray-100" title="PDF">
+                                                <button
+                                                    onClick={() => handleGeneratePDF(owner.id)}
+                                                    className="p-1.5 border rounded hover:bg-gray-100"
+                                                    title="PDF"
+                                                >
                                                     <Download size={14} className="text-red-500" />
                                                 </button>
                                             </div>

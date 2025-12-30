@@ -3,6 +3,8 @@
  */
 import { useCopro } from '../../context/CoproContext';
 import { fmtMoney } from '../../utils/formatters';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 export default function WaterReadings() {
     const { state, updateState } = useCopro();
@@ -40,6 +42,42 @@ export default function WaterReadings() {
         updateState({ water: { ...water, meters } });
     };
 
+    // Export PDF Fiche Relevés
+    const handleExportFicheReleves = () => {
+        const doc = new jsPDF();
+        doc.setFontSize(16);
+        doc.text("Relevé de Compteurs Eau", 105, 15, { align: 'center' });
+        doc.setFontSize(11);
+        doc.text(`Période : ${q} - ${new Date().getFullYear()}`, 105, 22, { align: 'center' });
+
+        const rows = [];
+        state.owners.forEach(o => {
+            if (!o.isCommon && o.hasMeter) {
+                const meterId = water.meters[o.id] || "";
+                const oldIndex = (water.readings[q] && water.readings[q][o.id]) ? water.readings[q][o.id].old : 0;
+                rows.push([o.name, `${o.apt} - ${o.lot}`, meterId, oldIndex.toString(), ""]);
+            }
+        });
+
+        doc.autoTable({
+            startY: 30,
+            head: [['Propriétaire', 'Lot / Appt', 'N° Compteur', 'Ancien Index', 'Nouvel Index']],
+            body: rows,
+            theme: 'grid',
+            headStyles: { fillColor: [44, 62, 80] },
+            columnStyles: {
+                0: { cellWidth: 50 },
+                1: { cellWidth: 40 },
+                2: { cellWidth: 35 },
+                3: { cellWidth: 25, halign: 'center' },
+                4: { cellWidth: 35 }
+            },
+            styles: { minCellHeight: 12, valign: 'middle' }
+        });
+
+        doc.save(`Fiche_Releves_${q}.pdf`);
+    };
+
     // Calcul des totaux
     let totalVol = 0, totalFix = 0, totalVar = 0, totalFinal = 0;
 
@@ -70,7 +108,10 @@ export default function WaterReadings() {
                 <span className="font-bold text-gray-700">
                     Relevés (<span className="text-blue-600">{q}</span>)
                 </span>
-                <button className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors">
+                <button
+                    onClick={handleExportFicheReleves}
+                    className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors flex items-center gap-2"
+                >
                     📄 Fiche Relevés
                 </button>
             </div>

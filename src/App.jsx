@@ -31,6 +31,7 @@ const TAB_COMPONENTS = {
   'params': ParamsTab
 };
 
+
 function CoproApp({ onBackToHub }) {
   const [activeTab, setActiveTab] = useState('water');
   const ActiveTabComponent = TAB_COMPONENTS[activeTab] || WaterTab;
