@@ -2,9 +2,11 @@
  * RepartitionTab - Onglet répartition des tantièmes par copropriétaire
  */
 import { useState } from 'react';
-import { Plus, Edit, Trash2, FileText, Download } from 'lucide-react';
+import { Plus, Edit, Trash2, FileText, Download, User } from 'lucide-react';
 import { useCarnet } from '../../../context/CarnetContext';
 import Modal, { ConfirmModal } from '../../../components/Modal';
+import { setupPDF, addHeader, addFooter } from '../../../utils/pdfUtils';
+import { autoTable } from 'jspdf-autotable';
 
 export default function RepartitionTab() {
     const { state, addProprietaire, updateProprietaire, deleteProprietaire } = useCarnet();
@@ -15,6 +17,87 @@ export default function RepartitionTab() {
     const totalTantiemes = proprietaires.reduce((sum, p) => sum + (p.tantiemes || 0), 0);
     const totalGestion = proprietaires.filter(p => p.gestion).reduce((sum, p) => sum + p.gestion, 0);
     const totalMenage = proprietaires.filter(p => p.menage).reduce((sum, p) => sum + p.menage, 0);
+
+    const handleExportGlobalPDF = () => {
+        const doc = setupPDF();
+        let y = addHeader(doc, "RÉPARTITION DES CHARGES", "Année 2025");
+
+        const tableBody = proprietaires.map(p => [
+            p.name,
+            p.lots || '-',
+            `${p.tantiemes || 0} / 1000`
+        ]);
+
+        autoTable(doc, {
+            startY: y,
+            head: [['Propriétaire', 'Lots', 'Tantièmes']],
+            body: tableBody,
+            theme: 'grid',
+            headStyles: { fillColor: [40, 40, 40], textColor: 255 },
+            styles: { fontSize: 10, cellPadding: 3 },
+            margin: { bottom: 20 }
+        });
+
+        addFooter(doc);
+        doc.save("Repartition_Tantiemes.pdf");
+    };
+
+    const handleExportFichePDF = (proprio) => {
+        const doc = setupPDF();
+        let y = addHeader(doc, "Fiche Propriétaire", proprio.name);
+
+        const Field = ({ label, value }) => {
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(10);
+            doc.text(label, 15, y);
+
+            // Ligne de champ
+            doc.setDrawColor(240);
+            doc.setFillColor(250);
+            doc.roundedRect(15, y + 2, 180, 8, 1, 1, 'F');
+            doc.setDrawColor(200);
+
+            doc.setFont("helvetica", "normal");
+            doc.text(String(value || ''), 18, y + 7);
+            y += 15;
+        };
+
+        const Section = (title) => {
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(11);
+            doc.text(title, 15, y);
+            y += 6;
+            // Ligne soulignement
+            doc.setLineWidth(0.5);
+            doc.line(15, y - 2, 50, y - 2);
+            y += 4;
+        };
+
+        y += 5;
+
+        // --- CHAMPS ---
+        Field({ label: "Nom :", value: proprio.name });
+        Field({ label: "Lot :", value: proprio.lots });
+        Field({ label: "Tantièmes :", value: proprio.tantiemes });
+
+        y += 5;
+        Section("Coordonnées");
+        Field({ label: "Adresse :", value: proprio.address });
+
+        Section("Téléphones");
+        Field({ label: "", value: proprio.phone });
+
+        Section("Emails");
+        Field({ label: "", value: proprio.email });
+
+        y += 5;
+        Section("Répartition");
+        Field({ label: "Gestion :", value: proprio.gestion ? `${proprio.gestion}%` : "Exonéré" });
+        Field({ label: "Ménage :", value: proprio.menage ? `${proprio.menage}%` : "Exonéré" });
+
+        addFooter(doc);
+        doc.save(`Fiche_${proprio.name.replace(/\s+/g, '_')}.pdf`);
+    };
 
     const handleSave = (e) => {
         e.preventDefault();
@@ -50,9 +133,11 @@ export default function RepartitionTab() {
                     <Plus size={18} />
                     Nouveau
                 </button>
-                <button className="flex items-center gap-2 px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-lg font-semibold transition-colors">
+                <button
+                    onClick={handleExportGlobalPDF}
+                    className="flex items-center gap-2 px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-lg font-semibold transition-colors">
                     <Download size={18} />
-                    PDF
+                    PDF Répartition
                 </button>
             </div>
 
@@ -95,6 +180,7 @@ export default function RepartitionTab() {
                                     <td className="px-4 py-3">
                                         <div className="flex justify-center gap-1">
                                             <button
+                                                onClick={() => handleExportFichePDF(proprio)}
                                                 className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full"
                                                 title="Fiche PDF"
                                             >
@@ -137,61 +223,124 @@ export default function RepartitionTab() {
                 title={editModal.data?.id ? 'Modifier Propriétaire' : 'Nouveau Propriétaire'}
                 size="lg"
             >
-                <form onSubmit={handleSave} className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-semibold text-slate-600 mb-1">Nom</label>
-                            <input name="name" defaultValue={editModal.data?.name} className="w-full px-3 py-2 border rounded-lg" required />
+                <form onSubmit={handleSave} className="space-y-6">
+                    {/* Section 1: Identité */}
+                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                        <div className="flex items-center gap-2 mb-3 text-blue-700 font-semibold border-b border-blue-100 pb-2">
+                            <User size={18} />
+                            Identification
                         </div>
-                        <div>
-                            <label className="block text-sm font-semibold text-slate-600 mb-1">Lots</label>
-                            <input name="lots" defaultValue={editModal.data?.lots} className="w-full px-3 py-2 border rounded-lg" />
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                            <label className="block text-sm font-semibold text-slate-600 mb-1">Tantièmes</label>
-                            <input name="tantiemes" type="number" defaultValue={editModal.data?.tantiemes} className="w-full px-3 py-2 border rounded-lg" required />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-semibold text-slate-600 mb-1">% Gestion (vide = exonéré)</label>
-                            <input name="gestion" type="number" step="0.01" defaultValue={editModal.data?.gestion} className="w-full px-3 py-2 border rounded-lg" placeholder="Ex: 12.47" />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-semibold text-slate-600 mb-1">% Ménage (vide = exonéré)</label>
-                            <input name="menage" type="number" step="0.01" defaultValue={editModal.data?.menage} className="w-full px-3 py-2 border rounded-lg" placeholder="Ex: 10.59" />
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-semibold text-slate-600 mb-1">Infos (balcon, cellier...)</label>
-                        <input name="infos" defaultValue={editModal.data?.infos} className="w-full px-3 py-2 border rounded-lg" />
-                    </div>
-
-                    <div className="border-t pt-4 mt-4">
-                        <p className="text-xs font-bold text-slate-500 uppercase mb-3">Coordonnées</p>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-semibold text-slate-600 mb-1">Téléphone</label>
-                                <input name="phone" defaultValue={editModal.data?.phone} className="w-full px-3 py-2 border rounded-lg" />
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Nom du propriétaire</label>
+                                <input
+                                    name="name"
+                                    defaultValue={editModal.data?.name}
+                                    className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                                    placeholder="Ex: M. DUPONT Jean"
+                                    required
+                                />
                             </div>
                             <div>
-                                <label className="block text-sm font-semibold text-slate-600 mb-1">Email</label>
-                                <input name="email" type="email" defaultValue={editModal.data?.email} className="w-full px-3 py-2 border rounded-lg" />
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Lots associés</label>
+                                <input
+                                    name="lots"
+                                    defaultValue={editModal.data?.lots}
+                                    className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                    placeholder="Ex: Lot 12 + Parking 4"
+                                />
                             </div>
-                        </div>
-                        <div className="mt-4">
-                            <label className="block text-sm font-semibold text-slate-600 mb-1">Adresse</label>
-                            <input name="address" defaultValue={editModal.data?.address} className="w-full px-3 py-2 border rounded-lg" />
                         </div>
                     </div>
 
-                    <div className="flex justify-end gap-2 pt-4">
-                        <button type="button" onClick={() => setEditModal({ open: false, data: null })} className="px-4 py-2 border rounded-lg hover:bg-slate-50">
+                    {/* Section 2: Répartition (Grid 3 cols) */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+                            <label className="block text-sm font-bold text-blue-800 mb-1">Tantièmes</label>
+                            <div className="relative">
+                                <input
+                                    name="tantiemes"
+                                    type="number"
+                                    defaultValue={editModal.data?.tantiemes}
+                                    className="w-full pl-4 pr-8 py-2 bg-white border border-blue-200 rounded-lg font-bold text-blue-600 focus:ring-2 focus:ring-blue-500 outline-none"
+                                    required
+                                />
+                                <span className="absolute right-3 top-2.5 text-blue-400 text-xs font-bold">/1000</span>
+                            </div>
+                        </div>
+
+                        <div className="bg-emerald-50/50 p-4 rounded-xl border border-emerald-100">
+                            <label className="block text-sm font-medium text-emerald-800 mb-1">% Gestion</label>
+                            <input
+                                name="gestion"
+                                type="number"
+                                step="0.01"
+                                defaultValue={editModal.data?.gestion}
+                                className="w-full px-4 py-2 bg-white border border-emerald-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
+                                placeholder="Vide = Exonéré"
+                            />
+                        </div>
+
+                        <div className="bg-purple-50/50 p-4 rounded-xl border border-purple-100">
+                            <label className="block text-sm font-medium text-purple-800 mb-1">% Ménage</label>
+                            <input
+                                name="menage"
+                                type="number"
+                                step="0.01"
+                                defaultValue={editModal.data?.menage}
+                                className="w-full px-4 py-2 bg-white border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                                placeholder="Vide = Exonéré"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Section 3: Infos Complémentaires */}
+                    <div>
+                        <label className="block text-sm font-medium text-slate-600 mb-1">Infos complémentaires (balcon, cellier...)</label>
+                        <input
+                            name="infos"
+                            defaultValue={editModal.data?.infos}
+                            className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-slate-400 outline-none"
+                        />
+                    </div>
+
+                    {/* Section 4: Contact */}
+                    <div className="border-t pt-4">
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Coordonnées de contact</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-600 mb-1">Téléphone</label>
+                                <input
+                                    name="phone"
+                                    defaultValue={editModal.data?.phone}
+                                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-slate-400 outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-600 mb-1">Email</label>
+                                <input
+                                    name="email"
+                                    type="email"
+                                    defaultValue={editModal.data?.email}
+                                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-slate-400 outline-none"
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-600 mb-1">Adresse Postale</label>
+                            <input
+                                name="address"
+                                defaultValue={editModal.data?.address}
+                                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-slate-400 outline-none"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="flex justify-end gap-3 pt-6 border-t mt-2">
+                        <button type="button" onClick={() => setEditModal({ open: false, data: null })} className="px-5 py-2.5 border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 font-medium transition-colors">
                             Annuler
                         </button>
-                        <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500">
+                        <button type="submit" className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 font-medium shadow-lg shadow-blue-500/20 transition-all">
                             Enregistrer
                         </button>
                     </div>

@@ -5,6 +5,8 @@ import { useState } from 'react';
 import { Plus, Edit, Trash2, FileText, Download, Phone, Mail, MapPin, Key } from 'lucide-react';
 import { useCarnet } from '../../../context/CarnetContext';
 import Modal, { ConfirmModal } from '../../../components/Modal';
+import { setupPDF, addHeader, addFooter, checkPageBreak } from '../../../utils/pdfUtils';
+import { autoTable } from 'jspdf-autotable';
 
 export default function PrestatairesTab() {
     const { state, addPrestataire, updatePrestataire, deletePrestataire } = useCarnet();
@@ -12,6 +14,113 @@ export default function PrestatairesTab() {
     const [deleteConfirm, setDeleteConfirm] = useState({ open: false, id: null });
 
     const prestataires = state.prestataires || [];
+
+    const handleExportGlobalPDF = () => {
+        const doc = setupPDF();
+        let y = addHeader(doc, "CONTRATS & PRESTATAIRES", "Liste des contrats en cours");
+
+        const tableBody = prestataires.map(p => [
+            p.name,
+            p.contrat || '-',
+            p.contact || '-',
+            (p.phones || []).join('\n'),
+            (p.emails || []).join('\n')
+        ]);
+
+        autoTable(doc, {
+            startY: y,
+            head: [['Société', 'Contrat', 'Contact', 'Téléphones', 'Emails']],
+            body: tableBody,
+            theme: 'grid',
+            headStyles: { fillColor: [30, 41, 59], textColor: 255 }, // Slate-800
+            styles: { fontSize: 8, cellPadding: 2, valign: 'middle' },
+            columnStyles: {
+                0: { cellWidth: 35, fontStyle: 'bold' },
+                1: { cellWidth: 25 },
+                2: { cellWidth: 30 },
+                3: { cellWidth: 35 },
+                4: { cellWidth: 'auto' }
+            },
+            margin: { bottom: 20 }
+        });
+
+        addFooter(doc);
+        doc.save("Prestataires_Contrats.pdf");
+    };
+
+    const handleExportFichePDF = (prest) => {
+        const doc = setupPDF();
+        let y = addHeader(doc, "Fiche Prestataire", prest.name);
+
+        const Field = ({ label, value }) => {
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(10);
+            doc.text(label, 15, y);
+            // Ligne de champ
+            doc.setDrawColor(240);
+            doc.setFillColor(250);
+            doc.roundedRect(15, y + 2, 180, 8, 1, 1, 'F');
+
+            doc.setFont("helvetica", "normal");
+            doc.text(String(value || ''), 18, y + 7);
+            y += 15;
+        };
+
+        const TextArea = ({ label, values }) => {
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(10);
+            doc.text(label, 15, y);
+
+            const height = Math.max(8, values.length * 6 + 4);
+            doc.setDrawColor(240);
+            doc.setFillColor(250);
+            doc.roundedRect(15, y + 2, 180, height, 1, 1, 'F');
+
+            doc.setFont("helvetica", "normal");
+            if (values.length > 0) {
+                values.forEach((v, i) => {
+                    doc.text(v, 18, y + 7 + (i * 5));
+                });
+            } else {
+                doc.text("-", 18, y + 7);
+            }
+            y += height + 7;
+        };
+
+        y += 5;
+        Field({ label: "Société :", value: prest.name });
+        Field({ label: "Contrat :", value: prest.contrat });
+
+        const Section = (title) => {
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(11);
+            doc.text(title, 15, y);
+            y += 6;
+            doc.setLineWidth(0.5);
+            doc.line(15, y - 2, 50, y - 2);
+            y += 4;
+        };
+
+        y += 5;
+        Section("Coordonnées");
+
+        Field({ label: "Adresse :", value: prest.address });
+        Field({ label: "Interlocuteur :", value: prest.contact });
+
+        Section("Contacts");
+        TextArea({ label: "Téléphones :", values: prest.phones || [] });
+        TextArea({ label: "Emails :", values: prest.emails || [] });
+
+        if (prest.codes?.id || prest.codes?.mdp) {
+            y += 5;
+            Section("Accès");
+            Field({ label: "ID :", value: prest.codes?.id });
+            Field({ label: "MDP :", value: prest.codes?.mdp });
+        }
+
+        addFooter(doc);
+        doc.save(`Fiche_Prestataire_${prest.name.replace(/\s+/g, '_')}.pdf`);
+    };
 
     const handleSave = (e) => {
         e.preventDefault();
@@ -48,9 +157,11 @@ export default function PrestatairesTab() {
                     <Plus size={18} />
                     Nouveau
                 </button>
-                <button className="flex items-center gap-2 px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-lg font-semibold transition-colors">
+                <button
+                    onClick={handleExportGlobalPDF}
+                    className="flex items-center gap-2 px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-lg font-semibold transition-colors">
                     <Download size={18} />
-                    PDF
+                    PDF Liste
                 </button>
             </div>
 
@@ -100,7 +211,10 @@ export default function PrestatairesTab() {
                                     </td>
                                     <td className="px-4 py-3">
                                         <div className="flex justify-center gap-1">
-                                            <button className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full" title="Fiche PDF">
+                                            <button
+                                                onClick={() => handleExportFichePDF(prest)}
+                                                className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full"
+                                                title="Fiche PDF">
                                                 <FileText size={14} />
                                             </button>
                                             <button

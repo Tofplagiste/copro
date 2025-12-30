@@ -3,18 +3,53 @@
  */
 import { Phone, Mail, MapPin, Download } from 'lucide-react';
 import { useCarnet } from '../../../context/CarnetContext';
+import { setupPDF, addHeader, addFooter } from '../../../utils/pdfUtils';
+import { autoTable } from 'jspdf-autotable';
 
 export default function AnnuaireTab() {
     const { state } = useCarnet();
     const proprietaires = state.proprietaires || [];
 
+    const handleExportPDF = () => {
+        const doc = setupPDF();
+        let y = addHeader(doc, "ANNUAIRE DES COPROPRIÉTAIRES", "Contacts & Coordonnées");
+
+        const tableBody = proprietaires.map(p => [
+            p.name,
+            p.phone || '-',
+            p.email || '-',
+            p.address || '-'
+        ]);
+
+        autoTable(doc, {
+            startY: y,
+            head: [['Propriétaire', 'Téléphone', 'Email', 'Adresse']],
+            body: tableBody,
+            theme: 'grid',
+            headStyles: { fillColor: [70, 70, 70], textColor: 255 },
+            styles: { fontSize: 8, cellPadding: 2 },
+            columnStyles: {
+                0: { cellWidth: 40, fontStyle: 'bold' },
+                1: { cellWidth: 30 },
+                2: { cellWidth: 50 },
+                3: { cellWidth: 'auto' }
+            },
+            margin: { bottom: 20 }
+        });
+
+        addFooter(doc);
+        doc.save("Annuaire_Copro.pdf");
+    };
+
     return (
         <div className="p-4">
             {/* Actions */}
             <div className="flex justify-end mb-4">
-                <button className="flex items-center gap-2 px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-lg font-semibold transition-colors">
+                <button
+                    onClick={handleExportPDF}
+                    className="flex items-center gap-2 px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-lg font-semibold transition-colors">
                     <Download size={18} />
-                    Imprimer
+                    Imprimer Annuaire
                 </button>
             </div>
 

@@ -2,9 +2,11 @@
  * CarnetInfoTab - Onglet principal du carnet avec informations générales
  */
 import { useState } from 'react';
-import { Info, Users, Euro, Wrench, FileCheck, History, Plus, Edit, Trash2, X, Check } from 'lucide-react';
+import { Info, Users, Euro, Wrench, FileCheck, History, Plus, Edit, Trash2, X, Check, Shield, PiggyBank, PenTool, ClipboardList, Timer, Save, FileText, Download } from 'lucide-react';
 import { useCarnet } from '../../../context/CarnetContext';
 import Modal, { ConfirmModal } from '../../../components/Modal';
+import { setupPDF, addHeader, addSectionIdx, addFooter, checkPageBreak } from '../../../utils/pdfUtils';
+import { autoTable } from 'jspdf-autotable';
 
 export default function CarnetInfoTab() {
     const { state, updateState, addTravaux, updateTravaux, deleteTravaux } = useCarnet();
@@ -324,8 +326,191 @@ export default function CarnetInfoTab() {
         }
     };
 
+    const handleExportPDF = () => {
+        const doc = setupPDF();
+        let y = addHeader(doc, "CARNET D'ENTRETIEN");
+
+        // --- I. IDENTIFICATION ---
+        y = addSectionIdx(doc, "IDENTIFICATION", y, "I");
+
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "bold");
+        doc.text("Adresse :", 15, y);
+        doc.setFont("helvetica", "normal");
+        doc.text(state.general?.address || "7-9 rue André Leroux, 33780 Soulac-sur-Mer", 40, y);
+
+        doc.setFont("helvetica", "bold");
+        doc.text("Syndic :", 110, y);
+        doc.setFont("helvetica", "normal");
+        const syndic = state.admin?.syndic || {};
+        doc.text(`${syndic.name || ''} ${syndic.phone || ''}`, 130, y);
+
+        y += 7;
+
+        doc.setFont("helvetica", "bold");
+        doc.text("Règlement :", 15, y);
+        doc.setFont("helvetica", "normal");
+        doc.text(state.general?.reglement || "29 septembre 2009", 40, y);
+
+        doc.setFont("helvetica", "bold");
+        doc.text("Composition :", 110, y);
+        doc.setFont("helvetica", "normal");
+        doc.text(state.general?.lots || "21 Lots", 135, y);
+
+        y += 15;
+
+        // --- II. ADMINISTRATION & FINANCES ---
+        y = checkPageBreak(doc, y);
+        y = addSectionIdx(doc, "ADMINISTRATION & FINANCES", y, "II");
+
+        doc.setFontSize(9);
+        doc.text(`AG Nomination : ${state.admin?.agNomination || '-'}`, 15, y);
+        doc.text(`Mandat : ${state.admin?.finMandat || '-'}`, 110, y);
+        y += 7;
+        doc.text(`Trésorerie : ${state.finances?.avanceTresorerie || '-'}`, 15, y);
+        doc.text(`Fonds Travaux : ${state.finances?.fondsTravaux || '-'}`, 110, y);
+        y += 10;
+
+        doc.setFont("helvetica", "bold");
+        doc.text("Conseil Syndical :", 15, y);
+        y += 5;
+        doc.setFont("helvetica", "normal");
+        if (state.admin?.conseilSyndical && state.admin.conseilSyndical.length > 0) {
+            state.admin.conseilSyndical.forEach(member => {
+                doc.text(member, 15, y);
+                y += 4;
+            });
+        } else {
+            doc.text("-", 15, y);
+            y += 4;
+        }
+
+        y += 10;
+
+        // --- III. DONNÉES TECHNIQUES ---
+        y = addSectionIdx(doc, "DONNÉES TECHNIQUES", y, "III");
+
+        doc.setFontSize(9);
+        const tech = state.technique || {};
+        doc.setFont("helvetica", "bold"); doc.text("Construction :", 15, y);
+        doc.setFont("helvetica", "normal"); doc.text(tech.construction || '-', 40, y);
+
+        doc.setFont("helvetica", "bold"); doc.text("Toiture :", 110, y);
+        doc.setFont("helvetica", "normal"); doc.text(tech.toiture || '-', 130, y);
+        y += 7;
+
+        doc.setFont("helvetica", "bold"); doc.text("Chauffage :", 15, y);
+        doc.setFont("helvetica", "normal"); doc.text(tech.chauffage || '-', 40, y);
+
+        doc.setFont("helvetica", "bold"); doc.text("Compteurs :", 110, y);
+        doc.setFont("helvetica", "normal"); doc.text("Voir détails", 130, y);
+
+        y += 15;
+
+        // --- IV. CONTRATS EN COURS ---
+        y = addSectionIdx(doc, "CONTRATS EN COURS", y, "IV");
+
+        const prestataires = state?.prestataires || [];
+
+        if (prestataires.length > 0) {
+            prestataires.forEach(p => {
+                y = checkPageBreak(doc, y);
+                doc.setFont("helvetica", "bold");
+                doc.text(`• ${p.name}`, 15, y);
+                doc.setFont("helvetica", "normal");
+                if (p.contrat) doc.text(` - Contrat: ${p.contrat}`, 15 + doc.getTextWidth(`• ${p.name}`), y);
+
+                y += 4;
+                doc.setFontSize(8);
+                doc.setTextColor(80);
+                if (p.address) {
+                    doc.text(`${p.address}`, 18, y);
+                    y += 3.5;
+                }
+                const phones = p.phones?.join(' / ') || "";
+                if (phones) {
+                    doc.text(`Tél: ${phones}`, 18, y);
+                    y += 3.5;
+                }
+                const emails = p.emails?.join(' / ') || "";
+                if (emails) {
+                    doc.text(`Email: ${emails}`, 18, y);
+                    y += 3.5;
+                }
+
+                y += 2;
+                doc.setFontSize(9);
+                doc.setTextColor(0);
+            });
+        } else {
+            doc.setFont("helvetica", "italic");
+            doc.text("Aucun contrat enregistré.", 15, y);
+            y += 10;
+        }
+
+        y += 5;
+
+        // --- V. DIAGNOSTICS ---
+        y = checkPageBreak(doc, y);
+        y = addSectionIdx(doc, "DIAGNOSTICS", y, "V");
+
+        const diag = state.diagnostics || {};
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "bold"); doc.text("Amiante :", 15, y);
+        doc.setFont("helvetica", "normal"); doc.text(diag.amiante || '-', 50, y);
+        y += 6;
+
+        doc.setFont("helvetica", "bold"); doc.text("Plomb :", 15, y);
+        doc.setFont("helvetica", "normal"); doc.text(diag.plomb || '-', 50, y);
+        y += 6;
+
+        doc.setFont("helvetica", "bold"); doc.text("Termites :", 15, y);
+        doc.setFont("helvetica", "normal"); doc.text(diag.termites || '-', 50, y);
+
+        y += 15;
+
+        // --- VI. TRAVAUX ---
+        y = checkPageBreak(doc, y);
+        y = addSectionIdx(doc, "HISTORIQUE DES TRAVAUX", y, "VI");
+
+        const travaux = state?.travaux || [];
+        const tableBody = travaux.map(t => [t.annee, t.nature, t.entreprise]);
+
+        if (tableBody.length > 0) {
+            autoTable(doc, {
+                startY: y,
+                head: [['Année', 'Nature', 'Entreprise']],
+                body: tableBody,
+                theme: 'grid',
+                headStyles: { fillColor: [255, 255, 255], textColor: 0, lineColor: 0, lineWidth: 0.1 },
+                styles: { fontSize: 8, cellPadding: 2, lineColor: 0, lineWidth: 0.1, textColor: 0 },
+                columnStyles: {
+                    0: { cellWidth: 20, fontStyle: 'bold' },
+                    1: { cellWidth: 'auto' },
+                    2: { cellWidth: 60 }
+                },
+                margin: { bottom: 20 }
+            });
+        } else {
+            doc.text("Aucun historique de travaux.", 15, y);
+        }
+
+        addFooter(doc);
+        doc.save("Carnet_Entretien_Complet.pdf");
+    };
+
     return (
         <div className="p-4 space-y-4">
+            <div className="flex justify-end">
+                <button
+                    onClick={handleExportPDF}
+                    className="flex items-center gap-2 px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-lg font-semibold transition-colors"
+                >
+                    <Download size={18} />
+                    Export PDF Carnet
+                </button>
+            </div>
+
             {/* Informations Générales */}
             <SectionCard icon={Info} title="Informations Générales" editKey="general">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -341,7 +526,7 @@ export default function CarnetInfoTab() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <InfoItem
                         label="Syndic Bénévole"
-                        value={`${state.admin?.syndic?.name}\n${state.admin?.syndic?.address}\n${state.admin?.syndic?.phone}`}
+                        value={`${state.admin?.syndic?.name} \n${state.admin?.syndic?.address} \n${state.admin?.syndic?.phone} `}
                     />
                     <InfoItem label="AG Nomination" value={state.admin?.agNomination} />
                     <InfoItem label="Fin Mandat" value={state.admin?.finMandat} />
