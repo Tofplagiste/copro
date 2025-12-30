@@ -263,14 +263,16 @@ export default function BudgetTab() {
                 initialOwnerId={mailingOwnerId}
                 currentQuarter={selectedQuarter}
                 year={2026}
+                dueDate={dueDate}
+                computeOwnerCall={computeOwnerCall}
             />
 
             {/* Toolbar */}
             <div className="bg-white rounded-xl shadow-sm p-4 flex flex-wrap gap-4 items-center justify-between">
                 <div className="flex items-center gap-4">
                     {/* Mode Budget */}
-                    <div className="flex flex-col">
-                        <span className="text-xs font-bold text-gray-500 mb-1">Mode d'Appel :</span>
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-gray-500">Mode d'Appel :</span>
                         <select
                             value={budgetMode}
                             onChange={(e) => handleModeChange(e.target.value)}
@@ -288,7 +290,7 @@ export default function BudgetTab() {
                         <select
                             value={selectedQuarter}
                             onChange={(e) => setSelectedQuarter(e.target.value)}
-                            className="px-2 py-1 border rounded font-bold"
+                            className="px-2 py-2 border rounded font-bold"
                         >
                             {['T1', 'T2', 'T3', 'T4'].map(q => (
                                 <option key={q} value={q}>{q}</option>
@@ -297,35 +299,35 @@ export default function BudgetTab() {
                         <input
                             type="number"
                             defaultValue={2026}
-                            className="w-20 px-2 py-1 border rounded font-bold"
+                            className="w-20 px-2 py-2 border rounded font-bold"
                         />
                     </div>
 
                     {/* Dates */}
-                    <div className="flex gap-4 border-l pl-4">
-                        <div className="flex flex-col">
-                            <span className="text-xs font-bold text-gray-500 mb-1">Date Compta :</span>
+                    <div className="flex items-center gap-4 border-l pl-4">
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-gray-500">Date Compta :</span>
                             <input
                                 type="date"
                                 value={dateCompta}
                                 onChange={(e) => setDateCompta(e.target.value)}
-                                className="px-2 py-1 border rounded text-xs font-bold w-28"
+                                className="px-2 py-2 border rounded text-sm font-bold"
                             />
                         </div>
-                        <div className="flex flex-col">
-                            <span className="text-xs font-bold text-gray-500 mb-1">Échéance :</span>
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-gray-500">Échéance :</span>
                             <input
                                 type="date"
                                 value={dueDate}
                                 onChange={(e) => setDueDate(e.target.value)}
-                                className="px-2 py-1 border rounded text-xs font-bold w-28 text-red-600"
+                                className="px-2 py-2 border-2 border-orange-400 rounded text-sm font-bold text-orange-600 bg-orange-50"
                             />
                         </div>
                     </div>
                 </div>
 
                 {/* Actions */}
-                <div className="flex gap-2">
+                <div className="flex items-center gap-2">
                     <button
                         onClick={() => setIsManageModalOpen(true)}
                         className="px-3 py-2 border border-gray-300 text-gray-600 rounded-lg font-bold flex items-center gap-2 hover:bg-gray-50 transition-colors"

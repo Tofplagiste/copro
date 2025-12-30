@@ -13,7 +13,7 @@ export default function Header() {
     };
 
     return (
-        <header className="bg-gradient-to-r from-slate-800 to-slate-900 text-white px-5 py-4 sticky top-0 z-50 shadow-lg">
+        <header className="bg-gradient-to-r from-slate-800 to-slate-900 text-white px-5 py-4 shadow-lg">
             <div className="flex justify-between items-center max-w-screen-2xl mx-auto">
                 {/* Logo & Titre */}
                 <div className="flex items-center gap-4">

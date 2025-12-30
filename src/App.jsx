@@ -33,30 +33,42 @@ const TAB_COMPONENTS = {
 
 
 function CoproApp({ onBackToHub }) {
-  const [activeTab, setActiveTab] = useState('water');
+  const [activeTab, setActiveTab] = useState(() => {
+    const saved = sessionStorage.getItem('coproActiveTab');
+    return saved || 'water';
+  });
+
+  const handleTabChange = (tab) => {
+    sessionStorage.setItem('coproActiveTab', tab);
+    setActiveTab(tab);
+  };
+
   const ActiveTabComponent = TAB_COMPONENTS[activeTab] || WaterTab;
 
   return (
     <div className="min-h-screen bg-gray-100">
-      {/* Header with Back to Hub button */}
-      <div className="bg-slate-800 text-white px-4 py-2 flex items-center gap-4">
-        <button
-          onClick={onBackToHub}
-          className="flex items-center gap-2 px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors text-sm"
-        >
-          <ArrowLeft size={16} />
-          <span>Hub</span>
-        </button>
-        <span className="text-slate-400">|</span>
-        <span className="font-semibold">Gestion Copro</span>
-      </div>
+      {/* Sticky container for both headers */}
+      <div className="sticky top-0 z-50">
+        {/* Header with Back to Hub button */}
+        <div className="bg-slate-800 text-white px-4 py-2 flex items-center gap-4">
+          <button
+            onClick={onBackToHub}
+            className="flex items-center gap-2 px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors text-sm"
+          >
+            <ArrowLeft size={16} />
+            <span>Hub</span>
+          </button>
+          <span className="text-slate-400">|</span>
+          <span className="font-semibold">Gestion Copro</span>
+        </div>
 
-      <Header />
-      <TabNavigation
-        tabs={TABS_CONFIG}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-      />
+        <Header />
+        <TabNavigation
+          tabs={TABS_CONFIG}
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+        />
+      </div>
 
       <main className="animate-fadeIn">
         <ActiveTabComponent />

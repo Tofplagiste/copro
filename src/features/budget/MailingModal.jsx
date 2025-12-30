@@ -1,28 +1,81 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { X, Send, Mail } from 'lucide-react';
 
-export default function MailingModal({ isOpen, onClose, owners, initialOwnerId, currentQuarter, year }) {
-    const [selectedOwnerId, setSelectedOwnerId] = useState(initialOwnerId || '');
+export default function MailingModal({
+    isOpen,
+    onClose,
+    owners,
+    initialOwnerId,
+    currentQuarter,
+    year,
+    dueDate,
+    computeOwnerCall
+}) {
+    const [selectedOwnerId, setSelectedOwnerId] = useState(null);
     const [emailSubject, setEmailSubject] = useState('');
     const [emailBody, setEmailBody] = useState('');
-    const [isSending, setIsSending] = useState(false);
     const [status, setStatus] = useState('');
+    const [displayAmount, setDisplayAmount] = useState('—');
 
+    // Find owner by ID (handle both string and number)
+    const findOwner = useCallback((id) => {
+        if (!id || !owners?.length) return null;
+        return owners.find(o => String(o.id) === String(id));
+    }, [owners]);
+
+    // Initialize when modal opens
     useEffect(() => {
-        if (isOpen) {
-            setSelectedOwnerId(initialOwnerId || (owners.length > 0 ? owners[0].id : ''));
+        if (isOpen && owners?.length > 0) {
+            const initId = initialOwnerId || owners[0]?.id;
+            setSelectedOwnerId(initId);
             setStatus('');
         }
     }, [isOpen, initialOwnerId, owners]);
 
-    useEffect(() => {
-        updateEmailContent();
-    }, [selectedOwnerId, currentQuarter, year]);
+    // Format money
+    const formatMoney = (val) => {
+        return new Intl.NumberFormat('fr-FR', {
+            style: 'currency',
+            currency: 'EUR',
+            minimumFractionDigits: 2
+        }).format(val || 0);
+    };
 
-    const updateEmailContent = () => {
-        if (!selectedOwnerId) return;
-        const owner = owners.find(o => o.id === selectedOwnerId);
-        if (!owner) return;
+    // Format date
+    const formatDate = (dateStr) => {
+        if (!dateStr) return '[à préciser]';
+        return new Date(dateStr).toLocaleDateString('fr-FR', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        });
+    };
+
+    // Update email content when owner or dates change
+    useEffect(() => {
+        if (!selectedOwnerId || !owners?.length) return;
+
+        const owner = findOwner(selectedOwnerId);
+        if (!owner) {
+            console.warn('Owner not found for ID:', selectedOwnerId);
+            return;
+        }
+
+        // Compute the actual call amount for this owner
+        let totalAmount = 0;
+        if (computeOwnerCall) {
+            try {
+                const call = computeOwnerCall(owner);
+                totalAmount = call?.total || 0;
+            } catch (e) {
+                console.warn('Could not compute owner call:', e);
+            }
+        }
+
+        const formattedAmount = formatMoney(totalAmount);
+        const formattedDueDate = formatDate(dueDate);
+
+        setDisplayAmount(formattedAmount);
 
         const subject = `Appel de fonds ${currentQuarter} ${year} - ${owner.name}`;
         const body = `Bonjour ${owner.name},
@@ -30,26 +83,34 @@ export default function MailingModal({ isOpen, onClose, owners, initialOwnerId, 
 Veuillez trouver ci-joint votre appel de fonds pour le ${currentQuarter} ${year}.
 
 Détails du paiement :
-- Montant à régler : [voir détail joint]
-- Date limite : [à préciser]
+- Montant à régler : ${formattedAmount}
+- Date limite : ${formattedDueDate}
 - Mode de règlement : Virement ou chèque
 
 RIB pour virement :
-IBAN : FR76 XXXX XXXX XXXX XXXX XXXX XXX
-BIC : XXXXXXXX
+IBAN : FR76 3000 4028 3700 0100 4307 218
+BIC : BNPAFRPP
 
 Pour tout renseignement, n'hésitez pas à me contacter.
 
 Cordialement,
 Le Syndic Bénévole
-Copropriété Les Pyrénées`;
+Copropriété Les Pyrénées
+9 rue André Leroux - 33780 Soulac-sur-Mer`;
 
         setEmailSubject(subject);
         setEmailBody(body);
+    }, [selectedOwnerId, currentQuarter, year, dueDate, owners, computeOwnerCall, findOwner]);
+
+    // Handle owner selection change
+    const handleOwnerChange = (e) => {
+        const newId = e.target.value;
+        setSelectedOwnerId(newId);
     };
 
+    // Send email via mailto
     const handleSendMail = () => {
-        const owner = owners.find(o => o.id === selectedOwnerId);
+        const owner = findOwner(selectedOwnerId);
         const email = owner?.email || '';
 
         if (!email) {
@@ -57,16 +118,16 @@ Copropriété Les Pyrénées`;
             return;
         }
 
-        // Open mailto link - this is the only reliable way without a backend
-        const href = `mailto:${email}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
-        window.location.href = href;
+        // Use Gmail compose URL - opens Gmail in new tab
+        const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}&su=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+        window.open(gmailUrl, '_blank');
 
-        setStatus('✅ Client email ouvert');
+        setStatus('✅ Gmail ouvert dans un nouvel onglet');
     };
 
     if (!isOpen) return null;
 
-    const selectedOwner = owners.find(o => o.id === selectedOwnerId);
+    const selectedOwner = findOwner(selectedOwnerId);
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
@@ -83,18 +144,26 @@ Copropriété Les Pyrénées`;
 
                 {/* Body */}
                 <div className="p-6 space-y-5">
-                    {/* Owner Selector */}
-                    <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-2">Destinataire</label>
-                        <select
-                            value={selectedOwnerId}
-                            onChange={(e) => setSelectedOwnerId(e.target.value)}
-                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-lg"
-                        >
-                            {owners.map(o => (
-                                <option key={o.id} value={o.id}>{o.name} - {o.email || 'Pas d\'email'}</option>
-                            ))}
-                        </select>
+                    {/* Owner Selector with amount preview */}
+                    <div className="flex gap-4">
+                        <div className="flex-1">
+                            <label className="block text-sm font-bold text-gray-700 mb-2">Destinataire</label>
+                            <select
+                                value={selectedOwnerId || ''}
+                                onChange={handleOwnerChange}
+                                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-lg"
+                            >
+                                {owners.map(o => (
+                                    <option key={o.id} value={o.id}>{o.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="w-44">
+                            <label className="block text-sm font-bold text-gray-700 mb-2">Montant Total</label>
+                            <div className="px-4 py-3 bg-green-100 border-2 border-green-500 rounded-xl text-lg font-bold text-green-700 text-center">
+                                {displayAmount}
+                            </div>
+                        </div>
                     </div>
 
                     {/* Email Preview */}
@@ -113,7 +182,7 @@ Copropriété Les Pyrénées`;
                             <textarea
                                 value={emailBody}
                                 onChange={(e) => setEmailBody(e.target.value)}
-                                rows={12}
+                                rows={14}
                                 className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-700 font-mono text-sm leading-relaxed resize-none"
                             />
                         </div>
@@ -131,9 +200,9 @@ Copropriété Les Pyrénées`;
                 <div className="bg-gray-50 px-6 py-5 flex justify-between items-center border-t">
                     <div className="text-sm text-gray-500">
                         {selectedOwner?.email ? (
-                            <span>📧 {selectedOwner.email}</span>
+                            <span className="text-green-600 font-medium">📧 {selectedOwner.email}</span>
                         ) : (
-                            <span className="text-red-500">⚠️ Aucun email configuré</span>
+                            <span className="text-red-500">⚠️ Aucun email configuré pour {selectedOwner?.name || 'ce copropriétaire'}</span>
                         )}
                     </div>
                     <button
