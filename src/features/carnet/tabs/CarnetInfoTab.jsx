@@ -500,7 +500,7 @@ export default function CarnetInfoTab() {
     };
 
     return (
-        <div className="p-4 space-y-4">
+        <div className="p-2 sm:p-4 space-y-4">
             <div className="flex justify-end">
                 <button
                     onClick={handleExportPDF}
@@ -523,7 +523,7 @@ export default function CarnetInfoTab() {
 
             {/* Administration */}
             <SectionCard icon={Users} title="Administration & Conseil Syndical" editKey="admin">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <InfoItem
                         label="Syndic Bénévole"
                         value={`${state.admin?.syndic?.name} \n${state.admin?.syndic?.address} \n${state.admin?.syndic?.phone} `}
@@ -544,7 +544,7 @@ export default function CarnetInfoTab() {
 
             {/* Données Techniques */}
             <SectionCard icon={Wrench} title="Données Techniques" editKey="technique">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     <InfoItem label="Construction" value={state.technique?.construction} />
                     <InfoItem label="Surface Développée" value={state.technique?.surface} />
                     <InfoItem label="Toiture" value={state.technique?.toiture} />
@@ -556,7 +556,7 @@ export default function CarnetInfoTab() {
 
             {/* Diagnostics */}
             <SectionCard icon={FileCheck} title="Diagnostics" editKey="diagnostics">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <InfoItem label="Amiante" value={state.diagnostics?.amiante} />
                     <InfoItem label="Plomb" value={state.diagnostics?.plomb} />
                     <InfoItem label="Termites" value={state.diagnostics?.termites} />

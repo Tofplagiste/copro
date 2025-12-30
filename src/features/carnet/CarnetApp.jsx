@@ -227,8 +227,9 @@ function CarnetContent({ onBackToHub }) {
                         <div className="flex items-center gap-2">
                             <Book size={24} />
                             <div>
-                                <h1 className="font-bold text-lg">Copro Les Pyrénées</h1>
-                                <p className="text-slate-300 text-xs">Carnet d'Entretien</p>
+                                <h1 className="font-bold text-lg hidden sm:block">Copro Les Pyrénées</h1>
+                                <h1 className="font-bold text-lg sm:hidden">Copro</h1>
+                                <p className="text-slate-300 text-xs hidden sm:block">Carnet d'Entretien</p>
                             </div>
                         </div>
                     </div>
@@ -239,7 +240,7 @@ function CarnetContent({ onBackToHub }) {
                 </div>
 
                 {/* Tab Navigation */}
-                <nav className="flex overflow-x-auto bg-slate-800">
+                <nav className="flex overflow-x-auto bg-slate-800 no-scrollbar">
                     {CARNET_TABS.map(tab => {
                         const Icon = ICONS[tab.icon] || Book;
                         return (
@@ -248,7 +249,7 @@ function CarnetContent({ onBackToHub }) {
                                 onClick={() => setActiveTab(tab.id)}
                                 className={`
                   flex-1 min-w-[100px] flex flex-col items-center gap-1 px-4 py-3 text-sm font-medium 
-                  border-b-3 transition-colors
+                  border-b-3 transition-colors shrink-0
                   ${activeTab === tab.id
                                         ? 'text-white border-b-2 border-emerald-400 bg-slate-700/50'
                                         : 'text-slate-400 hover:text-white border-b-2 border-transparent'}
