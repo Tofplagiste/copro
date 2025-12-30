@@ -90,29 +90,28 @@ VS Code intègre Git avec une interface visuelle.
 #### a) Ouvrir le panneau Git
 Cliquez sur l'icône **Source Control** dans la barre latérale gauche (icône avec 3 branches).
 
-> 🖼️ *[Screenshot attendu : Icône Source Control dans la barre latérale VS Code]*
+![alt text](image.png)
 
 #### b) Voir les modifications
 Les fichiers modifiés apparaissent dans la liste "Changes".
 
-> 🖼️ *[Screenshot attendu : Liste des fichiers modifiés dans le panneau Source Control]*
+![alt text](image-1.png)
 
 #### c) Préparer les fichiers (stage)
-Cliquez sur le `+` à côté de chaque fichier, ou sur le `+` global pour tout ajouter.
+Cliquez sur le `+` à côté de chaque fichier, ou sur le `+` global pour tout ajouter. (il faut survoler le "Changes" ou le fichier pour voir le +)
 
-> 🖼️ *[Screenshot attendu : Bouton + pour stager les fichiers]*
+![alt text](image-2.png)
 
 #### d) Écrire un message et valider
 1. Dans le champ texte en haut, écrivez votre message de commit
 2. Cliquez sur le bouton ✓ **Commit**
 
-> 🖼️ *[Screenshot attendu : Champ de message et bouton Commit]*
+![alt text](image-4.png)
 
 #### e) Envoyer sur GitHub
 Cliquez sur le bouton **Sync Changes** ou **Push** (flèche vers le haut).
 
-> 🖼️ *[Screenshot attendu : Bouton Sync/Push dans la barre]*
-
+![alt text](image-5.png)
 ---
 
 ## 🔄 Récupérer les modifications depuis GitHub
