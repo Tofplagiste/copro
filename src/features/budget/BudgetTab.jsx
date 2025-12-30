@@ -5,6 +5,8 @@ import { useState } from 'react';
 import { FileText, Mail, Download, Table2 } from 'lucide-react';
 import { useCopro } from '../../context/CoproContext';
 import { fmtMoney } from '../../utils/formatters';
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
 
 const BUDGET_MODES = [
     { id: 'previ', label: '1. Budget Prévisionnel (Année N)' },
@@ -161,6 +163,76 @@ export default function BudgetTab() {
         return { partGen, partSpe, partMen, partTra, subTotal, wCost, total };
     };
 
+    // Génération PDF appel de fonds
+    const generateOwnerPDF = (owner) => {
+        const call = computeOwnerCall(owner);
+        const doc = new jsPDF();
+        const year = new Date().getFullYear();
+        const quarter = selectedQuarter;
+
+        // En-tête
+        doc.setFontSize(16);
+        doc.setFont('helvetica', 'bold');
+        doc.text('APPEL DE FONDS', 105, 20, { align: 'center' });
+
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`${quarter} ${year}`, 105, 28, { align: 'center' });
+        doc.text('Copropriété 9 Rue André Leroux - 33780 SOULAC-SUR-MER', 105, 35, { align: 'center' });
+
+        // Destinataire
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.text(owner.name, 14, 50);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.text(`Lot(s): ${owner.lot}`, 14, 56);
+        doc.text(`Tantièmes: ${owner.tantiemes} / 1000`, 14, 62);
+
+        // Tableau de répartition
+        const tableData = [];
+        tableData.push(['Charges Générales (1/4)', fmtMoney(call.partGen) + ' €']);
+        if (!owner.exoGest) {
+            tableData.push(['Charges Syndic/Entretien (1/4)', fmtMoney(call.partSpe) + ' €']);
+        } else {
+            tableData.push(['Charges Syndic/Entretien (Exonéré)', '0.00 €']);
+        }
+        if (!owner.exoMen) {
+            tableData.push(['Charges Ménage (1/4)', fmtMoney(call.partMen) + ' €']);
+        } else {
+            tableData.push(['Charges Ménage (Exonéré)', '0.00 €']);
+        }
+        tableData.push(['Travaux / Autre (1/4)', fmtMoney(call.partTra) + ' €']);
+        tableData.push(['Sous-Total Charges', fmtMoney(call.subTotal) + ' €']);
+        tableData.push(['Eau (Prévision)', fmtMoney(call.wCost) + ' €']);
+
+        doc.autoTable({
+            startY: 75,
+            head: [['Poste', 'Montant']],
+            body: tableData,
+            headStyles: { fillColor: [51, 65, 85] },
+            styles: { fontSize: 10 },
+            columnStyles: { 1: { halign: 'right' } }
+        });
+
+        // Total
+        const finalY = doc.lastAutoTable.finalY + 10;
+        doc.setFillColor(34, 197, 94);
+        doc.rect(14, finalY - 2, 182, 12, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`TOTAL À RÉGLER: ${fmtMoney(call.total)} €`, 105, finalY + 6, { align: 'center' });
+
+        // Pied de page
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.text('À régler avant le 15 du premier mois du trimestre.', 14, finalY + 25);
+
+        doc.save(`Appel_${owner.name}_${quarter}_${year}.pdf`);
+    };
+
     return (
         <div className="p-6 space-y-4">
             {/* Toolbar */}
@@ -268,7 +340,7 @@ export default function BudgetTab() {
                                                 <button className="p-1.5 border rounded hover:bg-gray-100" title="Email">
                                                     <Mail size={14} className="text-amber-500" />
                                                 </button>
-                                                <button className="p-1.5 border rounded hover:bg-gray-100" title="PDF">
+                                                <button onClick={() => generateOwnerPDF(owner)} className="p-1.5 border rounded hover:bg-gray-100" title="PDF">
                                                     <Download size={14} className="text-red-500" />
                                                 </button>
                                             </div>

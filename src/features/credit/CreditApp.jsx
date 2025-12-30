@@ -4,6 +4,8 @@
  */
 import { useState, useMemo, useEffect } from 'react';
 import { ArrowLeft, Calculator, Download, FileText, Users, Settings, CreditCard, Percent, PiggyBank, Euro, TrendingUp } from 'lucide-react';
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
 
 // Données copropriétaires
 const COPROPRIETAIRES = [
@@ -167,6 +169,75 @@ export default function CreditApp({ onBackToHub }) {
         ));
     };
 
+    // Export PDF simulation crédit
+    const exportPDF = () => {
+        const doc = new jsPDF('landscape');
+
+        // En-tête
+        doc.setFontSize(18);
+        doc.setFont('helvetica', 'bold');
+        doc.text('SIMULATION CRÉDIT COPROPRIÉTÉ', 148, 15, { align: 'center' });
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text('9 Rue André Leroux - 33780 SOULAC-SUR-MER', 148, 22, { align: 'center' });
+
+        // Paramètres
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Paramètres du Crédit', 14, 35);
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Durée: ${duree} mois (${(duree / 12).toFixed(1)} ans) | TEG: ${tauxNominal}% | Assurance: ${tauxAssurance}%`, 14, 42);
+        doc.text(`Montant Total Travaux: ${formatMoney(montantTotal)} | Fonds Travaux Loi Alur: ${formatMoney(fondsTravaux)}`, 14, 48);
+
+        // Tableau répartition
+        const tableHeaders = ['Copropriétaire', 'Lot', 'Tant.', 'P. Communes', 'Balcons', 'Celliers', 'Total', 'Fonds Alur', 'Apport', 'À Financer', 'Mensualité'];
+        const tableRows = repartition.map(c => [
+            c.nom,
+            c.lot,
+            c.tantiemes + c.tantCellier,
+            formatMoney(c.partCommunes),
+            c.partBalcon > 0 ? formatMoney(c.partBalcon) : '-',
+            c.partCellier > 0 ? formatMoney(c.partCellier) : '-',
+            formatMoney(c.totalPart),
+            '-' + formatMoney(c.partFondsTravaux),
+            c.apportUtilise > 0 ? '-' + formatMoney(c.apportUtilise) : '-',
+            c.paiementComptant ? 'Comptant' : formatMoney(c.montantAFinancer),
+            c.paiementComptant ? '-' : c.mensualite.toFixed(2) + ' €'
+        ]);
+
+        doc.autoTable({
+            startY: 55,
+            head: [tableHeaders],
+            body: tableRows,
+            headStyles: { fillColor: [67, 56, 202], fontSize: 7 },
+            bodyStyles: { fontSize: 7 },
+            columnStyles: {
+                0: { cellWidth: 35 },
+                3: { halign: 'right' },
+                4: { halign: 'right' },
+                5: { halign: 'right' },
+                6: { halign: 'right' },
+                7: { halign: 'right' },
+                8: { halign: 'right' },
+                9: { halign: 'right' },
+                10: { halign: 'right' }
+            }
+        });
+
+        // Résumé financier
+        const finalY = doc.lastAutoTable.finalY + 10;
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Résumé Financier', 14, finalY);
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Montant Financé: ${formatMoney(totaux.montantFinance)} | Intérêts TEG: ${formatMoney(totaux.interetsTEG)} | Coût Assurance: ${formatMoney(totaux.coutAssurance)}`, 14, finalY + 7);
+        doc.text(`Coût Total Crédit: ${formatMoney(totaux.coutTotal)} | Surprix Total: ${formatMoney(totaux.surprix)}`, 14, finalY + 14);
+
+        doc.save('Simulation_Credit_Copro.pdf');
+    };
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
             {/* Header */}
@@ -193,7 +264,7 @@ export default function CreditApp({ onBackToHub }) {
                             <Download size={16} />
                             Sauvegarder
                         </button>
-                        <button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-semibold flex items-center gap-2">
+                        <button onClick={exportPDF} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-semibold flex items-center gap-2">
                             <FileText size={16} />
                             PDF
                         </button>

@@ -3,6 +3,8 @@
  */
 import { useCopro } from '../../context/CoproContext';
 import { fmtMoney } from '../../utils/formatters';
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
 
 export default function WaterProjection() {
     const { state, updateState } = useCopro();
@@ -56,6 +58,66 @@ export default function WaterProjection() {
             return { owner, quarters, totalN, projM3, budgetN1 };
         });
 
+    // Export PDF projection eau
+    const exportPDF = () => {
+        const doc = new jsPDF('landscape');
+
+        // En-tête
+        doc.setFontSize(16);
+        doc.setFont('helvetica', 'bold');
+        doc.text('PROJECTION EAU - BILAN ANNUEL & BUDGET N+1', 148, 15, { align: 'center' });
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text('Copropriété 9 Rue André Leroux - 33780 SOULAC-SUR-MER', 148, 22, { align: 'center' });
+
+        // Paramètres
+        doc.setFontSize(10);
+        doc.text(`Prix estimé N+1: ${projPrice} €/m³ | Abonnement annuel estimé: ${projSub} €`, 14, 35);
+
+        // Tableau
+        const tableHeaders = ['Propriétaire', 'Lot', 'T1 (m³)', 'T2 (m³)', 'T3 (m³)', 'T4 (m³)', 'Total N (m³)', 'Prévision N+1 (m³)', 'Budget N+1 (€)'];
+        const tableRows = rows.map(({ owner, quarters, totalN, projM3, budgetN1 }) => [
+            owner.name,
+            owner.lot,
+            quarters[0].toFixed(3),
+            quarters[1].toFixed(3),
+            quarters[2].toFixed(3),
+            quarters[3].toFixed(3),
+            totalN.toFixed(3),
+            projM3.toFixed(3),
+            fmtMoney(budgetN1) + ' €'
+        ]);
+
+        doc.autoTable({
+            startY: 42,
+            head: [tableHeaders],
+            body: tableRows,
+            headStyles: { fillColor: [30, 64, 175], fontSize: 8 },
+            bodyStyles: { fontSize: 8 },
+            columnStyles: {
+                2: { halign: 'right' },
+                3: { halign: 'right' },
+                4: { halign: 'right' },
+                5: { halign: 'right' },
+                6: { halign: 'right' },
+                7: { halign: 'right' },
+                8: { halign: 'right' }
+            }
+        });
+
+        // Totaux
+        const totalConso = rows.reduce((s, r) => s + r.totalN, 0);
+        const totalProj = rows.reduce((s, r) => s + r.projM3, 0);
+        const totalBudget = rows.reduce((s, r) => s + r.budgetN1, 0);
+
+        const finalY = doc.lastAutoTable.finalY + 10;
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`TOTAUX: Consommation N = ${totalConso.toFixed(3)} m³ | Prévision N+1 = ${totalProj.toFixed(3)} m³ | Budget N+1 = ${fmtMoney(totalBudget)} €`, 14, finalY);
+
+        doc.save('Projection_Eau_N+1.pdf');
+    };
+
     return (
         <div>
             <div className="flex justify-between items-center mb-4">
@@ -63,7 +125,7 @@ export default function WaterProjection() {
                     📈 Bilan Annuel & Projection N+1
                 </h3>
                 <div className="flex gap-2">
-                    <button className="px-3 py-1.5 text-sm border border-red-300 text-red-600 rounded-lg hover:bg-red-50">
+                    <button onClick={exportPDF} className="px-3 py-1.5 text-sm border border-red-300 text-red-600 rounded-lg hover:bg-red-50">
                         📄 Exporter PDF
                     </button>
                     <button className="px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-500">
