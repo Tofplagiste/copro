@@ -2,40 +2,69 @@
 trigger: always_on
 ---
 
-# Instructions de Développement pour le Projet Copro
+# Standards de Développement & Architecture - Projet Copro (V5)
 
-## Rôle et Objectif
-Tu es un expert en React, Vite et Tailwind CSS. Ta mission est de refactoriser des applications "Single File HTML" existantes (Legacy) vers une architecture React moderne, propre et maintenable.
+## 1. Philosophie du Projet
+Ce projet est une **Suite d'Applications** regroupant 4 outils distincts (Gestion, Carnet, Crédit, Vote) sous un même Dashboard unifié.
+L'objectif est de fournir un code **robuste**, **typé** (via JSDoc), **testé** et **maintenable** par un non-expert.
 
-## Stack Technique
-- **Framework :** React 18+ (Hooks obligatoires).
-- **Build Tool :** Vite.
-- **Styling :** Tailwind CSS.
-- **Icones :** Lucide-React (remplace FontAwesome).
-- **PDF :** `jspdf` et `jspdf-autotable`.
-- **Excel/Data :** `xlsx` (si besoin d'export Excel).
-- **State Management :** React Context API (pour l'état global comme la liste des copropriétaires) ou simple useState pour le local. PAS de Redux.
+## 2. Stack Technique
+- **Build :** Vite + React 18 (JavaScript + SWC).
+- **Style :** Tailwind CSS. Utiliser `clsx` ou `tailwind-merge` pour les classes dynamiques.
+- **Routing :** React Router DOM (v6+). Architecture SPA avec routes définies.
+- **Tests :** Vitest (Compatible Jest). Obligatoire pour toute logique de calcul.
+- **Icônes :** Lucide-React.
+- **State :** Context API + Hooks personnalisés (Pas de Redux).
 
-## Principes de Code
-1.  **Composants Fonctionnels :** Utilise uniquement des composants fonctionnels avec des Hooks. Pas de classes.
-2.  **Découpage :** Un composant par fichier. Chaque section majeure de l'ancien HTML (ex: "Onglet Budget", "Onglet Vote") doit devenir un composant distinct.
-3.  **Typage :** Utilise JSDoc rigoureux si on reste en JS, ou TypeScript (préférable pour la maintenance) si demandé. *Par défaut: JavaScript propre.*
-4.  **LocalStorage :** La persistance des données se fait via `localStorage`. Crée des hooks personnalisés (ex: `useLocalStorage`) pour gérer cela proprement.
-5.  **Pas de CSS Global :** Utilise exclusivement les classes utilitaires Tailwind. Évite les fichiers `.css` séparés sauf pour `index.css` (configuration de base).
+## 3. Architecture des Dossiers (Modulaire)
+L'application suit une architecture stricte par "Modules" pour isoler les fonctionnalités et éviter le code spaghetti.
 
-## Structure des Dossiers
-- `/src/components` : Composants UI réutilisables (Boutons, Inputs, Modales).
-- `/src/features` : Composants métiers (ex: `VoteManager`, `BudgetCalculator`).
-- `/src/hooks` : Hooks personnalisés (ex: `useCoproprietaires`).
-- `/src/utils` : Fonctions utilitaires (calculs mathématiques, formatage date).
+src/
+├── components/           # Composants UI PARTAGÉS (Boutons, Cards, Modales génériques)
+├── hooks/                # Hooks PARTAGÉS (ex: useLocalStorage, useWindowSize)
+├── utils/                # Fonctions utilitaires PARTAGÉES (dates, devises, PDF export)
+├── modules/              # LE CŒUR DE L'APP (4 blocs distincts)
+│   ├── gestion/          # Module "Gestion Copro" (Budget, Eau, Compta)
+│   │   ├── components/   # Composants spécifiques à ce module
+│   │   ├── hooks/        # Logique métier spécifique (ex: useBudget)
+│   │   └── utils/        # Calculs spécifiques (ex: répartition charges)
+│   ├── carnet/           # Module "Carnet d'entretien" & Annuaire
+│   ├── credit/           # Module "Simulateur Crédit"
+│   └── vote/             # Module "Vote AG"
+├── pages/                # Pages principales (Dashboard, 404, Layout Général)
+└── App.jsx               # Configuration du Router principal
 
-## Règles de Migration (Legacy vers React)
-1.  Analyse la logique JS existante dans les balises `<script>` des fichiers originaux.
-2.  Extrais la logique métier (calculs) hors des composants UI.
-3.  Remplace les manipulations DOM directes (ex: `document.getElementById('tot-vol').innerText = ...`) par des variables d'état React.
-4.  Conserve la logique de calcul exacte (tantièmes, répartition) car elle est critique.
+## 4. Règles de Clean Code (Strictes)
 
-## Comportement
-- Sois concis.
-- Si un code est trop long, propose-le morceau par morceau.
-- Explique les changements complexes simplement (le mainteneur n'est pas un expert React).
+### A. Composants (UI)
+- **Taille Max :** Un composant ne doit pas dépasser **150 lignes**. Au-delà, il doit être découpé en sous-composants.
+- **Zéro Logique Métier :** Les composants UI ne font que de l'affichage et de l'appel aux Hooks.
+    - ❌ *Interdit :* `const total = data.reduce(...)` dans le JSX.
+    - ✅ *Requis :* `const total = calculateTotal(data)` (fonction importée de `utils/`).
+
+### B. Gestion des Données & Persistance
+- **Isolation :** Aucun appel direct à `localStorage` dans les composants UI.
+- **Pattern Hook :** L'accès aux données se fait uniquement via des Hooks personnalisés (ex: `useOwners`, `useBudget`).
+    - *Pourquoi ?* Pour faciliter la future migration vers un Backend (Supabase) sans toucher à l'UI.
+
+### C. Nommage & Documentation
+- **Fonctions :** Verbe + Sujet (ex: `generatePdfReport`, `calculateTantiemes`).
+- **Variables :** Explicites (ex: `isModalOpen` au lieu de `open`).
+- **JSDoc :** OBLIGATOIRE pour toutes les fonctions exportées dans `/utils` et `/hooks`.
+    Exemple :
+    /**
+     * Calcule la part à payer selon les tantièmes.
+     * @param {number} amount - Montant total
+     * @param {number} userShare - Tantièmes du copropriétaire
+     * @returns {number} Montant dû
+     */
+
+## 5. Tests et Fiabilité (Vitest)
+- **Règle d'or :** "Si ça calcule de l'argent, des tantièmes ou des votes, ça doit être testé."
+- Chaque fichier `utils/*.js` contenant de la logique métier doit avoir son fichier `utils/*.test.js` correspondant.
+- Les tests doivent couvrir les cas nominaux et les cas d'erreur.
+
+## 6. Workflow IA
+1. **Analyse :** Toujours lister les fichiers à créer avant de générer le code.
+2. **Modularité :** Vérifier si le code appartient au module courant ou au dossier partagé (`src/components`).
+3. **Implémentation :** Commencer par la logique pure (`utils`) et les tests, puis les Hooks, enfin l'UI.
