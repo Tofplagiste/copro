@@ -6,9 +6,34 @@
     opacity: 0;
     transform: translateY(5px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
   }
 }
 
@@ -53,4 +78,26 @@ body {
   text-align: right;
   font-family: 'Consolas', 'Monaco', monospace;
   font-weight: 700;
+}
+
+/* Cursor pointer for all clickable elements */
+button,
+select,
+[role="button"],
+[role="tab"],
+a,
+input[type="button"],
+input[type="submit"],
+input[type="reset"],
+label[for],
+.clickable {
+  cursor: pointer;
+}
+
+/* Disable pointer cursor for disabled elements */
+button:disabled,
+select:disabled,
+input:disabled,
+.disabled {
+  cursor: not-allowed;
 }

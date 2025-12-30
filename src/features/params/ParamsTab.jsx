@@ -1,14 +1,14 @@
-
-
 /**
- * ParamsTab - Onglet Paramètres (Complet)
+ * ParamsTab - Onglet Paramètres
+ * Layout entièrement réorganisé pour une meilleure ergonomie
  */
-import { Settings, Users, Mail, Download } from 'lucide-react';
+import { Settings, Users, Mail, Download, Building2, FileText, CreditCard } from 'lucide-react';
 import { useCopro } from '../../context/CoproContext';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import BankAccountsPanel from './BankAccountsPanel';
 import ClosingPanel from './ClosingPanel';
+import PostesComptablesPanel from './PostesComptablesPanel';
 
 export default function ParamsTab() {
     const { state } = useCopro();
@@ -47,86 +47,113 @@ export default function ParamsTab() {
     };
 
     return (
-        <div className="p-6 space-y-6">
-            {/* Titre */}
-            <div className="flex items-center gap-3">
-                <Settings size={28} className="text-slate-600" />
-                <h2 className="text-2xl font-bold text-slate-800">Paramètres</h2>
+        <div className="p-6 space-y-6 bg-gradient-to-br from-slate-50 to-slate-100 min-h-full">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-gradient-to-br from-slate-600 to-slate-800 rounded-xl flex items-center justify-center shadow-lg">
+                        <Settings size={24} className="text-white" />
+                    </div>
+                    <div>
+                        <h2 className="text-2xl font-bold text-slate-800">Paramètres</h2>
+                        <p className="text-sm text-slate-500">Gestion de la copropriété et configuration</p>
+                    </div>
+                </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-                {/* COLONNE GAUCHE : Liste des copropriétaires (prend 2/3 largeur sur grand écran) */}
-                <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden h-fit">
-                    <div className="bg-slate-50 px-4 py-3 border-b border-gray-200 flex items-center gap-2">
-                        <Users size={18} className="text-slate-600" />
-                        <h3 className="font-bold text-slate-700">Liste des Copropriétaires</h3>
-                    </div>
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                            <thead className="bg-gray-50 text-gray-600 uppercase text-xs">
-                                <tr>
-                                    <th className="text-left px-4 py-3">Nom</th>
-                                    <th className="text-left px-4 py-3">Lots</th>
-                                    <th className="text-center px-4 py-3">Tantièmes</th>
-                                    <th className="text-center px-4 py-3">Exo.</th>
-                                    <th className="text-left px-4 py-3">Email</th>
-                                    <th className="text-center px-4 py-3 w-24">ACTIONS</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100">
-                                {owners.map((owner) => (
-                                    <tr key={owner.id} className="hover:bg-gray-50 transition-colors">
-                                        <td className="px-4 py-3">
-                                            <div className="font-semibold text-slate-800">{owner.name}</div>
-                                            <div className="text-xs text-slate-500">{owner.apt}</div>
-                                        </td>
-                                        <td className="px-4 py-3 text-gray-500 text-xs max-w-[120px] truncate" title={owner.lot}>
-                                            {owner.lot}
-                                        </td>
-                                        <td className="px-4 py-3 text-center font-mono">{owner.tantiemes}</td>
-                                        <td className="px-4 py-3 text-center">
-                                            <div className="flex justify-center gap-1">
-                                                {owner.exoGest && <span className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded" title="Exo Syndic">SYN</span>}
-                                                {owner.exoMen && <span className="bg-purple-500 text-white text-[10px] px-1.5 py-0.5 rounded" title="Exo Ménage">MEN</span>}
-                                                {!owner.exoGest && !owner.exoMen && <span className="text-gray-300">-</span>}
-                                            </div>
-                                        </td>
-                                        <td className="px-4 py-3 text-gray-500 text-xs truncate max-w-[150px]" title={owner.email}>
+            {/* Section: Copropriétaires - FULL WIDTH */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                <div className="bg-gradient-to-r from-slate-700 to-slate-800 px-5 py-4 flex items-center gap-3">
+                    <Users size={20} className="text-white" />
+                    <h3 className="font-bold text-white">Liste des Copropriétaires</h3>
+                    <span className="ml-auto bg-white/20 px-2.5 py-0.5 rounded-full text-xs text-white font-medium">
+                        {owners.length} copropriétaires
+                    </span>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                        <thead className="bg-gray-50 text-gray-600 uppercase text-xs">
+                            <tr>
+                                <th className="text-left px-5 py-3.5">Nom</th>
+                                <th className="text-left px-4 py-3.5">Lots</th>
+                                <th className="text-center px-4 py-3.5">Tantièmes</th>
+                                <th className="text-center px-4 py-3.5">Exonérations</th>
+                                <th className="text-left px-4 py-3.5">Email</th>
+                                <th className="text-center px-4 py-3.5 w-28">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                            {owners.map((owner) => (
+                                <tr key={owner.id} className="hover:bg-blue-50/50 transition-colors">
+                                    <td className="px-5 py-3.5">
+                                        <div className="font-semibold text-slate-800">{owner.name}</div>
+                                        <div className="text-xs text-slate-400">{owner.apt}</div>
+                                    </td>
+                                    <td className="px-4 py-3.5 text-gray-500 text-xs max-w-[140px] truncate" title={owner.lot}>
+                                        {owner.lot}
+                                    </td>
+                                    <td className="px-4 py-3.5 text-center">
+                                        <span className="font-mono bg-slate-100 px-2 py-1 rounded text-slate-700">
+                                            {owner.tantiemes}
+                                        </span>
+                                    </td>
+                                    <td className="px-4 py-3.5 text-center">
+                                        <div className="flex justify-center gap-1.5">
+                                            {owner.exoGest && (
+                                                <span className="bg-gradient-to-r from-red-500 to-red-600 text-white text-[10px] px-2 py-0.5 rounded-full font-medium shadow-sm" title="Exo Syndic">
+                                                    Syndic
+                                                </span>
+                                            )}
+                                            {owner.exoMen && (
+                                                <span className="bg-gradient-to-r from-purple-500 to-purple-600 text-white text-[10px] px-2 py-0.5 rounded-full font-medium shadow-sm" title="Exo Ménage">
+                                                    Ménage
+                                                </span>
+                                            )}
+                                            {!owner.exoGest && !owner.exoMen && (
+                                                <span className="text-gray-300">—</span>
+                                            )}
+                                        </div>
+                                    </td>
+                                    <td className="px-4 py-3.5 text-gray-500 text-xs truncate max-w-[180px]" title={owner.email}>
+                                        <a href={`mailto:${owner.email}`} className="hover:text-blue-600 transition-colors">
                                             {owner.email}
-                                        </td>
-                                        <td className="px-4 py-3 text-center">
-                                            <div className="flex items-center justify-center gap-2">
-                                                <button
-                                                    onClick={() => handleMailing(owner)}
-                                                    className="p-1.5 text-amber-500 bg-white border border-amber-500 rounded hover:bg-amber-50 transition-colors"
-                                                    title="Envoyer un mail">
-                                                    <Mail size={16} />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDownload(owner)}
-                                                    className="p-1.5 text-red-500 bg-white border border-red-500 rounded hover:bg-red-50 transition-colors"
-                                                    title="Télécharger fiche PDF">
-                                                    <Download size={16} />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                                        </a>
+                                    </td>
+                                    <td className="px-4 py-3.5 text-center">
+                                        <div className="flex items-center justify-center gap-2">
+                                            <button
+                                                onClick={() => handleMailing(owner)}
+                                                className="w-8 h-8 flex items-center justify-center text-amber-500 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 hover:border-amber-300 transition-all"
+                                                title="Envoyer un mail"
+                                            >
+                                                <Mail size={15} />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDownload(owner)}
+                                                className="w-8 h-8 flex items-center justify-center text-red-500 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 hover:border-red-300 transition-all"
+                                                title="Télécharger fiche PDF"
+                                            >
+                                                <Download size={15} />
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
+            </div>
 
-                {/* COLONNE DROITE : Outils et Paramètres */}
-                <div className="space-y-6">
-                    {/* Panel Clôture */}
-                    <ClosingPanel />
+            {/* Grid: Configuration panels - 3 colonnes */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {/* Panel Clôture */}
+                <ClosingPanel />
 
-                    {/* Panel Comptes Bancaires */}
-                    <BankAccountsPanel />
-                </div>
+                {/* Panel Comptes Bancaires */}
+                <BankAccountsPanel />
 
+                {/* Panel Postes Comptables */}
+                <PostesComptablesPanel />
             </div>
         </div>
     );

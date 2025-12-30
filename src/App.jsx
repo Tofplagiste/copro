@@ -4,6 +4,7 @@
  */
 import { useState } from 'react';
 import { CoproProvider } from './context/CoproContext';
+import { ToastProvider } from './components/ToastProvider';
 import { TABS_CONFIG } from './data/initialState';
 import Header from './components/Header';
 import TabNavigation from './components/TabNavigation';
@@ -141,8 +142,11 @@ function AppContent() {
 
 export default function App() {
   return (
-    <CoproProvider>
-      <AppContent />
-    </CoproProvider>
+    <ToastProvider>
+      <CoproProvider>
+        <AppContent />
+      </CoproProvider>
+    </ToastProvider>
   );
 }
+

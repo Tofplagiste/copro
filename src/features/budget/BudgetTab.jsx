@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import { FileText, Mail, Download, Table2, Settings } from 'lucide-react';
 import { useCopro } from '../../context/CoproContext';
+import { useToast } from '../../components/ToastProvider';
 import { fmtMoney } from '../../utils/formatters';
 import MailingModal from './MailingModal';
 import GererPostesModal from './GererPostesModal';
@@ -38,6 +39,7 @@ const EXO_HINTS = {
 
 export default function BudgetTab() {
     const { state, updateState } = useCopro();
+    const toast = useToast();
     const [budgetMode, setBudgetMode] = useState(state.budgetMode || 'previ');
     const [selectedQuarter, setSelectedQuarter] = useState('T1');
 
@@ -188,7 +190,6 @@ export default function BudgetTab() {
     };
 
     const handleDeletePoste = (category, index) => {
-        if (!confirm("Supprimer ce poste ?")) return;
         const newBudget = { ...budget };
         newBudget[category].splice(index, 1);
         updateState({ budget: newBudget });
@@ -204,7 +205,7 @@ export default function BudgetTab() {
         try {
             const owner = state.owners.find(o => o.id === ownerId);
             if (!owner) {
-                alert('Propriétaire non trouvé');
+                toast.error('Propriétaire non trouvé');
                 return;
             }
 
@@ -369,7 +370,7 @@ export default function BudgetTab() {
 
         } catch (error) {
             console.error('PDF Generation Error:', error);
-            alert('Erreur lors de la génération du PDF: ' + error.message);
+            toast.error('Erreur lors de la génération du PDF: ' + error.message);
         }
     };
 
@@ -385,6 +386,25 @@ export default function BudgetTab() {
                 dueDate={dueDate}
                 computeOwnerCall={computeOwnerCall}
                 onGeneratePDF={handleGeneratePDF}
+            />
+
+            <GererPostesModal
+                isOpen={isManageModalOpen}
+                onClose={() => setIsManageModalOpen(false)}
+                budget={budget}
+                onAdd={handleAddPoste}
+                onDelete={handleDeletePoste}
+            />
+
+            <RecapTableModal
+                isOpen={isRecapModalOpen}
+                onClose={() => setIsRecapModalOpen(false)}
+                owners={state.owners.filter(o => !o.isCommon)}
+                budget={budget}
+                budgetMode={budgetMode}
+                divisors={divisors}
+                selectedQuarter={selectedQuarter}
+                waterPrevi={waterPrevi}
             />
 
             {/* Toolbar */}
@@ -474,68 +494,134 @@ export default function BudgetTab() {
                 {['general', 'special', 'menage', 'travaux'].map(cat => renderBudgetCard(cat))}
             </div>
 
-            {/* Owners Table */}
-            <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+            {/* Owners Table - Premium Design */}
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm">
-                        <thead className="bg-slate-800 text-white text-xs uppercase">
-                            <tr>
-                                <th className="text-left px-4 py-3">Propriétaire (Lots)</th>
-                                <th className="px-2 py-3" style={{ width: 50 }}>Tant.</th>
-                                <th className="px-2 py-3">Général (1/4)</th>
-                                <th className="px-2 py-3 text-amber-400">Syndic/Ent. (1/4)</th>
-                                <th className="px-2 py-3 text-cyan-400">Ménage (1/4)</th>
-                                <th className="px-2 py-3 text-red-400">Travaux (1/4)</th>
-                                <th className="px-2 py-3 bg-gray-600">S.Total (HE)</th>
-                                <th className="px-2 py-3 bg-white text-blue-600">Eau (Prévi)</th>
-                                <th className="px-2 py-3 bg-green-600">TOTAL</th>
-                                <th className="px-2 py-3">Actions</th>
+                        <thead>
+                            <tr className="bg-gradient-to-r from-slate-800 to-slate-700">
+                                <th className="text-left px-4 py-4 text-white font-bold text-xs uppercase tracking-wide" style={{ minWidth: 180 }}>
+                                    Propriétaire
+                                </th>
+                                <th className="px-3 py-4 text-white font-bold text-xs uppercase tracking-wide text-center" style={{ width: 70 }}>
+                                    Tant.
+                                </th>
+                                <th className="px-3 py-4 text-white font-bold text-xs uppercase tracking-wide text-center bg-blue-600/30">
+                                    Général
+                                </th>
+                                <th className="px-3 py-4 text-amber-300 font-bold text-xs uppercase tracking-wide text-center">
+                                    Syndic
+                                </th>
+                                <th className="px-3 py-4 text-cyan-300 font-bold text-xs uppercase tracking-wide text-center">
+                                    Ménage
+                                </th>
+                                <th className="px-3 py-4 text-red-300 font-bold text-xs uppercase tracking-wide text-center">
+                                    Travaux
+                                </th>
+                                <th className="px-3 py-4 text-white font-bold text-xs uppercase tracking-wide text-center bg-slate-600" style={{ width: 100 }}>
+                                    Sous-Total
+                                </th>
+                                <th className="px-3 py-4 font-bold text-xs uppercase tracking-wide text-center bg-blue-500 text-white" style={{ width: 100 }}>
+                                    💧 Eau
+                                </th>
+                                <th className="px-3 py-4 font-bold text-xs uppercase tracking-wide text-center bg-gradient-to-r from-emerald-500 to-green-600 text-white" style={{ width: 110 }}>
+                                    TOTAL
+                                </th>
+                                <th className="px-3 py-4 text-white font-bold text-xs uppercase tracking-wide text-center" style={{ width: 90 }}>
+                                    Actions
+                                </th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                            {state.owners.filter(o => !o.isCommon).map(owner => {
+                            {state.owners.filter(o => !o.isCommon).map((owner, idx) => {
                                 const call = computeOwnerCall(owner);
+                                const isEven = idx % 2 === 0;
                                 return (
-                                    <tr key={owner.id} className="hover:bg-gray-50">
+                                    <tr key={owner.id} className={`hover:bg-blue-50/50 transition-colors ${isEven ? 'bg-white' : 'bg-gray-50/50'}`}>
+                                        {/* Propriétaire */}
                                         <td className="px-4 py-3">
-                                            <div className="font-bold text-gray-800 flex items-center gap-1">
-                                                {owner.name}
-                                                {owner.exoGest && (
-                                                    <span className="text-xs bg-red-500 text-white px-1 rounded font-bold">Exo.S</span>
-                                                )}
-                                                {owner.exoMen && (
-                                                    <span className="text-xs bg-purple-500 text-white px-1 rounded font-bold">Exo.M</span>
-                                                )}
+                                            <div className="flex items-center gap-2">
+                                                <div className="font-bold text-slate-800">
+                                                    {owner.name}
+                                                </div>
+                                                <div className="flex gap-1">
+                                                    {owner.exoGest && (
+                                                        <span className="text-[10px] bg-gradient-to-r from-red-500 to-red-600 text-white px-1.5 py-0.5 rounded-full font-bold shadow-sm">
+                                                            Exo.S
+                                                        </span>
+                                                    )}
+                                                    {owner.exoMen && (
+                                                        <span className="text-[10px] bg-gradient-to-r from-purple-500 to-purple-600 text-white px-1.5 py-0.5 rounded-full font-bold shadow-sm">
+                                                            Exo.M
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
-                                            <span className="text-xs text-green-600 italic">{owner.lot}</span>
+                                            <span className="text-xs text-gray-400 italic">{owner.lot}</span>
                                         </td>
-                                        <td className="px-2 py-3 text-center text-gray-500 text-xs">{owner.tantiemes}</td>
-                                        <td className="px-2 py-3 text-center">{fmtMoney(call.partGen)}</td>
-                                        <td className={`px-2 py-3 text-center font-bold text-amber-600 ${owner.exoGest ? 'line-through opacity-25' : ''}`}>
-                                            {fmtMoney(call.partSpe)}
+
+                                        {/* Tantièmes */}
+                                        <td className="px-3 py-3 text-center">
+                                            <span className="font-mono text-xs bg-slate-100 px-2 py-1 rounded text-slate-600 font-bold">
+                                                {owner.tantiemes}
+                                            </span>
                                         </td>
-                                        <td className={`px-2 py-3 text-center font-bold text-cyan-600 ${owner.exoMen ? 'line-through opacity-25' : ''}`}>
-                                            {fmtMoney(call.partMen)}
+
+                                        {/* Général */}
+                                        <td className="px-3 py-3 text-center bg-blue-50/50">
+                                            <span className="font-mono text-sm text-slate-700">{fmtMoney(call.partGen)}</span>
                                         </td>
-                                        <td className="px-2 py-3 text-center text-red-600">{fmtMoney(call.partTra)}</td>
-                                        <td className="px-2 py-3 text-center font-bold bg-gray-100 border-x">{fmtMoney(call.subTotal)}</td>
-                                        <td className="px-2 py-3 text-center font-bold text-blue-600">{fmtMoney(call.wCost)}</td>
-                                        <td className="px-2 py-3 text-center font-bold bg-green-600 text-white">{fmtMoney(call.total)}</td>
-                                        <td className="px-2 py-3">
-                                            <div className="flex gap-1 justify-center">
+
+                                        {/* Syndic */}
+                                        <td className={`px-3 py-3 text-center ${owner.exoGest ? 'opacity-30' : ''}`}>
+                                            <span className={`font-mono text-sm font-semibold text-amber-600 ${owner.exoGest ? 'line-through' : ''}`}>
+                                                {fmtMoney(call.partSpe)}
+                                            </span>
+                                        </td>
+
+                                        {/* Ménage */}
+                                        <td className={`px-3 py-3 text-center ${owner.exoMen ? 'opacity-30' : ''}`}>
+                                            <span className={`font-mono text-sm font-semibold text-cyan-600 ${owner.exoMen ? 'line-through' : ''}`}>
+                                                {fmtMoney(call.partMen)}
+                                            </span>
+                                        </td>
+
+                                        {/* Travaux */}
+                                        <td className="px-3 py-3 text-center">
+                                            <span className="font-mono text-sm text-red-500">{fmtMoney(call.partTra)}</span>
+                                        </td>
+
+                                        {/* Sous-Total */}
+                                        <td className="px-3 py-3 text-center bg-slate-100 border-x border-slate-200">
+                                            <span className="font-mono text-sm font-bold text-slate-700">{fmtMoney(call.subTotal)}</span>
+                                        </td>
+
+                                        {/* Eau - Colonne distincte */}
+                                        <td className="px-3 py-3 text-center bg-blue-50 border-x border-blue-100">
+                                            <span className="font-mono text-sm font-bold text-blue-600">{fmtMoney(call.wCost)}</span>
+                                        </td>
+
+                                        {/* TOTAL - Colonne mise en valeur */}
+                                        <td className="px-3 py-3 text-center bg-gradient-to-r from-emerald-500 to-green-600">
+                                            <span className="font-mono text-sm font-bold text-white drop-shadow-sm">{fmtMoney(call.total)} €</span>
+                                        </td>
+
+                                        {/* Actions */}
+                                        <td className="px-3 py-3">
+                                            <div className="flex gap-2 justify-center">
                                                 <button
                                                     onClick={() => openMailing(owner.id)}
-                                                    className="p-1.5 border rounded hover:bg-gray-100"
-                                                    title="Email"
+                                                    className="w-8 h-8 flex items-center justify-center bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 hover:border-amber-300 transition-all"
+                                                    title="Envoyer email"
                                                 >
-                                                    <Mail size={14} className="text-amber-500" />
+                                                    <Mail size={14} className="text-amber-600" />
                                                 </button>
                                                 <button
                                                     onClick={() => handleGeneratePDF(owner.id)}
-                                                    className="p-1.5 border rounded hover:bg-gray-100"
-                                                    title="PDF"
+                                                    className="w-8 h-8 flex items-center justify-center bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 hover:border-red-300 transition-all"
+                                                    title="Télécharger PDF"
                                                 >
-                                                    <Download size={14} className="text-red-500" />
+                                                    <Download size={14} className="text-red-600" />
                                                 </button>
                                             </div>
                                         </td>

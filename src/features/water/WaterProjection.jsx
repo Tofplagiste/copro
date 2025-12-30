@@ -2,12 +2,14 @@
  * WaterProjection - Bilan annuel et projection N+1
  */
 import { useCopro } from '../../context/CoproContext';
+import { useToast } from '../../components/ToastProvider';
 import { fmtMoney } from '../../utils/formatters';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
 export default function WaterProjection() {
     const { state, updateState } = useCopro();
+    const toast = useToast();
     const water = state.water;
 
     // Paramètres de projection
@@ -64,6 +66,7 @@ export default function WaterProjection() {
         doc.text("Bilan & Projection Eau", 14, 15);
         doc.autoTable({ html: '#table-water-proj', startY: 20, theme: 'grid' });
         doc.save('Projections_Eau.pdf');
+        toast.success('PDF exporté avec succès !');
     };
 
     // Copier Tableau
@@ -75,9 +78,9 @@ export default function WaterProjection() {
         window.getSelection().addRange(range);
         try {
             document.execCommand('copy');
-            alert("Tableau copié !");
+            toast.success('Tableau copié !');
         } catch (err) {
-            alert("Erreur lors de la copie.");
+            toast.error('Erreur lors de la copie.');
         }
         window.getSelection().removeAllRanges();
     };

@@ -3,13 +3,14 @@
  */
 import { Building2, Check, Save, Trash2 } from 'lucide-react';
 import { useCopro } from '../context/CoproContext';
+import { useToast } from './ToastProvider';
 
 export default function Header() {
     const { resetAll } = useCopro();
+    const toast = useToast();
 
     const handleExport = () => {
-        // TODO: Export HTML complet
-        alert('Export en cours de développement...');
+        toast.info('Export en cours de développement...');
     };
 
     return (
