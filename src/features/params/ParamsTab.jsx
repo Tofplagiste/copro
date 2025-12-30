@@ -47,16 +47,16 @@ export default function ParamsTab() {
     };
 
     return (
-        <div className="p-6 space-y-6 bg-gradient-to-br from-slate-50 to-slate-100 min-h-full">
+        <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 bg-gradient-to-br from-slate-50 to-slate-100 min-h-full">
             {/* Header */}
             <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-gradient-to-br from-slate-600 to-slate-800 rounded-xl flex items-center justify-center shadow-lg">
-                        <Settings size={24} className="text-white" />
+                <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-slate-600 to-slate-800 rounded-xl flex items-center justify-center shadow-lg shrink-0">
+                        <Settings className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                     </div>
                     <div>
-                        <h2 className="text-2xl font-bold text-slate-800">Paramètres</h2>
-                        <p className="text-sm text-slate-500">Gestion de la copropriété et configuration</p>
+                        <h2 className="text-lg sm:text-2xl font-bold text-slate-800">Paramètres</h2>
+                        <p className="text-xs sm:text-sm text-slate-500 hidden sm:block">Gestion de la copropriété et configuration</p>
                     </div>
                 </div>
             </div>

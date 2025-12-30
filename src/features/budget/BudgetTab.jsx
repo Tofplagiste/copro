@@ -375,7 +375,7 @@ export default function BudgetTab() {
     };
 
     return (
-        <div className="p-6 space-y-4">
+        <div className="p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4">
             <MailingModal
                 isOpen={isMailingModalOpen}
                 onClose={() => setIsMailingModalOpen(false)}
@@ -407,85 +407,86 @@ export default function BudgetTab() {
                 waterPrevi={waterPrevi}
             />
 
-            {/* Toolbar */}
-            <div className="bg-white rounded-xl shadow-sm p-4 flex flex-wrap gap-4 items-center justify-between">
-                <div className="flex items-center gap-4">
-                    {/* Mode Budget */}
-                    <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-gray-500">Mode d'Appel :</span>
-                        <select
-                            value={budgetMode}
-                            onChange={(e) => handleModeChange(e.target.value)}
-                            className="px-3 py-2 border border-blue-500 rounded-lg font-bold text-blue-600"
-                        >
-                            {BUDGET_MODES.map(m => (
-                                <option key={m.id} value={m.id}>{m.label}</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    {/* Trimestre */}
-                    <div className="flex items-center gap-2 border-l pl-4">
-                        <span className="text-xs font-bold text-gray-600">Trimestre :</span>
-                        <select
-                            value={selectedQuarter}
-                            onChange={(e) => setSelectedQuarter(e.target.value)}
-                            className="px-2 py-2 border rounded font-bold"
-                        >
-                            {['T1', 'T2', 'T3', 'T4'].map(q => (
-                                <option key={q} value={q}>{q}</option>
-                            ))}
-                        </select>
-                        <input
-                            type="number"
-                            defaultValue={2026}
-                            className="w-20 px-2 py-2 border rounded font-bold"
-                        />
-                    </div>
-
-                    {/* Dates */}
-                    <div className="flex items-center gap-4 border-l pl-4">
+            {/* Toolbar - Responsive Layout (Single line when possible) */}
+            <div className="bg-white rounded-xl shadow-sm p-3 sm:p-4">
+                <div className="flex flex-wrap gap-4 items-center justify-between">
+                    {/* Left Side: Controls */}
+                    <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+                        {/* Mode Budget */}
                         <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-gray-500">Date Compta :</span>
+                            <span className="text-xs font-bold text-gray-500">Mode :</span>
+                            <select
+                                value={budgetMode}
+                                onChange={(e) => handleModeChange(e.target.value)}
+                                className="px-2 sm:px-3 py-1.5 sm:py-2 border border-blue-500 rounded-lg font-bold text-blue-600 text-xs sm:text-sm"
+                            >
+                                {BUDGET_MODES.map(m => (
+                                    <option key={m.id} value={m.id}>{m.label}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* Trimestre */}
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-gray-600">Trim :</span>
+                            <select
+                                value={selectedQuarter}
+                                onChange={(e) => setSelectedQuarter(e.target.value)}
+                                className="px-2 py-1.5 sm:py-2 border rounded font-bold text-xs sm:text-sm"
+                            >
+                                {['T1', 'T2', 'T3', 'T4'].map(q => (
+                                    <option key={q} value={q}>{q}</option>
+                                ))}
+                            </select>
+                            <input
+                                type="number"
+                                defaultValue={2026}
+                                className="w-16 sm:w-20 px-2 py-1.5 sm:py-2 border rounded font-bold text-xs sm:text-sm"
+                            />
+                        </div>
+
+                        {/* Dates */}
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-gray-500">Compta :</span>
                             <input
                                 type="date"
                                 value={dateCompta}
                                 onChange={(e) => setDateCompta(e.target.value)}
-                                className="px-2 py-2 border rounded text-sm font-bold"
+                                className="px-2 py-1.5 sm:py-2 border rounded text-xs sm:text-sm font-bold"
                             />
                         </div>
                         <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-gray-500">Échéance :</span>
+                            <span className="text-xs font-bold text-gray-500">Éch :</span>
                             <input
                                 type="date"
                                 value={dueDate}
                                 onChange={(e) => setDueDate(e.target.value)}
-                                className="px-2 py-2 border-2 border-orange-400 rounded text-sm font-bold text-orange-600 bg-orange-50"
+                                className="px-2 py-1.5 sm:py-2 border-2 border-orange-400 rounded text-xs sm:text-sm font-bold text-orange-600 bg-orange-50"
                             />
                         </div>
                     </div>
-                </div>
 
-                {/* Actions */}
-                <div className="flex items-center gap-2">
-                    <button
-                        onClick={() => setIsManageModalOpen(true)}
-                        className="px-3 py-2 border border-gray-300 text-gray-600 rounded-lg font-bold flex items-center gap-2 hover:bg-gray-50 transition-colors"
-                    >
-                        <Settings size={16} /> Gérer Postes
-                    </button>
-                    <button
-                        onClick={() => setIsRecapModalOpen(true)}
-                        className="px-3 py-2 bg-cyan-500 text-white rounded-lg font-bold flex items-center gap-2 hover:bg-cyan-400"
-                    >
-                        <Table2 size={16} /> Tableau Détails
-                    </button>
-                    <button
-                        onClick={() => openMailing(null)}
-                        className="px-3 py-2 bg-amber-500 text-white rounded-lg font-bold flex items-center gap-2 hover:bg-amber-400"
-                    >
-                        <Mail size={16} /> Mailing
-                    </button>
+                    {/* Right Side: Actions */}
+                    <div className="flex flex-wrap items-center gap-2 flex-1 sm:flex-none justify-end">
+                        <button
+                            onClick={() => setIsManageModalOpen(true)}
+                            className="px-2 sm:px-3 py-2 border border-gray-300 text-gray-600 rounded-lg font-bold flex items-center justify-center gap-1 sm:gap-2 hover:bg-gray-50 transition-colors text-xs sm:text-sm"
+                        >
+                            <Settings size={14} /> Postes
+                        </button>
+                        <button
+                            onClick={() => setIsRecapModalOpen(true)}
+                            className="px-2 sm:px-3 py-2 bg-cyan-500 text-white rounded-lg font-bold flex items-center justify-center gap-1 sm:gap-2 hover:bg-cyan-400 text-xs sm:text-sm"
+                        >
+                            <Table2 size={14} /> Détails
+                        </button>
+                        <button
+                            onClick={() => openMailing(null)}
+                            className="px-2 sm:px-3 py-2 bg-amber-500 text-white rounded-lg font-bold flex items-center justify-center gap-1 sm:gap-2 hover:bg-amber-400 text-xs sm:text-sm"
+                        >
+                            <Mail size={14} /> Mailing
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -632,6 +633,6 @@ export default function BudgetTab() {
                     </table>
                 </div>
             </div>
-        </div>
+        </div >
     );
 }

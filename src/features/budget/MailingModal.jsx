@@ -146,8 +146,8 @@ Copropriété Les Pyrénées
     const selectedOwner = findOwner(selectedOwnerId);
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden animate-fadeIn">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={onClose}>
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden animate-fadeIn" onClick={(e) => e.stopPropagation()}>
                 {/* Header */}
                 <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-4 text-white flex justify-between items-center">
                     <h3 className="font-bold text-xl flex items-center gap-3">
@@ -227,8 +227,8 @@ Copropriété Les Pyrénées
                     {/* Status */}
                     {status && (
                         <div className={`text-center py-2 rounded-lg font-medium ${status.includes('❌') ? 'bg-red-50 text-red-600' :
-                                status.includes('📄') ? 'bg-blue-50 text-blue-600' :
-                                    'bg-green-50 text-green-600'
+                            status.includes('📄') ? 'bg-blue-50 text-blue-600' :
+                                'bg-green-50 text-green-600'
                             }`}>
                             {status}
                         </div>
