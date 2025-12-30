@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { X, Send, Mail } from 'lucide-react';
+import { X, Send, Mail, Paperclip, FileText } from 'lucide-react';
 
 export default function MailingModal({
     isOpen,
@@ -9,13 +9,15 @@ export default function MailingModal({
     currentQuarter,
     year,
     dueDate,
-    computeOwnerCall
+    computeOwnerCall,
+    onGeneratePDF // NEW: function to generate and download PDF
 }) {
     const [selectedOwnerId, setSelectedOwnerId] = useState(null);
     const [emailSubject, setEmailSubject] = useState('');
     const [emailBody, setEmailBody] = useState('');
     const [status, setStatus] = useState('');
     const [displayAmount, setDisplayAmount] = useState('—');
+    const [attachPdf, setAttachPdf] = useState(true); // Checkbox state
 
     // Find owner by ID (handle both string and number)
     const findOwner = useCallback((id) => {
@@ -29,6 +31,7 @@ export default function MailingModal({
             const initId = initialOwnerId || owners[0]?.id;
             setSelectedOwnerId(initId);
             setStatus('');
+            setAttachPdf(true);
         }
     }, [isOpen, initialOwnerId, owners]);
 
@@ -56,10 +59,7 @@ export default function MailingModal({
         if (!selectedOwnerId || !owners?.length) return;
 
         const owner = findOwner(selectedOwnerId);
-        if (!owner) {
-            console.warn('Owner not found for ID:', selectedOwnerId);
-            return;
-        }
+        if (!owner) return;
 
         // Compute the actual call amount for this owner
         let totalAmount = 0;
@@ -108,7 +108,7 @@ Copropriété Les Pyrénées
         setSelectedOwnerId(newId);
     };
 
-    // Send email via mailto
+    // Send email via Gmail
     const handleSendMail = () => {
         const owner = findOwner(selectedOwnerId);
         const email = owner?.email || '';
@@ -118,11 +118,27 @@ Copropriété Les Pyrénées
             return;
         }
 
-        // Use Gmail compose URL - opens Gmail in new tab
-        const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}&su=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
-        window.open(gmailUrl, '_blank');
+        // If PDF attachment is checked, download it first
+        if (attachPdf && onGeneratePDF) {
+            setStatus('📄 Téléchargement du PDF...');
+            try {
+                onGeneratePDF(owner.id);
+            } catch (e) {
+                console.error('PDF error:', e);
+            }
+        }
 
-        setStatus('✅ Gmail ouvert dans un nouvel onglet');
+        // Small delay to let PDF download start, then open Gmail
+        setTimeout(() => {
+            const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}&su=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+            window.open(gmailUrl, '_blank');
+
+            if (attachPdf) {
+                setStatus('✅ PDF téléchargé + Gmail ouvert - Pensez à joindre le PDF !');
+            } else {
+                setStatus('✅ Gmail ouvert dans un nouvel onglet');
+            }
+        }, attachPdf ? 500 : 0);
     };
 
     if (!isOpen) return null;
@@ -166,6 +182,26 @@ Copropriété Les Pyrénées
                         </div>
                     </div>
 
+                    {/* Attach PDF Checkbox */}
+                    <div className="flex items-center gap-3 p-3 bg-blue-50 border-2 border-blue-200 rounded-xl">
+                        <input
+                            type="checkbox"
+                            id="attachPdf"
+                            checked={attachPdf}
+                            onChange={(e) => setAttachPdf(e.target.checked)}
+                            className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
+                        />
+                        <label htmlFor="attachPdf" className="flex items-center gap-2 cursor-pointer font-medium text-blue-800">
+                            <FileText size={18} />
+                            Télécharger le PDF pour pièce jointe
+                        </label>
+                        {attachPdf && (
+                            <span className="ml-auto text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                                📎 Le PDF sera téléchargé avant d'ouvrir Gmail
+                            </span>
+                        )}
+                    </div>
+
                     {/* Email Preview */}
                     <div className="space-y-4">
                         <div>
@@ -182,7 +218,7 @@ Copropriété Les Pyrénées
                             <textarea
                                 value={emailBody}
                                 onChange={(e) => setEmailBody(e.target.value)}
-                                rows={14}
+                                rows={12}
                                 className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-700 font-mono text-sm leading-relaxed resize-none"
                             />
                         </div>
@@ -190,7 +226,10 @@ Copropriété Les Pyrénées
 
                     {/* Status */}
                     {status && (
-                        <div className={`text-center py-2 rounded-lg ${status.includes('❌') ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'} font-medium`}>
+                        <div className={`text-center py-2 rounded-lg font-medium ${status.includes('❌') ? 'bg-red-50 text-red-600' :
+                                status.includes('📄') ? 'bg-blue-50 text-blue-600' :
+                                    'bg-green-50 text-green-600'
+                            }`}>
                             {status}
                         </div>
                     )}
@@ -210,7 +249,8 @@ Copropriété Les Pyrénées
                         disabled={!selectedOwner?.email}
                         className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl hover:from-amber-600 hover:to-orange-600 flex items-center gap-3 font-bold text-lg shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                     >
-                        <Send size={20} /> Envoyer Email
+                        <Send size={20} />
+                        {attachPdf ? 'PDF + Email' : 'Envoyer Email'}
                     </button>
                 </div>
             </div>

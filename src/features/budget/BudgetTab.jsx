@@ -9,7 +9,7 @@ import MailingModal from './MailingModal';
 import GererPostesModal from './GererPostesModal';
 import RecapTableModal from './RecapTableModal';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 const BUDGET_MODES = [
     { id: 'previ', label: '1. Budget Prévisionnel (Année N)' },
@@ -199,59 +199,178 @@ export default function BudgetTab() {
     const [dueDate, setDueDate] = useState(new Date().toISOString().split('T')[0]);
 
 
-    // Génération PDF Appel de Fonds
+    // Génération PDF Appel de Fonds - Format détaillé
     const handleGeneratePDF = (ownerId) => {
-        const owner = state.owners.find(o => o.id === ownerId);
-        if (!owner) return;
+        try {
+            const owner = state.owners.find(o => o.id === ownerId);
+            if (!owner) {
+                alert('Propriétaire non trouvé');
+                return;
+            }
 
-        const call = computeOwnerCall(owner);
-        const doc = new jsPDF();
+            const doc = new jsPDF();
+            const pageWidth = doc.internal.pageSize.getWidth();
 
-        // En-tête
-        doc.setFontSize(18);
-        doc.setTextColor(40);
-        doc.text("Appel de Fonds", 105, 20, { align: 'center' });
-        doc.setFontSize(12);
-        doc.text(`Copropriété Les Pyrénées - ${selectedQuarter} 2026`, 105, 28, { align: 'center' });
+            // ===== HEADER =====
+            doc.setFontSize(10);
+            doc.setTextColor(0, 51, 102); // Bleu foncé
+            doc.setFont('helvetica', 'bold');
+            doc.text("Copropriété LES PYRÉNÉES", 15, 20);
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(9);
+            doc.text("7-9 rue André Leroux", 15, 25);
+            doc.text("33780 SOULAC-SUR-MER", 15, 30);
+            doc.setTextColor(0, 100, 0);
+            doc.text("Email: coprolsp@gmail.com", 15, 35);
 
-        // Info Propriétaire
-        doc.setFillColor(245, 245, 245);
-        doc.rect(120, 40, 75, 25, 'F');
-        doc.setFontSize(11);
-        doc.text(owner.name, 125, 48);
-        doc.setFontSize(10);
-        doc.text(`Appt: ${owner.apt} - Lot: ${owner.lot}`, 125, 54);
-        doc.text(`Tantièmes: ${owner.tantiemes} / 1000`, 125, 60);
+            // Info copropriétaire (droite)
+            doc.setTextColor(0);
+            doc.setFontSize(10);
+            doc.text(`Copropriétaire: ${owner.name} (${owner.apt})`, pageWidth - 15, 20, { align: 'right' });
+            doc.setFontSize(9);
+            doc.text(`Lot(s): ${owner.lot}`, pageWidth - 15, 25, { align: 'right' });
 
-        // Tableau Détails
-        const rows = [
-            ['Charges Générales', fmtMoney(call.partGen) + ' €'],
-            ['Charges Spéciales (Syndic/Ent.)', owner.exoGest ? "EXONÉRÉ" : fmtMoney(call.partSpe) + ' €'],
-            ['Charges Ménage', owner.exoMen ? "EXONÉRÉ" : fmtMoney(call.partMen) + ' €'],
-            ['Travaux / Exceptionnel', fmtMoney(call.partTra) + ' €'],
-            ['Eau (Avance sur consommation)', fmtMoney(call.wCost) + ' €']
-        ];
+            // ===== TITRE =====
+            doc.setFontSize(16);
+            doc.setTextColor(0, 51, 102);
+            doc.setFont('helvetica', 'bold');
+            doc.text("APPEL DE FONDS", pageWidth / 2, 50, { align: 'center' });
+            doc.setFontSize(12);
+            doc.text(`${selectedQuarter} 2026`, pageWidth / 2, 58, { align: 'center' });
 
-        doc.autoTable({
-            startY: 75,
-            head: [['Nature des charges', 'Montant']],
-            body: rows,
-            theme: 'grid',
-            headStyles: { fillColor: [66, 66, 66], halign: 'center' },
-            bodyStyles: { valign: 'middle' },
-            columnStyles: { 1: { halign: 'right', fontStyle: 'bold' } },
-        });
+            // ===== DONNÉES =====
+            const tantiemes = owner.tantiemes;
+            const divisorGen = divisors.divGen || 1000;
+            const divisorSpe = divisors.divSpe || 818;
+            const divisorMen = divisors.divMen || 801;
+            const quarterRatio = 0.25;
 
-        const finalY = doc.lastAutoTable.finalY + 10;
-        doc.setFontSize(14);
-        doc.setTextColor(0, 100, 0);
-        doc.text(`TOTAL À RÉGLER : ${fmtMoney(call.total)} €`, 190, finalY, { align: 'right' });
+            // Charges générales
+            const generalItems = budget.general || [];
+            const generalRows = generalItems.map(item => {
+                const base = item[budgetMode] || 0;
+                const montant = (base / divisorGen) * tantiemes * quarterRatio;
+                return [`- ${item.name}`, `${fmtMoney(base)} €`, `${fmtMoney(montant)} €`];
+            });
+            const totalGenBase = generalItems.reduce((s, i) => s + (i[budgetMode] || 0), 0);
+            const totalGenPeriod = (totalGenBase / divisorGen) * tantiemes * quarterRatio;
 
-        doc.setFontSize(10);
-        doc.setTextColor(100);
-        doc.text(`Date limite de paiement : ${new Date(dueDate).toLocaleDateString()}`, 190, finalY + 7, { align: 'right' });
+            // Charges Syndic & Entretien (special)
+            const specialItems = budget.special || [];
+            const specialRows = specialItems.map(item => {
+                const base = item[budgetMode] || 0;
+                const montant = owner.exoGest ? 0 : (base / divisorSpe) * tantiemes * quarterRatio;
+                return [`- ${item.name}`, `${fmtMoney(base)} €`, `${fmtMoney(montant)} €`];
+            });
+            const totalSpeBase = specialItems.reduce((s, i) => s + (i[budgetMode] || 0), 0);
+            const totalSpePeriod = owner.exoGest ? 0 : (totalSpeBase / divisorSpe) * tantiemes * quarterRatio;
 
-        doc.save(`Appel_${owner.name}_${selectedQuarter}.pdf`);
+            // Charges Ménage
+            const menageItems = budget.menage || [];
+            const menageRows = menageItems.map(item => {
+                const base = item[budgetMode] || 0;
+                const montant = owner.exoMen ? 0 : (base / divisorMen) * tantiemes * quarterRatio;
+                return [`- ${item.name}`, `${fmtMoney(base)} €`, `${fmtMoney(montant)} €`];
+            });
+            const totalMenBase = menageItems.reduce((s, i) => s + (i[budgetMode] || 0), 0);
+            const totalMenPeriod = owner.exoMen ? 0 : (totalMenBase / divisorMen) * tantiemes * quarterRatio;
+
+            // Charges Travaux
+            const travauxItems = budget.travaux || [];
+            const travauxRows = travauxItems.map(item => {
+                const base = item[budgetMode] || 0;
+                const montant = (base / divisorGen) * tantiemes * quarterRatio;
+                return [`- ${item.name}`, `${fmtMoney(base)} €`, `${fmtMoney(montant)} €`];
+            });
+            const totalTraBase = travauxItems.reduce((s, i) => s + (i[budgetMode] || 0), 0);
+            const totalTraPeriod = (totalTraBase / divisorGen) * tantiemes * quarterRatio;
+
+            // Eau
+            const wSubs = parseFloat(waterPrevi.subs?.[owner.id]) || 0;
+            const wCharges = parseFloat(waterPrevi.charges?.[owner.id]) || 0;
+            const wReguls = parseFloat(waterPrevi.reguls?.[owner.id]) || 0;
+            const annualWater = state.water?.annualTotal || 316.20;
+            const waterPeriod = wSubs + wCharges + wReguls;
+
+            // ===== TABLEAU =====
+            const tableData = [];
+
+            // Section Charges Générales
+            tableData.push([{ content: 'Charges Générales', colSpan: 3, styles: { fillColor: [200, 200, 200], fontStyle: 'bold' } }]);
+            generalRows.forEach(row => tableData.push(row));
+            tableData.push([{ content: `Quote-part (${tantiemes}/${divisorGen} t.)`, colSpan: 2, styles: { halign: 'right', fontStyle: 'italic' } }, { content: `${fmtMoney(totalGenPeriod)} €`, styles: { halign: 'right', fontStyle: 'bold', textColor: [0, 51, 102] } }]);
+
+            // Section Charges Syndic & Entretien
+            if (specialItems.length > 0) {
+                tableData.push([{ content: 'Charges Syndic & Entretien', colSpan: 3, styles: { fillColor: [200, 200, 200], fontStyle: 'bold' } }]);
+                specialRows.forEach(row => tableData.push(row));
+                if (owner.exoGest) {
+                    tableData.push([{ content: 'Exonéré de ces charges', colSpan: 2, styles: { fontStyle: 'italic', textColor: [150, 150, 150] } }, { content: '0.00 €', styles: { halign: 'right' } }]);
+                } else {
+                    tableData.push([{ content: `Quote-part (${tantiemes}/${divisorSpe} t.)`, colSpan: 2, styles: { halign: 'right', fontStyle: 'italic' } }, { content: `${fmtMoney(totalSpePeriod)} €`, styles: { halign: 'right', fontStyle: 'bold', textColor: [0, 51, 102] } }]);
+                }
+            }
+
+            // Section Charges Ménage
+            if (menageItems.length > 0) {
+                tableData.push([{ content: 'Charges Ménage', colSpan: 3, styles: { fillColor: [200, 200, 200], fontStyle: 'bold' } }]);
+                menageRows.forEach(row => tableData.push(row));
+                if (owner.exoMen) {
+                    tableData.push([{ content: 'Exonéré de ces charges', colSpan: 2, styles: { fontStyle: 'italic', textColor: [150, 150, 150] } }, { content: '0.00 €', styles: { halign: 'right' } }]);
+                } else {
+                    tableData.push([{ content: `Quote-part (${tantiemes}/${divisorMen} t.)`, colSpan: 2, styles: { halign: 'right', fontStyle: 'italic' } }, { content: `${fmtMoney(totalMenPeriod)} €`, styles: { halign: 'right', fontStyle: 'bold', textColor: [0, 51, 102] } }]);
+                }
+            }
+
+            // Section Charges Travaux
+            tableData.push([{ content: 'Charges Travaux', colSpan: 3, styles: { fillColor: [200, 200, 200], fontStyle: 'bold' } }]);
+            if (travauxItems.length > 0) {
+                travauxRows.forEach(row => tableData.push(row));
+            }
+            tableData.push([{ content: `Quote-part (${tantiemes}/1000 t.)`, colSpan: 2, styles: { halign: 'right', fontStyle: 'italic' } }, { content: `${fmtMoney(totalTraPeriod)} €`, styles: { halign: 'right', fontStyle: 'bold', textColor: [0, 51, 102] } }]);
+
+            // Section Eau
+            tableData.push([{ content: 'Eau & Compteurs', colSpan: 3, styles: { fillColor: [200, 200, 200], fontStyle: 'bold' } }]);
+            tableData.push(['Provision Eau', `${fmtMoney(annualWater)} €`, `${fmtMoney(waterPeriod)} €`]);
+
+            // TOTAL
+            const grandTotal = totalGenPeriod + totalSpePeriod + totalMenPeriod + totalTraPeriod + waterPeriod;
+            tableData.push([{ content: '', colSpan: 1 }, { content: 'TOTAL À PAYER', styles: { halign: 'right', fontStyle: 'bold', textColor: [180, 0, 0] } }, { content: `${fmtMoney(grandTotal)} €`, styles: { halign: 'right', fontStyle: 'bold', textColor: [180, 0, 0] } }]);
+
+            autoTable(doc, {
+                startY: 70,
+                head: [['Poste', 'Base Annuelle', 'Montant Période']],
+                body: tableData,
+                theme: 'plain',
+                headStyles: { fillColor: [66, 66, 66], textColor: [255, 255, 255], fontStyle: 'bold', halign: 'center' },
+                styles: { fontSize: 9, cellPadding: 2 },
+                columnStyles: {
+                    0: { cellWidth: 90 },
+                    1: { halign: 'right', cellWidth: 45 },
+                    2: { halign: 'right', cellWidth: 45 }
+                },
+                didParseCell: function (data) {
+                    // Style pour les lignes de poste
+                    if (data.row.index > 0 && data.column.index === 0 && data.cell.text[0]?.startsWith('-')) {
+                        data.cell.styles.textColor = [80, 80, 80];
+                    }
+                }
+            });
+
+            // ===== FOOTER =====
+            const finalY = doc.lastAutoTable.finalY + 15;
+            doc.setFontSize(10);
+            doc.setTextColor(0);
+            doc.text(`À régler avant le 15 du premier mois du trimestre.`, 15, finalY);
+
+            // Sauvegarder
+            const filename = `Appel_${owner.name.replace(/[^a-zA-Z0-9]/g, '_')}_${owner.apt.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+            doc.save(filename);
+
+        } catch (error) {
+            console.error('PDF Generation Error:', error);
+            alert('Erreur lors de la génération du PDF: ' + error.message);
+        }
     };
 
     return (
@@ -265,6 +384,7 @@ export default function BudgetTab() {
                 year={2026}
                 dueDate={dueDate}
                 computeOwnerCall={computeOwnerCall}
+                onGeneratePDF={handleGeneratePDF}
             />
 
             {/* Toolbar */}
