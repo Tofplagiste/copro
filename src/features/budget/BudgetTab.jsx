@@ -2,7 +2,7 @@
  * BudgetTab - Onglet Budget & Appels de Fonds
  */
 import { useState } from 'react';
-import { FileText, Mail, Download, Table2, Settings } from 'lucide-react';
+import { FileText, Mail, Download, Table2, Settings, Copy } from 'lucide-react';
 import { useCopro } from '../../context/CoproContext';
 import { useToast } from '../../components/ToastProvider';
 import { fmtMoney } from '../../utils/formatters';
@@ -166,6 +166,20 @@ export default function BudgetTab() {
         const total = subTotal + wCost;
 
         return { partGen, partSpe, partMen, partTra, subTotal, wCost, total };
+    };
+
+    // Copier la colonne TOTAL
+    const handleCopyTotalColumn = () => {
+        const text = state.owners
+            .filter(o => !o.isCommon)
+            .map(o => {
+                const call = computeOwnerCall(o);
+                return call.total.toFixed(2);
+            })
+            .join('\n');
+
+        navigator.clipboard.writeText(text);
+        toast.success('Colonne TOTAL copiée !');
     };
 
     const [isMailingModalOpen, setIsMailingModalOpen] = useState(false);
@@ -526,7 +540,16 @@ export default function BudgetTab() {
                                     💧 Eau
                                 </th>
                                 <th className="px-3 py-4 font-bold text-xs uppercase tracking-wide text-center bg-gradient-to-r from-emerald-500 to-green-600 text-white" style={{ width: 110 }}>
-                                    TOTAL
+                                    <div className="flex items-center justify-center gap-1">
+                                        TOTAL
+                                        <button
+                                            onClick={handleCopyTotalColumn}
+                                            className="p-1 hover:bg-white/20 rounded transition-colors"
+                                            title="Copier la colonne"
+                                        >
+                                            <Copy size={12} />
+                                        </button>
+                                    </div>
                                 </th>
                                 <th className="px-3 py-4 text-white font-bold text-xs uppercase tracking-wide text-center" style={{ width: 90 }}>
                                     Actions

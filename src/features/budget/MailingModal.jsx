@@ -25,14 +25,22 @@ export default function MailingModal({
         return owners.find(o => String(o.id) === String(id));
     }, [owners]);
 
-    // Initialize when modal opens
+    // Initialize when modal opens & Lock Scroll
     useEffect(() => {
-        if (isOpen && owners?.length > 0) {
-            const initId = initialOwnerId || owners[0]?.id;
-            setSelectedOwnerId(initId);
-            setStatus('');
-            setAttachPdf(true);
+        if (isOpen) {
+            document.body.style.overflow = 'hidden';
+            if (owners?.length > 0) {
+                const initId = initialOwnerId || owners[0]?.id;
+                setSelectedOwnerId(initId);
+                setStatus('');
+                setAttachPdf(true);
+            }
+        } else {
+            document.body.style.overflow = '';
         }
+        return () => {
+            document.body.style.overflow = '';
+        };
     }, [isOpen, initialOwnerId, owners]);
 
     // Format money

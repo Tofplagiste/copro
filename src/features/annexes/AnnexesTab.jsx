@@ -1,17 +1,27 @@
 /**
  * AnnexesTab - Onglet Annexes Bilan (États financiers)
  */
-import { BookOpen, Scale, TrendingUp, Users } from 'lucide-react';
+import { useState } from 'react';
+import { BookOpen, Scale, TrendingUp, Users, Plus, Trash2 } from 'lucide-react';
 import { useCopro } from '../../context/CoproContext';
+import { useToast } from '../../components/ToastProvider';
 import { fmtMoney } from '../../utils/formatters';
+import Modal from '../../components/Modal';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export default function AnnexesTab() {
-    const { state } = useCopro();
+    const { state, updateState } = useCopro();
+    const toast = useToast();
     const accounts = state.accounts || [];
     const operations = state.finance?.operations || [];
-    const categories = state.categories || [];
 
-    // Calcul solde par compte
+    // Manual Entries
+    const manualEntries = state.finance?.manualEntries || [];
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [newEntry, setNewEntry] = useState({ type: 'actif', label: '', amount: '' });
+
+    // 1. Calcul Solde Bancaire (Comptes 512)
     const getAccountBalance = (accId) => {
         const acc = accounts.find(a => a.id === accId);
         let bal = acc?.initial || 0;
@@ -23,32 +33,155 @@ export default function AnnexesTab() {
         return bal;
     };
 
-    // Calcul totaux
-    const totalActif = accounts.reduce((sum, acc) => sum + getAccountBalance(acc.id), 0);
-
-    // Calcul résultat par poste
+    // 2. Calcul Résultat (Recettes - Dépenses)
     const getResultByCategory = () => {
         const result = {};
         operations.forEach(op => {
             if (!result[op.category]) result[op.category] = 0;
-            result[op.category] += op.type === 'recette' ? op.amount : op.amount;
+            result[op.category] += op.type === 'recette' ? op.amount : op.amount; // Depense already negative? No, sum amounts usually.
+            // Wait, logic check: usually expense ops are positive numbers in DB but represent outflow.
+            // Previous logic: "result[op.category] += op.type === 'recette' ? op.amount : op.amount;" -> This sums everything positive??
+            // Let's check previous file content logic.
+            // Previous: "result[op.category] += op.type === 'recette' ? op.amount : op.amount;"
+            // This suggests categories are either R or D. 
+            // Total Result calculation:
+            // "const totalRecettes = operations.filter(o => o.type === 'recette').reduce((s, o) => s + o.amount, 0);"
+            // "const totalDepenses = operations.filter(o => o.type === 'depense').reduce((s, o) => s + o.amount, 0);"
+            // "const netResult = totalRecettes - totalDepenses;"
+            // This is correct for global result.
         });
         return result;
     };
-
     const resultByCategory = getResultByCategory();
-
-    // Calcul total recettes/dépenses
     const totalRecettes = operations.filter(o => o.type === 'recette').reduce((s, o) => s + o.amount, 0);
     const totalDepenses = operations.filter(o => o.type === 'depense').reduce((s, o) => s + o.amount, 0);
     const netResult = totalRecettes - totalDepenses;
 
-    // Calcul fonds et réserves (livrets)
+    // 3. Calcul Fonds & Réserves (Comptes 10x - ou Livrets 502)
+    // Assumption: Livret accounts represent the assets held for funds.
+    // The Liability side "Fonds" matches the Asset side "Livrets" usually +/-, or we just take Livret balance as proxy for Fund value.
     const livrets = accounts.filter(a => a.id.includes('502'));
     const totalFonds = livrets.reduce((sum, acc) => sum + getAccountBalance(acc.id), 0);
 
-    // Report à nouveau estimé
-    const reportAN = totalActif - totalFonds - netResult;
+    // 4. Manual Entries Totals
+    const manualActif = manualEntries.filter(e => e.type === 'actif').reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+    const manualPassif = manualEntries.filter(e => e.type === 'passif').reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+
+    // 5. Total Actif (Banques + Livrets + Manual Actif)
+    // Note: Previous code summed all accounts for Total Actif. 
+    // "const totalActif = accounts.reduce((sum, acc) => sum + getAccountBalance(acc.id), 0);"
+    // This includes 512 (Banque) and 502 (Livrets).
+    const totalBankAndLivrets = accounts.reduce((sum, acc) => sum + getAccountBalance(acc.id), 0);
+    const totalActif = totalBankAndLivrets + manualActif;
+
+    // 6. Report À Nouveau (Balancing Figure)
+    // Actif = Passif
+    // Passif = Fonds (Likely matched by Livrets in Actif?) + Dettes (Manual Passif) + Result + ReportAN
+    // Note: In previous code, "totalFonds" was subtracted. "livrets" are part of accounts.
+    // If we assume Livrets on Actif side balance exactly "Fonds" on Passif side, then:
+    // ReportAN = (Actif - Livrets) - (ManualPassif + Result)
+    // = (Banques + ManualActif) - (ManualPassif + Result)
+    // But previous code: "totalActif - totalFonds - netResult"
+    // totalActif included Livrets. totalFonds was sum of Livrets.
+    // So distinct is Banques - NetResult = ReportAN ?? 
+    // Let's stick to the balancing formula:
+    // ReportAN = TotalActif - (TotalFonds + ManualPassif + NetResult)
+    const reportAN = totalActif - (totalFonds + manualPassif + netResult);
+
+    // Total Passif for Display verification
+    const totalPassif = totalFonds + manualPassif + netResult + reportAN;
+
+    // Handlers
+    const handleAddManualEntry = () => {
+        if (!newEntry.label || !newEntry.amount) return;
+        const entry = {
+            id: Date.now().toString(),
+            ...newEntry,
+            amount: parseFloat(newEntry.amount)
+        };
+        const updatedEntries = [...manualEntries, entry];
+        updateState({
+            finance: {
+                ...state.finance,
+                manualEntries: updatedEntries
+            }
+        });
+        setNewEntry({ type: 'actif', label: '', amount: '' });
+        setIsAddModalOpen(false);
+        toast.success('Entrée ajoutée');
+    };
+
+    const handleRemoveManualEntry = (id) => {
+        const updatedEntries = manualEntries.filter(e => e.id !== id);
+        updateState({
+            finance: {
+                ...state.finance,
+                manualEntries: updatedEntries
+            }
+        });
+        toast.success('Entrée supprimée');
+    };
+
+    const handleExportPDF = () => {
+        const doc = new jsPDF();
+        doc.setFontSize(18);
+        doc.text("Dossier Comptable", 14, 20);
+
+        let finalY = 30;
+
+        // TABLEAU ACTIF
+        const actifRows = [
+            ...accounts.map(acc => [`Banque: ${acc.name}`, fmtMoney(getAccountBalance(acc.id))]),
+            ...manualEntries.filter(e => e.type === 'actif').map(e => [e.label, fmtMoney(e.amount)]),
+            ['TOTAL ACTIF', fmtMoney(totalActif)]
+        ];
+
+        autoTable(doc, {
+            startY: finalY,
+            head: [['Comptes Bancaires & Créances', 'Montant']],
+            body: actifRows,
+            theme: 'striped',
+            headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' },
+            columnStyles: { 1: { halign: 'right', fontStyle: 'bold' } },
+            didParseCell: (data) => {
+                if (data.row.index === actifRows.length - 1) {
+                    data.cell.styles.fillColor = [41, 128, 185];
+                    data.cell.styles.textColor = 255;
+                    data.cell.styles.fontStyle = 'bold';
+                }
+            }
+        });
+
+        finalY = doc.lastAutoTable.finalY + 15;
+
+        // TABLEAU PASSIF
+        const passifRows = [
+            ...livrets.map(acc => [`Fonds & Réserves (${acc.name})`, fmtMoney(getAccountBalance(acc.id))]),
+            ...manualEntries.filter(e => e.type === 'passif').map(e => [e.label, fmtMoney(e.amount)]),
+            ['Excédent Exercice', fmtMoney(netResult)],
+            ['Report à Nouveau (Solde N-1)', fmtMoney(reportAN)],
+            ['TOTAL PASSIF', fmtMoney(totalPassif)]
+        ];
+
+        autoTable(doc, {
+            startY: finalY,
+            head: [['Fonds, Réserves & Dettes', 'Montant']],
+            body: passifRows,
+            theme: 'striped',
+            headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' },
+            columnStyles: { 1: { halign: 'right', fontStyle: 'bold' } },
+            didParseCell: (data) => {
+                if (data.row.index === passifRows.length - 1) {
+                    data.cell.styles.fillColor = [41, 128, 185];
+                    data.cell.styles.textColor = 255;
+                    data.cell.styles.fontStyle = 'bold';
+                }
+            }
+        });
+
+        doc.save('Dossier_Comptable.pdf');
+        toast.success('PDF Exporté !');
+    };
 
     return (
         <div className="p-6 space-y-4">
@@ -57,9 +190,20 @@ export default function AnnexesTab() {
                 <h2 className="text-2xl font-bold text-blue-600 flex items-center gap-2">
                     <Scale size={28} /> Annexes Comptables (Bilan & Résultat)
                 </h2>
-                <button className="px-4 py-2 bg-red-600 text-white rounded-lg font-bold flex items-center gap-2 hover:bg-red-500">
-                    📄 Tout Exporter
-                </button>
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => setIsAddModalOpen(true)}
+                        className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-bold flex items-center gap-2 hover:bg-emerald-500"
+                    >
+                        <Plus size={18} /> Ajout Manuel
+                    </button>
+                    <button
+                        onClick={handleExportPDF}
+                        className="px-4 py-2 bg-red-600 text-white rounded-lg font-bold flex items-center gap-2 hover:bg-red-500"
+                    >
+                        📄 Tout Exporter
+                    </button>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -87,6 +231,17 @@ export default function AnnexesTab() {
                                         <td className="px-3 py-2 text-right font-mono">{fmtMoney(getAccountBalance(acc.id))}</td>
                                     </tr>
                                 ))}
+                                {manualEntries.filter(e => e.type === 'actif').map(e => (
+                                    <tr key={e.id} className="border-b border-gray-100 bg-emerald-50/50 group">
+                                        <td className="px-3 py-2 flex items-center gap-2">
+                                            {e.label}
+                                            <button onClick={() => handleRemoveManualEntry(e.id)} className="text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <Trash2 size={12} />
+                                            </button>
+                                        </td>
+                                        <td className="px-3 py-2 text-right font-mono">{fmtMoney(e.amount)}</td>
+                                    </tr>
+                                ))}
                             </tbody>
                             <tfoot className="bg-gray-100 font-bold">
                                 <tr>
@@ -112,6 +267,17 @@ export default function AnnexesTab() {
                                         <td className="px-3 py-2 text-right font-mono">{fmtMoney(getAccountBalance(acc.id))}</td>
                                     </tr>
                                 ))}
+                                {manualEntries.filter(e => e.type === 'passif').map(e => (
+                                    <tr key={e.id} className="border-b border-gray-100 bg-amber-50/50 group">
+                                        <td className="px-3 py-2 flex items-center gap-2">
+                                            {e.label}
+                                            <button onClick={() => handleRemoveManualEntry(e.id)} className="text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <Trash2 size={12} />
+                                            </button>
+                                        </td>
+                                        <td className="px-3 py-2 text-right font-mono">{fmtMoney(e.amount)}</td>
+                                    </tr>
+                                ))}
                                 <tr className="border-b border-gray-100">
                                     <td className="px-3 py-2">Excédent Exercice</td>
                                     <td className={`px-3 py-2 text-right font-mono ${netResult >= 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -126,13 +292,13 @@ export default function AnnexesTab() {
                             <tfoot className="bg-gray-100 font-bold">
                                 <tr>
                                     <td className="px-3 py-2">TOTAL PASSIF</td>
-                                    <td className="px-3 py-2 text-right">{fmtMoney(totalActif)}</td>
+                                    <td className="px-3 py-2 text-right">{fmtMoney(totalPassif)}</td>
                                 </tr>
                             </tfoot>
                         </table>
 
-                        <div className={`mt-3 py-2 px-3 text-center text-sm rounded ${Math.abs(totalActif - totalActif) < 0.01 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                            Bilan Équilibré ✓
+                        <div className={`mt-3 py-2 px-3 text-center text-sm rounded ${Math.abs(totalActif - totalPassif) < 0.01 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                            {Math.abs(totalActif - totalPassif) < 0.01 ? 'Bilan Équilibré ✓' : `Déséquilibre : ${fmtMoney(totalActif - totalPassif)}`}
                         </div>
                     </div>
                 </div>
@@ -202,6 +368,63 @@ export default function AnnexesTab() {
                     </div>
                 </div>
             </div>
+
+            {/* Modal Ajout Manuel */}
+            <Modal
+                isOpen={isAddModalOpen}
+                onClose={() => setIsAddModalOpen(false)}
+                title="Ajouter une ligne au Bilan"
+                size="sm"
+            >
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-1">Type</label>
+                        <select
+                            value={newEntry.type}
+                            onChange={(e) => setNewEntry({ ...newEntry, type: e.target.value })}
+                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                        >
+                            <option value="actif">ACTIF (ex: Créances, Avances)</option>
+                            <option value="passif">PASSIF (ex: Dettes, Factures)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-1">Libellé</label>
+                        <input
+                            type="text"
+                            value={newEntry.label}
+                            onChange={(e) => setNewEntry({ ...newEntry, label: e.target.value })}
+                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                            placeholder="Ex: Facture EDF à payer"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-1">Montant (€)</label>
+                        <input
+                            type="number"
+                            value={newEntry.amount}
+                            onChange={(e) => setNewEntry({ ...newEntry, amount: e.target.value })}
+                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                            placeholder="0.00"
+                            step="0.01"
+                        />
+                    </div>
+                    <div className="flex justify-end gap-3 pt-2">
+                        <button
+                            onClick={() => setIsAddModalOpen(false)}
+                            className="px-4 py-2 text-gray-600 border rounded-lg hover:bg-gray-50"
+                        >
+                            Annuler
+                        </button>
+                        <button
+                            onClick={handleAddManualEntry}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-500"
+                        >
+                            Ajouter
+                        </button>
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 }

@@ -1,3 +1,4 @@
+
 /**
  * BudgetDetailTab - Tableau de bord mensuel (Dépenses & Trésorerie)
  * Design fidèle à la version legacy avec modaux
@@ -7,6 +8,8 @@ import { Check, Eraser, Zap, ListOrdered, Plus, Settings } from 'lucide-react';
 import { useCopro } from '../../context/CoproContext';
 import { fmtMoney } from '../../utils/formatters';
 import { ConfirmModal, PromptModal } from '../../components/Modal';
+import GererPostesModal from '../budget/GererPostesModal';
+import AddQuickLineModal from './AddQuickLineModal';
 
 const MONTHS = ["Jan", "Fev", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Sep", "Oct", "Nov", "Déc"];
 
@@ -24,6 +27,10 @@ export default function BudgetDetailTab() {
     // Modals state
     const [confirmModal, setConfirmModal] = useState({ open: false, itemName: '' });
     const [promptModal, setPromptModal] = useState({ open: false, itemName: '', mode: '' });
+
+    // New Modals
+    const [isManageLinesOpen, setIsManageLinesOpen] = useState(false);
+    const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
 
     // Récupérer tous les postes budgétaires
     const getAllBudgetItems = () => {
@@ -80,6 +87,42 @@ export default function BudgetDetailTab() {
         updateState({ monthly: { ...monthly, expenses: newExpenses } });
     };
 
+    // Gestion des Postes (Ajout/Suppression dans le Budget)
+    const handleAddBudgetLine = (category, name) => {
+        const currentList = budget[category] || [];
+        // Eviter doublons
+        if (currentList.some(i => i.name === name)) return;
+
+        const newList = [...currentList, { name, prevision: 0 }]; // Prevision default
+        updateState({
+            budget: {
+                ...budget,
+                [category]: newList
+            }
+        });
+    };
+
+    const handleDeleteBudgetLine = (category, index) => {
+        const currentList = budget[category] || [];
+        const itemToRemove = currentList[index];
+        const newList = currentList.filter((_, i) => i !== index);
+
+        const newExpenses = { ...monthly.expenses };
+        delete newExpenses[itemToRemove?.name];
+
+        updateState({
+            budget: {
+                ...budget,
+                [category]: newList
+            },
+            monthly: {
+                ...monthly,
+                expenses: newExpenses
+            }
+        });
+    };
+
+
     // Calcul des totaux
     const getMonthlyTotals = () => {
         const totals = new Array(12).fill(0);
@@ -119,7 +162,21 @@ export default function BudgetDetailTab() {
                 placeholder="0.00"
             />
 
-            {/* Toolbar - Style Legacy Bootstrap */}
+            <GererPostesModal
+                isOpen={isManageLinesOpen}
+                onClose={() => setIsManageLinesOpen(false)}
+                budget={budget}
+                onAdd={handleAddBudgetLine}
+                onDelete={handleDeleteBudgetLine}
+            />
+
+            <AddQuickLineModal
+                isOpen={isQuickAddOpen}
+                onClose={() => setIsQuickAddOpen(false)}
+                onAdd={handleAddBudgetLine}
+            />
+
+            {/* Toolbar - Header cleaned up */}
             <div className="bg-blue-600 text-white rounded-lg px-4 py-3 flex flex-wrap items-center justify-between shadow-lg">
                 <div className="flex items-center gap-2">
                     <span className="text-xl">📋</span>
@@ -129,38 +186,39 @@ export default function BudgetDetailTab() {
 
                 <div className="flex items-center gap-2 flex-wrap mt-2 md:mt-0">
                     {/* Compte Select */}
-                    <div className="flex items-center bg-white rounded-md overflow-hidden">
-                        <span className="px-2 text-gray-500">🏦</span>
+                    <div className="flex items-center bg-white rounded-md overflow-hidden h-8">
+                        <span className="px-2 text-gray-500 flex items-center h-full bg-gray-50 border-r border-gray-100">🏦</span>
                         <select
                             value={selectedAccount}
                             onChange={(e) => setSelectedAccount(e.target.value)}
-                            className="text-gray-700 text-sm py-1.5 pr-8 border-none bg-white focus:ring-0 cursor-pointer"
+                            className="text-gray-700 text-sm pl-2 pr-8 border-none bg-white focus:ring-0 cursor-pointer h-full"
                         >
                             {accounts.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
                         </select>
                     </div>
 
                     {/* Jour */}
-                    <div className="flex items-center bg-white rounded-md px-2 py-1">
+                    <div className="flex items-center bg-white rounded-md px-2 h-8">
                         <span className="text-gray-500 text-sm mr-1">Jour</span>
                         <input
                             type="number"
                             value={validationDay}
                             onChange={(e) => setValidationDay(parseInt(e.target.value) || 1)}
-                            className="w-10 text-gray-700 font-bold text-center bg-transparent border-none focus:ring-0"
+                            className="w-10 text-gray-700 font-bold text-center bg-transparent border-none focus:ring-0 p-0"
                         />
                     </div>
 
-                    {/* Générer Dépenses Dropdown */}
-                    <select className="bg-white text-gray-700 text-sm px-3 py-1.5 rounded-md cursor-pointer">
-                        <option>Générer Dépenses ▼</option>
+                    {/* Générer Dépenses Dropdown - Updated */}
+                    <select className="bg-white text-gray-700 text-sm px-3 rounded-md cursor-pointer h-8 border-none focus:ring-0 outline-none">
+                        <option value="month">Générer Dépenses pour le Mois</option>
+                        <option value="year">Extrapolation vers Budget (x12)</option>
                     </select>
 
                     {/* Mois */}
                     <select
                         value={selectedMonth}
                         onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                        className="bg-white text-gray-700 font-medium text-sm px-3 py-1.5 rounded-md cursor-pointer"
+                        className="bg-white text-gray-700 font-medium text-sm px-3 rounded-md cursor-pointer h-8 border-none focus:ring-0"
                     >
                         {MONTHS.map((m, i) => <option key={i} value={i}>{m}</option>)}
                     </select>
@@ -170,16 +228,26 @@ export default function BudgetDetailTab() {
                         type="number"
                         value={selectedYear}
                         onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                        className="w-16 bg-white text-gray-700 font-bold text-sm px-2 py-1.5 rounded-md text-center"
+                        className="w-16 bg-white text-gray-700 font-bold text-sm px-2 rounded-md text-center h-8 border-none focus:ring-0"
                     />
 
-                    {/* Actions */}
-                    <button className="bg-green-500 hover:bg-green-600 text-white text-sm font-bold px-3 py-1.5 rounded-md shadow flex items-center gap-1 transition-colors">
-                        <Check size={14} /> VALIDER
-                    </button>
-                    <button className="bg-red-500 hover:bg-red-600 text-white text-sm font-bold px-3 py-1.5 rounded-md shadow flex items-center gap-1 transition-colors">
-                        <Eraser size={14} /> VIDER
-                    </button>
+                    {/* Valider / Effacer Buttons */}
+                    <div className="flex items-center gap-2 ml-2 border-l border-blue-400 pl-2">
+                        <button
+                            className="bg-green-500 hover:bg-green-600 text-white p-1.5 rounded-md flex items-center justify-center transition-colors shadow-sm"
+                            title="Valider / Sauvegarder"
+                            onClick={() => alert('Données sauvegardées')}
+                        >
+                            <Check size={18} />
+                        </button>
+                        <button
+                            className="bg-red-500 hover:bg-red-600 text-white p-1.5 rounded-md flex items-center justify-center transition-colors shadow-sm"
+                            title="Effacer tout le mois"
+                            onClick={() => { if (confirm('Effacer toutes les saisies du mois ?')) console.log('Clear'); }}
+                        >
+                            <Eraser size={18} />
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -189,11 +257,17 @@ export default function BudgetDetailTab() {
                 <div className="flex items-center justify-between px-4 py-2 border-b bg-gray-50">
                     <div className="flex items-center gap-3">
                         <span className="text-red-600 font-bold">DÉPENSES PRÉVISIONNELLES (Mensualisées)</span>
-                        <button className="text-gray-600 text-xs border border-gray-300 rounded-md px-2 py-1 flex items-center gap-1 hover:bg-gray-100 transition-colors">
+                        <button
+                            onClick={() => setIsManageLinesOpen(true)}
+                            className="text-gray-600 text-xs border border-gray-300 rounded-md px-2 py-1 flex items-center gap-1 hover:bg-gray-100 transition-colors"
+                        >
                             <Settings size={12} /> Gérer les Lignes
                         </button>
                     </div>
-                    <button className="text-red-500 text-xs border border-red-300 rounded-md px-2 py-1 flex items-center gap-1 hover:bg-red-50 transition-colors">
+                    <button
+                        onClick={() => setIsQuickAddOpen(true)}
+                        className="text-red-500 text-xs border border-red-300 rounded-md px-2 py-1 flex items-center gap-1 hover:bg-red-50 transition-colors"
+                    >
                         <Plus size={12} /> Ajouter une ligne rapide
                     </button>
                 </div>

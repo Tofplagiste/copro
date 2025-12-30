@@ -4,7 +4,7 @@
 import { useCopro } from '../../context/CoproContext';
 import { fmtMoney } from '../../utils/formatters';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 export default function WaterReadings() {
     const { state, updateState } = useCopro();
@@ -59,7 +59,7 @@ export default function WaterReadings() {
             }
         });
 
-        doc.autoTable({
+        autoTable(doc, {
             startY: 30,
             head: [['Propriétaire', 'Lot / Appt', 'N° Compteur', 'Ancien Index', 'Nouvel Index']],
             body: rows,
