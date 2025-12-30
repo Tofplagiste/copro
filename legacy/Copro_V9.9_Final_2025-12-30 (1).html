@@ -1,0 +1,1482 @@
+<html lang="fr"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestion Copro LES PYRÉNÉES - V9.9 (Fixed Water Logic)</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script><style type="text/css" id="operaUserStyle"></style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root{--primary:#2c3e50;--secondary:#27ae60;--accent:#2980b9;--danger:#c0392b;--bg:#f4f6f9;--pointed:#e8f5e9}
+body{background-color:var(--bg);font-family:'Segoe UI',sans-serif;padding-bottom:80px;font-size:.9rem}
+.app-header{background:linear-gradient(135deg,var(--primary),#1a252f);color:#fff;padding:15px 20px;position:sticky;top:0;z-index:1000;box-shadow:0 4px 6px rgba(0,0,0,.15)}
+.nav-bar{background:#fff;padding:0 20px;box-shadow:0 2px 5px rgba(0,0,0,.05);overflow-x:auto;white-space:nowrap}
+.custom-tab{padding:15px 20px;border:none;background:0 0;font-weight:600;color:#7f8c8d;border-bottom:3px solid transparent;cursor:pointer;transition:.2s;display:inline-block}
+.custom-tab:hover{color:var(--accent);background:#f8f9fa}
+.custom-tab.active{color:var(--accent);border-bottom-color:var(--accent);background:#fff}
+.tab-content{display:none;padding:20px;animation:fadeIn .3s}
+.tab-content.active{display:block}
+/* Styles pour les sous-onglets Eau */
+.sub-nav { margin-bottom: 20px; background: #e9ecef; padding: 5px; border-radius: 8px; display: inline-flex; gap: 5px; }
+.sub-tab { padding: 8px 15px; border: none; background: transparent; color: #6c757d; font-weight: 600; font-size: 0.85rem; border-radius: 6px; cursor: pointer; transition: all 0.2s; }
+.sub-tab:hover { background: rgba(255,255,255,0.5); color: var(--primary); }
+.sub-tab.active { background: #fff; color: var(--accent); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+.sub-content { display: none; animation: fadeIn .3s; }
+.sub-content.active { display: block; }
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.inp-money,.inp-budget{text-align:right;font-family:'Consolas',monospace;font-weight:700;border:1px solid #ddd;padding:4px;border-radius:4px;width:100%}
+.inp-budget{border:1px solid #dee2e6;padding:2px 5px;font-size:.85em}
+.inp-text{text-align:center;border:1px solid #ddd;padding:4px;border-radius:4px;width:100%}
+.paste-target{outline:2px solid #27ae60!important;background-color:#e8f5e9!important}
+.no-meter-cell{background:repeating-linear-gradient(45deg,#e9ecef,#e9ecef 10px,#dee2e6 10px,#dee2e6 20px);height:30px;border-radius:4px;opacity:.6;cursor:not-allowed}
+.badge-lot{font-size:.75em;color:#27ae60;font-style:italic;display:block}
+.exo-badge{font-size:.65em;padding:2px 4px;border-radius:3px;margin-left:5px;font-weight:700;text-transform:uppercase;vertical-align:middle;color:#fff}
+.bg-exo-gest{background-color:#e74c3c} .bg-exo-men{background-color:#8e44ad}
+.balance-bar{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:15px;margin-bottom:20px}
+.balance-box{background:#fff;padding:12px;border-radius:8px;border:1px solid #ccc;cursor:pointer;transition:.2s;font-size:.85rem}
+.balance-box:hover{transform:translateY(-3px);box-shadow:0 5px 15px rgba(0,0,0,.05)}
+.balance-box.active{border:2px solid var(--accent);background-color:#f0f8ff}
+.balance-header{font-weight:700;color:var(--primary);border-bottom:1px solid #eee;padding-bottom:5px;margin-bottom:8px;display:flex;justify-content:space-between;font-size:1rem}
+.bal-row{display:flex;justify-content:space-between;margin-bottom:3px;align-items:center}
+#reconciliation-panel{background:#fff3e0;border-bottom:3px solid #ff9800}
+.row-pointed{background-color:rgba(39,174,96,0.1)!important}
+.checkbox-delete{accent-color:#c0392b;transform:scale(1.4);cursor:pointer}
+.icon-check{cursor:pointer;transition:transform .2s;font-size:1.2rem;color:#bdc3c7}
+.icon-check:hover{transform:scale(1.2)} .icon-check.active{color:#27ae60}
+.chart-wrapper{position:relative;height:250px;width:100%}
+#save-indicator{font-size:.8em;color:rgba(255,255,255,.7);margin-right:15px;font-style:italic;opacity:0;transition:opacity .5s}
+#save-indicator.visible{opacity:1}
+.config-card{border-top:4px solid var(--accent)} .config-label{font-size:.8rem;font-weight:700;text-transform:uppercase;color:#6c757d;margin-bottom:.2rem}
+.bg-config-panel{background-color:#f8f9fa;border:1px solid #e9ecef;border-radius:6px;padding:10px;margin-top:5px}
+.sticky-col{position:sticky;left:0;background-color:#f8f9fa;z-index:10;border-right:2px solid #dee2e6}
+.th-rotate{white-space:nowrap;height:130px;vertical-align:bottom} .th-rotate>div{transform:rotate(-45deg);width:30px;margin-left:-10px;margin-bottom:10px}
+.inp-grid{width:70px;text-align:right;border:none;background:0 0;font-family:'Consolas';font-size:.9em} .inp-grid:focus{background:#fff;outline:2px solid var(--accent)}
+.inp-readonly{background-color:#e8f5e9;color:#27ae60;font-weight:700;cursor:default}
+.action-cell{font-size:.7rem;cursor:pointer;color:#95a5a6;transition:.2s;margin:0 1px} .action-cell:hover{color:var(--accent);transform:scale(1.2)}
+.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:2000;display:none;justify-content:center;align-items:center}
+.modal-box{background:#fff;padding:20px;border-radius:8px;width:95%;max-width:1400px;box-shadow:0 5px 15px rgba(0,0,0,.3);max-height:95vh;overflow-y:auto}
+.inp-edit-table{width:100%;border:none;background:0 0;padding:2px 5px} .inp-edit-table:focus{background:#fff;outline:2px solid var(--accent);border-radius:3px}
+.annexe-section{margin-bottom:30px;border:1px solid #ccc;background:#fff;padding:15px;border-radius:5px;box-shadow:0 2px 5px rgba(0,0,0,0.05)}
+.annexe-title{background:#34495e;color:#fff;padding:8px 15px;margin:-15px -15px 15px -15px;border-radius:5px 5px 0 0;font-weight:bold;font-size:1.1em;display:flex;justify-content:space-between;align-items:center}
+.col-header-budget { font-size: 0.75rem; text-transform: uppercase; font-weight: bold; text-align: center; margin-bottom: 5px; }
+.th-vertical { writing-mode: vertical-rl; text-orientation: mixed; transform: rotate(180deg); white-space: nowrap; height: 160px; padding: 10px 5px; vertical-align: bottom; text-align: left; font-size: 0.85rem; }
+</style>
+</head>
+<body>
+
+<header class="app-header d-flex justify-content-between align-items-center">
+    <div class="d-flex align-items-center gap-3">
+        <div class="bg-white text-primary rounded-circle d-flex justify-content-center align-items-center" style="width:45px;height:45px;"><i class="fa-solid fa-building-user fa-lg"></i></div>
+        <div><h5 class="m-0 fw-bold">LES PYRÉNÉES</h5><small class="opacity-75">Syndic Bénévole - V9.9</small></div>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <span id="save-indicator" class="visible"><i class="fa-solid fa-check me-1"></i>Sauvegardé</span>
+        <button class="btn btn-warning btn-sm fw-bold text-dark" onclick="app.exportHTML()"><i class="fa-solid fa-floppy-disk me-2"></i>SAUVEGARDER</button>
+        <button class="btn btn-danger btn-sm" onclick="app.resetAll()"><i class="fa-solid fa-trash"></i></button>
+    </div>
+</header>
+
+<div class="nav-bar sticky-top" style="top:75px;z-index:990;">
+    <button class="custom-tab active" onclick="app.switchTab('water-all')" id="btn-water-all"><i class="fa-solid fa-faucet me-2"></i>1. Gestion Eau</button>
+    <button class="custom-tab" onclick="app.switchTab('budget')" id="btn-budget"><i class="fa-solid fa-file-invoice-dollar me-2"></i>2. Budget &amp; Appels</button>
+    <button class="custom-tab" onclick="app.switchTab('finance')" id="btn-finance"><i class="fa-solid fa-chart-pie me-2"></i>3. Comptabilité</button>
+    <button class="custom-tab" onclick="app.switchTab('annexes')" id="btn-annexes"><i class="fa-solid fa-book me-2"></i>4. Annexes Bilan</button>
+    <button class="custom-tab" onclick="app.switchTab('budget-detail')" id="btn-budget-detail"><i class="fa-solid fa-calendar-days me-2"></i>5. Détail &amp; Trésorerie</button>
+    <button class="custom-tab" onclick="app.switchTab('params')" id="btn-params"><i class="fa-solid fa-sliders me-2"></i>Paramètres</button>
+</div>
+
+<div class="container-fluid py-4">
+
+    <div id="tab-water-all" class="tab-content active">
+        <div class="d-flex justify-content-center">
+            <div class="sub-nav">
+                <button class="sub-tab active" onclick="water.switchSubTab('readings')" id="sub-btn-readings"><i class="fa-solid fa-pen-to-square me-2"></i>Saisie Relevés</button>
+                <button class="sub-tab" onclick="water.switchSubTab('previ')" id="sub-btn-previ"><i class="fa-solid fa-droplet-slash me-2"></i>Saisie Prévisions</button>
+                <button class="sub-tab" onclick="water.switchSubTab('proj')" id="sub-btn-proj"><i class="fa-solid fa-chart-line me-2"></i>Bilan &amp; Projection</button>
+            </div>
+        </div>
+
+        <div id="sub-content-readings" class="sub-content active">
+            <div class="alert alert-light border-start border-4 border-success shadow-sm small text-muted"><i class="fa-solid fa-info-circle me-2 text-success"></i><strong>Astuce :</strong> Le changement de trimestre remplit automatiquement l'ancien index avec le nouveau du trimestre précédent.</div>
+            <div class="row">
+                <div class="col-lg-3">
+                    <div class="card bg-white shadow-sm config-card">
+                        <div class="card-header bg-white"><i class="fa-solid fa-sliders me-2 text-secondary"></i><span class="fw-bold text-dark">Configuration Trimestre</span></div>
+                        <div class="card-body">
+                            <div class="mb-3"><label class="config-label">Trimestre Actif</label><select id="w-activeQuarter" class="form-select fw-bold" onchange="water.changeQuarter()"><option value="T1">Trimestre 1</option><option value="T2">Trimestre 2</option><option value="T3">Trimestre 3</option><option value="T4">Trimestre 4</option></select></div>
+                            <hr class="my-3">
+                            <div class="mb-3">
+                                <label class="config-label">1. Coût au m³ (Ce Trimestre)</label>
+                                <select id="w-priceMode" class="form-select form-select-sm mb-2" onchange="water.render()">
+                                    <option value="quarter">Facture Trimestre (Réel)</option>
+                                    <option value="annual">Facture Annuelle (Moyenne)</option>
+                                    <option value="manual">Prix Fixe (Manuel)</option>
+                                </select>
+                                <div id="panelQuarter" class="bg-config-panel d-none"><label class="small text-muted mb-1">Total Facture Trim. (€)</label><input type="number" id="w-invoiceTotal" class="form-control form-control-sm fw-bold border-primary" value="0.00" step="0.01" oninput="water.render()"></div>
+                                <div id="panelAnnual" class="bg-config-panel">
+                                    <label class="small text-muted mb-1">Total Facture Annuelle (€)</label><input type="number" id="w-annualTotal" class="form-control form-control-sm fw-bold border-primary mb-2" value="0.00" step="0.01" oninput="water.render()">
+                                    <label class="small text-muted mb-1">Dont Abo. Annuel (€)</label><input type="number" id="w-annualSub" class="form-control form-control-sm border-secondary mb-2" value="0.00" step="0.01" oninput="water.render()">
+                                    <label class="small text-muted mb-1">Volume Annuel (m³)</label><input type="number" id="w-annualVol" class="form-control form-control-sm border-info" value="0.00" step="0.001" oninput="water.render()">
+                                </div>
+                                <div id="panelManual" class="bg-config-panel d-none"><label class="small text-muted mb-1">Prix du m³ (€)</label><input type="number" id="w-manualPrice" class="form-control form-control-sm fw-bold" value="4.50" step="0.0001" oninput="water.render()"></div>
+                                <div class="mt-2 text-center p-2 bg-light border rounded"><small class="text-muted d-block">Prix appliqué</small><strong class="fs-5 text-primary" id="lblPricePerM3">5.0763</strong> <small>€/m³</small></div>
+                            </div>
+                            <hr class="my-3">
+                            <div class="mb-3"><label class="config-label">2. Abonnement</label><div class="input-group input-group-sm mb-2"><span class="input-group-text">Montant Trim.</span><input type="number" id="w-subAmount" class="form-control fw-bold" value="45.00" step="0.01" oninput="water.render()"><span class="input-group-text">€</span></div></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-9">
+                    <div class="card shadow-sm border-0">
+                        <div class="card-header bg-white d-flex justify-content-between align-items-center"><span class="fw-bold">Relevés (<span id="lblActiveQuarter">T2</span>)</span><button class="btn btn-sm btn-outline-dark" onclick="water.exportReadingSheet()"><i class="fa-solid fa-file-pdf me-2"></i>Fiche Relevés</button></div>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0 text-center" style="font-size:0.9em;">
+                                <thead class="table-light text-uppercase small text-muted"><tr><th class="text-start ps-3">Propriétaire / Lot</th><th style="width:120px" class="bg-warning bg-opacity-10 text-dark">N° Compteur</th><th style="width:90px" class="bg-primary bg-opacity-10">Ancien</th><th style="width:90px" class="bg-success bg-opacity-10">Nouveau</th><th class="text-primary fw-bold">Conso</th><th>Abo. (€)</th><th>Conso (€)</th><th class="bg-light fw-bold border-start">TOTAL (€)</th></tr></thead>
+                                <tbody id="waterBody"><tr class=""><td class="text-start ps-3"><div class="fw-bold">BELLIARD V</div><span class="badge-lot">Lots 12, 13</span></td><td><input type="text" class="inp-text inp-paste" value="183457" onchange="app.updateMeterId(10, this.value)"></td>
+                 <td><input type="number" class="inp-money bg-primary bg-opacity-10 inp-paste" value="1163.53" onchange="water.upd(10,'old',this.value)"></td>
+                 <td><input type="number" class="inp-money bg-success bg-opacity-10 inp-paste" value="0" onchange="water.upd(10,'new',this.value)"></td>
+                 <td class="fw-bold text-primary">0.000</td>
+                 <td class="text-muted">2.94</td>
+                 <td class="text-muted">0.00</td>
+                 <td class="fw-bold bg-light border-start text-dark">2.94</td></tr><tr class=""><td class="text-start ps-3"><div class="fw-bold">CARSOULE (1)</div><span class="badge-lot">Lot 1, C9</span></td><td><input type="text" class="inp-text inp-paste" value="183446" onchange="app.updateMeterId(7, this.value)"></td>
+                 <td><input type="number" class="inp-money bg-primary bg-opacity-10 inp-paste" value="375.698" onchange="water.upd(7,'old',this.value)"></td>
+                 <td><input type="number" class="inp-money bg-success bg-opacity-10 inp-paste" value="0" onchange="water.upd(7,'new',this.value)"></td>
+                 <td class="fw-bold text-primary">0.000</td>
+                 <td class="text-muted">2.13</td>
+                 <td class="text-muted">0.00</td>
+                 <td class="fw-bold bg-light border-start text-dark">2.13</td></tr><tr class=""><td class="text-start ps-3"><div class="fw-bold">CARSOULE (2)</div><span class="badge-lot">Lot 21</span></td><td><input type="text" class="inp-text inp-paste" value="183443" onchange="app.updateMeterId(3, this.value)"></td>
+                 <td><input type="number" class="inp-money bg-primary bg-opacity-10 inp-paste" value="186.007" onchange="water.upd(3,'old',this.value)"></td>
+                 <td><input type="number" class="inp-money bg-success bg-opacity-10 inp-paste" value="0" onchange="water.upd(3,'new',this.value)"></td>
+                 <td class="fw-bold text-primary">0.000</td>
+                 <td class="text-muted">1.24</td>
+                 <td class="text-muted">0.00</td>
+                 <td class="fw-bold bg-light border-start text-dark">1.24</td></tr><tr class=""><td class="text-start ps-3"><div class="fw-bold">CAUPENNE C</div><span class="badge-lot">Lots 10, 11</span></td><td><div class="no-meter-cell"></div></td><td><div class="no-meter-cell"></div></td><td><div class="no-meter-cell"></div></td><td>-</td><td>-</td><td>-</td><td>-</td></tr><tr class=""><td class="text-start ps-3"><div class="fw-bold">GABRIEL T</div><span class="badge-lot">Lot 14, C5</span></td><td><input type="text" class="inp-text inp-paste" value="183444" onchange="app.updateMeterId(4, this.value)"></td>
+                 <td><input type="number" class="inp-money bg-primary bg-opacity-10 inp-paste" value="545.001" onchange="water.upd(4,'old',this.value)"></td>
+                 <td><input type="number" class="inp-money bg-success bg-opacity-10 inp-paste" value="0" onchange="water.upd(4,'new',this.value)"></td>
+                 <td class="fw-bold text-primary">0.000</td>
+                 <td class="text-muted">1.78</td>
+                 <td class="text-muted">0.00</td>
+                 <td class="fw-bold bg-light border-start text-dark">1.78</td></tr><tr class=""><td class="text-start ps-3"><div class="fw-bold">IDEA.L.C (Lambard)</div><span class="badge-lot">Lot 19, C9</span></td><td><input type="text" class="inp-text inp-paste" value="183450" onchange="app.updateMeterId(12, this.value)"></td>
+                 <td><input type="number" class="inp-money bg-primary bg-opacity-10 inp-paste" value="686.484" onchange="water.upd(12,'old',this.value)"></td>
+                 <td><input type="number" class="inp-money bg-success bg-opacity-10 inp-paste" value="0" onchange="water.upd(12,'new',this.value)"></td>
+                 <td class="fw-bold text-primary">0.000</td>
+                 <td class="text-muted">3.60</td>
+                 <td class="text-muted">0.00</td>
+                 <td class="fw-bold bg-light border-start text-dark">3.60</td></tr><tr class=""><td class="text-start ps-3"><div class="fw-bold">LE MERLE C</div><span class="badge-lot">Lot 18, C3</span></td><td><input type="text" class="inp-text inp-paste" value="10ca171778" onchange="app.updateMeterId(9, this.value)"></td>
+                 <td><input type="number" class="inp-money bg-primary bg-opacity-10 inp-paste" value="578.445" onchange="water.upd(9,'old',this.value)"></td>
+                 <td><input type="number" class="inp-money bg-success bg-opacity-10 inp-paste" value="0" onchange="water.upd(9,'new',this.value)"></td>
+                 <td class="fw-bold text-primary">0.000</td>
+                 <td class="text-muted">2.76</td>
+                 <td class="text-muted">0.00</td>
+                 <td class="fw-bold bg-light border-start text-dark">2.76</td></tr><tr class=""><td class="text-start ps-3"><div class="fw-bold">PALMARO</div><span class="badge-lot">Lot 15, C6</span></td><td><input type="text" class="inp-text inp-paste" value="183445" onchange="app.updateMeterId(2, this.value)"></td>
+                 <td><input type="number" class="inp-money bg-primary bg-opacity-10 inp-paste" value="224.883" onchange="water.upd(2,'old',this.value)"></td>
+                 <td><input type="number" class="inp-money bg-success bg-opacity-10 inp-paste" value="0" onchange="water.upd(2,'new',this.value)"></td>
+                 <td class="fw-bold text-primary">0.000</td>
+                 <td class="text-muted">1.18</td>
+                 <td class="text-muted">0.00</td>
+                 <td class="fw-bold bg-light border-start text-dark">1.18</td></tr><tr class=""><td class="text-start ps-3"><div class="fw-bold">PIRAS E</div><span class="badge-lot">Lot 20, C4</span></td><td><input type="text" class="inp-text inp-paste" value="183441" onchange="app.updateMeterId(6, this.value)"></td>
+                 <td><input type="number" class="inp-money bg-primary bg-opacity-10 inp-paste" value="623.386" onchange="water.upd(6,'old',this.value)"></td>
+                 <td><input type="number" class="inp-money bg-success bg-opacity-10 inp-paste" value="0" onchange="water.upd(6,'new',this.value)"></td>
+                 <td class="fw-bold text-primary">0.000</td>
+                 <td class="text-muted">1.99</td>
+                 <td class="text-muted">0.00</td>
+                 <td class="fw-bold bg-light border-start text-dark">1.99</td></tr><tr class=""><td class="text-start ps-3"><div class="fw-bold">SALAHUN Y</div><span class="badge-lot">Lot 16</span></td><td><input type="text" class="inp-text inp-paste" value="186460" onchange="app.updateMeterId(1, this.value)"></td>
+                 <td><input type="number" class="inp-money bg-primary bg-opacity-10 inp-paste" value="182.654" onchange="water.upd(1,'old',this.value)"></td>
+                 <td><input type="number" class="inp-money bg-success bg-opacity-10 inp-paste" value="0" onchange="water.upd(1,'new',this.value)"></td>
+                 <td class="fw-bold text-primary">0.000</td>
+                 <td class="text-muted">1.06</td>
+                 <td class="text-muted">0.00</td>
+                 <td class="fw-bold bg-light border-start text-dark">1.06</td></tr><tr class=""><td class="text-start ps-3"><div class="fw-bold">SCI LE CLOT</div><span class="badge-lot">Lot 17, C7</span></td><td><input type="text" class="inp-text inp-paste" value="183449" onchange="app.updateMeterId(8, this.value)"></td>
+                 <td><input type="number" class="inp-money bg-primary bg-opacity-10 inp-paste" value="559.02" onchange="water.upd(8,'old',this.value)"></td>
+                 <td><input type="number" class="inp-money bg-success bg-opacity-10 inp-paste" value="0" onchange="water.upd(8,'new',this.value)"></td>
+                 <td class="fw-bold text-primary">0.000</td>
+                 <td class="text-muted">2.48</td>
+                 <td class="text-muted">0.00</td>
+                 <td class="fw-bold bg-light border-start text-dark">2.48</td></tr><tr class=""><td class="text-start ps-3"><div class="fw-bold">TROPAMER V</div><span class="badge-lot">Lot 2</span></td><td><input type="text" class="inp-text inp-paste" value="173442" onchange="app.updateMeterId(5, this.value)"></td>
+                 <td><input type="number" class="inp-money bg-primary bg-opacity-10 inp-paste" value="307.813" onchange="water.upd(5,'old',this.value)"></td>
+                 <td><input type="number" class="inp-money bg-success bg-opacity-10 inp-paste" value="0" onchange="water.upd(5,'new',this.value)"></td>
+                 <td class="fw-bold text-primary">0.000</td>
+                 <td class="text-muted">1.90</td>
+                 <td class="text-muted">0.00</td>
+                 <td class="fw-bold bg-light border-start text-dark">1.90</td></tr><tr class="bg-light fw-bold"><td class="text-start ps-3"><div class="fw-bold">COMMUN (Général)</div><span class="badge-lot"></span></td><td><input type="text" class="inp-text inp-paste" value="10ca171779" onchange="app.updateMeterId(0, this.value)"></td>
+                 <td><input type="number" class="inp-money bg-primary bg-opacity-10 inp-paste" value="0" onchange="water.upd(0,'old',this.value)"></td>
+                 <td><input type="number" class="inp-money bg-success bg-opacity-10 inp-paste" value="0" onchange="water.upd(0,'new',this.value)"></td>
+                 <td class="fw-bold text-primary">0.000</td>
+                 <td class="text-muted">0.00</td>
+                 <td class="text-muted">0.00</td>
+                 <td class="fw-bold bg-light border-start text-dark">0.00</td></tr></tbody>
+                                <tfoot><tr class="fw-bold bg-light" style="border-top:2px solid #ccc;"><td colspan="4" class="text-end">TOTAUX :</td><td id="tot-vol" class="text-primary">0.000</td><td id="tot-fix">23.05</td><td id="tot-var">0.00</td><td id="tot-final" class="fs-6 text-primary border-start">23.05</td></tr></tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="sub-content-previ" class="sub-content">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold text-primary m-0"><i class="fa-solid fa-droplet-slash me-2"></i>Saisie des Prévisions Eau (Trimestriel)</h5>
+                <div class="small text-muted bg-white p-2 rounded shadow-sm border">
+                    <i class="fa-solid fa-paste me-2"></i>Compatible copier-coller (Excel)
+                </div>
+            </div>
+            <div class="card shadow-sm border-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0 text-center small">
+                        <thead class="table-dark">
+                            <tr>
+                                <th class="text-start ps-3">Propriétaire</th>
+                                <th class="bg-secondary text-white" style="width:15%">Abonnement (€)</th>
+                                <th class="bg-primary text-white" style="width:15%">Conso (€)</th>
+                                <th class="bg-warning text-dark" style="width:15%">Régul. N-1 (€)</th>
+                                <th class="bg-success text-white fw-bold" style="width:15%">Total Trim. (€)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="waterPreviBody"><tr>
+                <td class="text-start ps-3 fw-bold">BELLIARD V <span class="badge-lot">Lots 12, 13</span></td>
+                <td><input type="number" class="inp-budget inp-paste" value="2.96" onchange="waterPrevi.update(10, 'subs', this.value)"></td>
+                <td><input type="number" class="inp-budget inp-paste" value="76.09" onchange="waterPrevi.update(10, 'charges', this.value)"></td>
+                <td><input type="number" class="inp-budget inp-paste" value="0.00" onchange="waterPrevi.update(10, 'reguls', this.value)"></td>
+                <td class="fw-bold text-success">79.05</td>
+            </tr><tr>
+                <td class="text-start ps-3 fw-bold">CARSOULE (1) <span class="badge-lot">Lot 1, C9</span></td>
+                <td><input type="number" class="inp-budget inp-paste" value="1.25" onchange="waterPrevi.update(7, 'subs', this.value)"></td>
+                <td><input type="number" class="inp-budget inp-paste" value="8.91" onchange="waterPrevi.update(7, 'charges', this.value)"></td>
+                <td><input type="number" class="inp-budget inp-paste" value="0.00" onchange="waterPrevi.update(7, 'reguls', this.value)"></td>
+                <td class="fw-bold text-success">10.16</td>
+            </tr><tr>
+                <td class="text-start ps-3 fw-bold">CARSOULE (2) <span class="badge-lot">Lot 21</span></td>
+                <td><input type="number" class="inp-budget inp-paste" value="2.15" onchange="waterPrevi.update(3, 'subs', this.value)"></td>
+                <td><input type="number" class="inp-budget inp-paste" value="20.77" onchange="waterPrevi.update(3, 'charges', this.value)"></td>
+                <td><input type="number" class="inp-budget inp-paste" value="0.00" onchange="waterPrevi.update(3, 'reguls', this.value)"></td>
+                <td class="fw-bold text-success">22.92</td>
+            </tr><tr>
+                <td class="text-start ps-3 fw-bold">CAUPENNE C <span class="badge-lot">Lots 10, 11</span></td>
+                <td><input type="number" class="inp-budget inp-paste" value="0.00" onchange="waterPrevi.update(13, 'subs', this.value)"></td>
+                <td><input type="number" class="inp-budget inp-paste" value="0.00" onchange="waterPrevi.update(13, 'charges', this.value)"></td>
+                <td><input type="number" class="inp-budget inp-paste" value="0.00" onchange="waterPrevi.update(13, 'reguls', this.value)"></td>
+                <td class="fw-bold text-success">0.00</td>
+            </tr><tr>
+                <td class="text-start ps-3 fw-bold">GABRIEL T <span class="badge-lot">Lot 14, C5</span></td>
+                <td><input type="number" class="inp-budget inp-paste" value="1.80" onchange="waterPrevi.update(4, 'subs', this.value)"></td>
+                <td><input type="number" class="inp-budget inp-paste" value="64.19" onchange="waterPrevi.update(4, 'charges', this.value)"></td>
+                <td><input type="number" class="inp-budget inp-paste" value="0.00" onchange="waterPrevi.update(4, 'reguls', this.value)"></td>
+                <td class="fw-bold text-success">65.99</td>
+            </tr><tr>
+                <td class="text-start ps-3 fw-bold">IDEA.L.C (Lambard) <span class="badge-lot">Lot 19, C9</span></td>
+                <td><input type="number" class="inp-budget inp-paste" value="3.63" onchange="waterPrevi.update(12, 'subs', this.value)"></td>
+                <td><input type="number" class="inp-budget inp-paste" value="67.53" onchange="waterPrevi.update(12, 'charges', this.value)"></td>
+                <td><input type="number" class="inp-budget inp-paste" value="0.00" onchange="waterPrevi.update(12, 'reguls', this.value)"></td>
+                <td class="fw-bold text-success">71.16</td>
+            </tr><tr>
+                <td class="text-start ps-3 fw-bold">LE MERLE C <span class="badge-lot">Lot 18, C3</span></td>
+                <td><input type="number" class="inp-budget inp-paste" value="2.79" onchange="waterPrevi.update(9, 'subs', this.value)"></td>
+                <td><input type="number" class="inp-budget inp-paste" value="37.53" onchange="waterPrevi.update(9, 'charges', this.value)"></td>
+                <td><input type="number" class="inp-budget inp-paste" value="0.00" onchange="waterPrevi.update(9, 'reguls', this.value)"></td>
+                <td class="fw-bold text-success">40.32</td>
+            </tr><tr>
+                <td class="text-start ps-3 fw-bold">PALMARO <span class="badge-lot">Lot 15, C6</span></td>
+                <td><input type="number" class="inp-budget inp-paste" value="1.19" onchange="waterPrevi.update(2, 'subs', this.value)"></td>
+                <td><input type="number" class="inp-budget inp-paste" value="8.87" onchange="waterPrevi.update(2, 'charges', this.value)"></td>
+                <td><input type="number" class="inp-budget inp-paste" value="0.00" onchange="waterPrevi.update(2, 'reguls', this.value)"></td>
+                <td class="fw-bold text-success">10.06</td>
+            </tr><tr>
+                <td class="text-start ps-3 fw-bold">PIRAS E <span class="badge-lot">Lot 20, C4</span></td>
+                <td><input type="number" class="inp-budget inp-paste" value="2.00" onchange="waterPrevi.update(6, 'subs', this.value)"></td>
+                <td><input type="number" class="inp-budget inp-paste" value="56.68" onchange="waterPrevi.update(6, 'charges', this.value)"></td>
+                <td><input type="number" class="inp-budget inp-paste" value="0.00" onchange="waterPrevi.update(6, 'reguls', this.value)"></td>
+                <td class="fw-bold text-success">58.68</td>
+            </tr><tr>
+                <td class="text-start ps-3 fw-bold">SALAHUN Y <span class="badge-lot">Lot 16</span></td>
+                <td><input type="number" class="inp-budget inp-paste" value="1.07" onchange="waterPrevi.update(1, 'subs', this.value)"></td>
+                <td><input type="number" class="inp-budget inp-paste" value="1.76" onchange="waterPrevi.update(1, 'charges', this.value)"></td>
+                <td><input type="number" class="inp-budget inp-paste" value="0.00" onchange="waterPrevi.update(1, 'reguls', this.value)"></td>
+                <td class="fw-bold text-success">2.83</td>
+            </tr><tr>
+                <td class="text-start ps-3 fw-bold">SCI LE CLOT <span class="badge-lot">Lot 17, C7</span></td>
+                <td><input type="number" class="inp-budget inp-paste" value="2.50" onchange="waterPrevi.update(8, 'subs', this.value)"></td>
+                <td><input type="number" class="inp-budget inp-paste" value="10.43" onchange="waterPrevi.update(8, 'charges', this.value)"></td>
+                <td><input type="number" class="inp-budget inp-paste" value="0.00" onchange="waterPrevi.update(8, 'reguls', this.value)"></td>
+                <td class="fw-bold text-success">12.93</td>
+            </tr><tr>
+                <td class="text-start ps-3 fw-bold">TROPAMER V <span class="badge-lot">Lot 2</span></td>
+                <td><input type="number" class="inp-budget inp-paste" value="1.92" onchange="waterPrevi.update(5, 'subs', this.value)"></td>
+                <td><input type="number" class="inp-budget inp-paste" value="2.01" onchange="waterPrevi.update(5, 'charges', this.value)"></td>
+                <td><input type="number" class="inp-budget inp-paste" value="0.00" onchange="waterPrevi.update(5, 'reguls', this.value)"></td>
+                <td class="fw-bold text-success">3.93</td>
+            </tr></tbody>
+                        <tfoot class="fw-bold bg-light text-dark">
+                            <tr>
+                                <td class="text-end pe-3">TOTAUX :</td>
+                                <td id="wp-tot-sub">23.26</td>
+                                <td id="wp-tot-conso">354.77</td>
+                                <td id="wp-tot-regul">0.00</td>
+                                <td id="wp-tot-total" class="bg-success text-white fs-6">378.03</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="sub-content-proj" class="sub-content">
+             <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold text-primary m-0"><i class="fa-solid fa-chart-line me-2"></i>Bilan Annuel &amp; Projection N+1</h5>
+                <div>
+                    <button class="btn btn-sm btn-outline-danger me-2" onclick="waterProj.exportPDF()"><i class="fa-solid fa-file-pdf me-2"></i>Exporter PDF</button>
+                    <button class="btn btn-sm btn-success" onclick="waterProj.copyToClipboard()"><i class="fa-solid fa-copy me-2"></i>Copier Tableau</button>
+                </div>
+            </div>
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-white fw-bold">Paramètres de Projection (Budget Futur)</div>
+                <div class="card-body bg-light">
+                    <div class="row align-items-end">
+                        <div class="col-md-3">
+                            <label class="small fw-bold text-muted">Prix Estimé N+1 (€/m³)</label>
+                            <input type="number" id="proj-price" class="form-control fw-bold border-primary" value="4.50" step="0.01" oninput="waterProj.updateParams()">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="small fw-bold text-muted">Abonnement Annuel Est. (€)</label>
+                            <input type="number" id="proj-sub" class="form-control fw-bold border-primary" value="180.00" step="0.01" oninput="waterProj.updateParams()">
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <small class="text-muted d-block">La colonne <strong>"Prévision N+1 (m³)"</strong> est modifiable pour ajuster vos appels futurs.</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card shadow-sm">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped align-middle mb-0 text-center small" id="table-water-proj">
+                        <thead class="table-dark">
+                            <tr>
+                                <th class="text-start ps-3 align-middle" rowspan="2">Propriétaire</th>
+                                <th colspan="4" class="bg-secondary">Consommation Réelle (m³) Année N</th>
+                                <th rowspan="2" class="bg-primary border-start align-middle">Total N (m³)</th>
+                                <th rowspan="2" class="bg-warning text-dark border-start align-middle" style="width:120px;">Prévision N+1 (m³)</th>
+                                <th rowspan="2" class="bg-success text-white border-start align-middle">Budget N+1 (€)</th>
+                            </tr>
+                            <tr class="text-uppercase" style="font-size:0.75rem;">
+                                <th class="bg-light text-dark" style="width:60px;">T1</th>
+                                <th class="bg-light text-dark" style="width:60px;">T2</th>
+                                <th class="bg-light text-dark" style="width:60px;">T3</th>
+                                <th class="bg-light text-dark" style="width:60px;">T4</th>
+                            </tr>
+                        </thead>
+                        <tbody id="waterProjBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="tab-budget" class="tab-content">
+        <div class="d-flex justify-content-between align-items-center mb-3 bg-white p-3 rounded shadow-sm flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="d-flex flex-column align-items-start border-end pe-3">
+                    <span class="small fw-bold text-muted">Mode d'Appel :</span>
+                    <select id="budgetModeSelect" class="form-select form-select-sm fw-bold border-primary" onchange="budget.setMode(this.value)">
+                        <option value="previ">1. Budget Prévisionnel (Année N)</option>
+                        <option value="previ_n1">2. Projet Budget (Année N+1)</option>
+                        <option value="reel">3. Réalisé (Année N-1)</option>
+                    </select>
+                </div>
+                <div class="d-flex align-items-center gap-2 border-end pe-3">
+                    <span class="small fw-bold">Trimestre :</span>
+                    <select id="budgetQuarter" class="form-select form-select-sm fw-bold border-secondary" style="width:auto;"><option value="T1">T1</option><option value="T2">T2</option><option value="T3">T3</option><option value="T4">T4</option></select>
+                    <input type="number" id="budgetYear" class="form-control form-control-sm fw-bold" value="2026" style="width:70px">
+                </div>
+                <div class="d-flex align-items-center gap-2"><span class="small fw-bold text-danger">Échéance :</span><input type="date" id="budgetDueDate" class="form-control form-control-sm border-danger text-danger fw-bold"></div>
+            </div>
+            <div class="d-flex gap-2 align-items-center">
+                 <button class="btn btn-info fw-bold btn-sm shadow text-white" onclick="budget.openRecapTable()"><i class="fa-solid fa-table me-2"></i>Tableau Détails &amp; Export</button>
+                <button class="btn btn-outline-dark btn-sm fw-bold" onclick="budgetDetail.openManageModal()"><i class="fa-solid fa-list-check me-2"></i>Gérer Postes</button>
+                <button class="btn btn-warning fw-bold btn-sm shadow" onclick="mailing.openModal()"><i class="fa-solid fa-envelope me-2"></i>Mailing</button>
+                <div class="input-group input-group-sm"><span class="input-group-text fw-bold">Date compta :</span><input type="date" id="callValidationDate" class="form-control border-success text-success fw-bold"><button class="btn btn-success fw-bold" onclick="budget.validateCalls()"><i class="fa-solid fa-check me-2"></i>VALIDER</button></div>
+            </div>
+        </div>
+
+        <div class="row g-2 mb-3">
+            <div class="col-md-3">
+                <div class="card h-100 border-primary">
+                    <div class="card-header bg-primary text-white py-1 small fw-bold d-flex justify-content-between"><span>Générales</span><span id="tot-general">6400.00 €</span></div>
+                    <div class="col-header-budget row mx-0 mt-1 border-bottom"><div class="col-4">N-1</div><div class="col-4 text-primary">N</div><div class="col-4 text-muted">N+1</div></div>
+                    <div class="card-body p-2" id="inp-general"><div class="d-flex justify-content-between align-items-center mb-1"><small class="text-truncate" style="max-width:110px" title="Frais bancaire">Frais bancaire</small><div class="d-flex gap-1" style="width:70%"><input type="number" value="138" class="inp-budget text-secondary" style="font-size:0.75rem" onchange="budget.updInp('general',0,'reel',this.value)"><input type="number" value="140" class="inp-budget text-primary border-primary bg-white fw-bold shadow-sm" onchange="budget.updInp('general',0,'previ',this.value)"><input type="number" value="140" class="inp-budget text-dark border-light bg-light text-muted" onchange="budget.updInp('general',0,'previ_n1',this.value)"></div></div><div class="d-flex justify-content-between align-items-center mb-1"><small class="text-truncate" style="max-width:110px" title="Poubelles">Poubelles</small><div class="d-flex gap-1" style="width:70%"><input type="number" value="550" class="inp-budget text-secondary" style="font-size:0.75rem" onchange="budget.updInp('general',1,'reel',this.value)"><input type="number" value="570" class="inp-budget text-primary border-primary bg-white fw-bold shadow-sm" onchange="budget.updInp('general',1,'previ',this.value)"><input type="number" value="570" class="inp-budget text-dark border-light bg-light text-muted" onchange="budget.updInp('general',1,'previ_n1',this.value)"></div></div><div class="d-flex justify-content-between align-items-center mb-1"><small class="text-truncate" style="max-width:110px" title="Sécurité incendie">Sécurité incendie</small><div class="d-flex gap-1" style="width:70%"><input type="number" value="280" class="inp-budget text-secondary" style="font-size:0.75rem" onchange="budget.updInp('general',2,'reel',this.value)"><input type="number" value="300" class="inp-budget text-primary border-primary bg-white fw-bold shadow-sm" onchange="budget.updInp('general',2,'previ',this.value)"><input type="number" value="300" class="inp-budget text-dark border-light bg-light text-muted" onchange="budget.updInp('general',2,'previ_n1',this.value)"></div></div><div class="d-flex justify-content-between align-items-center mb-1"><small class="text-truncate" style="max-width:110px" title="Assurance AXA">Assurance AXA</small><div class="d-flex gap-1" style="width:70%"><input type="number" value="1020" class="inp-budget text-secondary" style="font-size:0.75rem" onchange="budget.updInp('general',3,'reel',this.value)"><input type="number" value="1050" class="inp-budget text-primary border-primary bg-white fw-bold shadow-sm" onchange="budget.updInp('general',3,'previ',this.value)"><input type="number" value="1050" class="inp-budget text-dark border-light bg-light text-muted" onchange="budget.updInp('general',3,'previ_n1',this.value)"></div></div><div class="d-flex justify-content-between align-items-center mb-1"><small class="text-truncate" style="max-width:110px" title="Gestion courante">Gestion courante</small><div class="d-flex gap-1" style="width:70%"><input type="number" value="150" class="inp-budget text-secondary" style="font-size:0.75rem" onchange="budget.updInp('general',4,'reel',this.value)"><input type="number" value="150" class="inp-budget text-primary border-primary bg-white fw-bold shadow-sm" onchange="budget.updInp('general',4,'previ',this.value)"><input type="number" value="150" class="inp-budget text-dark border-light bg-light text-muted" onchange="budget.updInp('general',4,'previ_n1',this.value)"></div></div><div class="d-flex justify-content-between align-items-center mb-1"><small class="text-truncate" style="max-width:110px" title="EDF communs">EDF communs</small><div class="d-flex gap-1" style="width:70%"><input type="number" value="195" class="inp-budget text-secondary" style="font-size:0.75rem" onchange="budget.updInp('general',5,'reel',this.value)"><input type="number" value="210" class="inp-budget text-primary border-primary bg-white fw-bold shadow-sm" onchange="budget.updInp('general',5,'previ',this.value)"><input type="number" value="210" class="inp-budget text-dark border-light bg-light text-muted" onchange="budget.updInp('general',5,'previ_n1',this.value)"></div></div><div class="d-flex justify-content-between align-items-center mb-1"><small class="text-truncate" style="max-width:110px" title="Fond de travaux">Fond de travaux</small><div class="d-flex gap-1" style="width:70%"><input type="number" value="3000" class="inp-budget text-secondary" style="font-size:0.75rem" onchange="budget.updInp('general',6,'reel',this.value)"><input type="number" value="3000" class="inp-budget text-primary border-primary bg-white fw-bold shadow-sm" onchange="budget.updInp('general',6,'previ',this.value)"><input type="number" value="3000" class="inp-budget text-dark border-light bg-light text-muted" onchange="budget.updInp('general',6,'previ_n1',this.value)"></div></div><div class="d-flex justify-content-between align-items-center mb-1"><small class="text-truncate" style="max-width:110px" title="Réserve DPE PPT">Réserve DPE PPT</small><div class="d-flex gap-1" style="width:70%"><input type="number" value="800" class="inp-budget text-secondary" style="font-size:0.75rem" onchange="budget.updInp('general',7,'reel',this.value)"><input type="number" value="800" class="inp-budget text-primary border-primary bg-white fw-bold shadow-sm" onchange="budget.updInp('general',7,'previ',this.value)"><input type="number" value="800" class="inp-budget text-dark border-light bg-light text-muted" onchange="budget.updInp('general',7,'previ_n1',this.value)"></div></div><div class="d-flex justify-content-between align-items-center mb-1"><small class="text-truncate" style="max-width:110px" title="Assurance ACC ">Assurance ACC </small><div class="d-flex gap-1" style="width:70%"><input type="number" value="0" class="inp-budget text-secondary" style="font-size:0.75rem" onchange="budget.updInp('general',8,'reel',this.value)"><input type="number" value="180" class="inp-budget text-primary border-primary bg-white fw-bold shadow-sm" onchange="budget.updInp('general',8,'previ',this.value)"><input type="number" value="180" class="inp-budget text-dark border-light bg-light text-muted" onchange="budget.updInp('general',8,'previ_n1',this.value)"></div></div></div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card h-100 border-warning">
+                    <div class="card-header bg-warning text-dark py-1 small fw-bold d-flex justify-content-between"><span>Syndic/Entretien (Exo)</span><span id="tot-special">1200.00 €</span></div>
+                    <div class="col-header-budget row mx-0 mt-1 border-bottom"><div class="col-4">N-1</div><div class="col-4 text-primary">N</div><div class="col-4 text-muted">N+1</div></div>
+                    <div class="card-body p-2" id="inp-special"><small class="text-danger fw-bold d-block mb-1">Exo: LE MERLE, LE CLOT</small><div class="d-flex justify-content-between align-items-center mb-1"><small class="text-truncate" style="max-width:110px" title="Indemnité Syndic">Indemnité Syndic</small><div class="d-flex gap-1" style="width:70%"><input type="number" value="600" class="inp-budget text-secondary" style="font-size:0.75rem" onchange="budget.updInp('special',0,'reel',this.value)"><input type="number" value="600" class="inp-budget text-primary border-primary bg-white fw-bold shadow-sm" onchange="budget.updInp('special',0,'previ',this.value)"><input type="number" value="600" class="inp-budget text-dark border-light bg-light text-muted" onchange="budget.updInp('special',0,'previ_n1',this.value)"></div></div><div class="d-flex justify-content-between align-items-center mb-1"><small class="text-truncate" style="max-width:110px" title="Indemnité RPTE">Indemnité RPTE</small><div class="d-flex gap-1" style="width:70%"><input type="number" value="600" class="inp-budget text-secondary" style="font-size:0.75rem" onchange="budget.updInp('special',1,'reel',this.value)"><input type="number" value="600" class="inp-budget text-primary border-primary bg-white fw-bold shadow-sm" onchange="budget.updInp('special',1,'previ',this.value)"><input type="number" value="600" class="inp-budget text-dark border-light bg-light text-muted" onchange="budget.updInp('special',1,'previ_n1',this.value)"></div></div></div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card h-100 border-info">
+                    <div class="card-header bg-info text-white py-1 small fw-bold d-flex justify-content-between"><span>Ménage (Exo)</span><span id="tot-menage">1166.00 €</span></div>
+                    <div class="col-header-budget row mx-0 mt-1 border-bottom"><div class="col-4">N-1</div><div class="col-4 text-primary">N</div><div class="col-4 text-muted">N+1</div></div>
+                    <div class="card-body p-2" id="inp-menage"><small class="text-info fw-bold d-block mb-1">Exo: CAUPENNE, BELLIARD</small><div class="d-flex justify-content-between align-items-center mb-1"><small class="text-truncate" style="max-width:110px" title="Ménage">Ménage</small><div class="d-flex gap-1" style="width:70%"><input type="number" value="1100" class="inp-budget text-secondary" style="font-size:0.75rem" onchange="budget.updInp('menage',0,'reel',this.value)"><input type="number" value="1166" class="inp-budget text-primary border-primary bg-white fw-bold shadow-sm" onchange="budget.updInp('menage',0,'previ',this.value)"><input type="number" value="1166" class="inp-budget text-dark border-light bg-light text-muted" onchange="budget.updInp('menage',0,'previ_n1',this.value)"></div></div></div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card h-100 border-danger">
+                    <div class="card-header bg-danger text-white py-1 small fw-bold d-flex justify-content-between"><span>Travaux/Autre</span><span id="tot-travaux">0.00 €</span></div>
+                    <div class="col-header-budget row mx-0 mt-1 border-bottom"><div class="col-4">N-1</div><div class="col-4 text-primary">N</div><div class="col-4 text-muted">N+1</div></div>
+                    <div class="card-body p-2" id="inp-travaux"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered table-hover align-middle mb-0 text-center small">
+                    <thead class="table-dark"><tr><th class="text-start ps-3">Propriétaire (Lots)</th><th style="width:50px">Tant.</th><th>Général (1/4)</th><th class="text-warning">Syndic/Ent. (1/4)</th><th class="text-info">Ménage (1/4)</th><th class="text-danger">Travaux (1/4)</th><th class="bg-secondary text-white">S.Total (Hors Eau)</th><th class="bg-white text-primary">Eau (Prévi)</th><th class="bg-success text-white">TOTAL<button class="btn btn-sm btn-outline-light ms-1 py-0 px-1" title="Copier" onclick="budget.copyTotalColumn()"><i class="fa-solid fa-copy"></i></button></th><th>Actions</th></tr></thead>
+                    <tbody id="budgetBody"><tr><td class="text-start ps-3 fw-bold" data-owner-id="10">BELLIARD V<span class="exo-badge bg-exo-men" title="Exonéré Ménage">Exo.M</span><div class="badge-lot">Lots 12, 13</div></td><td class="text-center text-muted small">102</td><td>163.20</td><td class="text-warning fw-bold ">37.41</td><td class="text-info fw-bold text-decoration-line-through opacity-25">0.00</td><td class="text-danger">0.00</td><td class="bg-light fw-bold text-dark border-start border-end">200.61</td><td class="text-primary bg-white fw-bold">79.05</td><td class="bg-success text-white fw-bold call-total" data-owner="BELLIARD V" data-amount="279.66">279.66</td><td><div class="d-flex gap-1 justify-content-center"><button class="btn btn-sm btn-light border" title="Email Unitaire" onclick="mailing.openSingleModal(10)"><i class="fa-solid fa-envelope text-warning"></i></button><button class="btn btn-sm btn-light border" onclick="budget.generatePDF(10)"><i class="fa-solid fa-file-pdf text-danger"></i></button></div></td></tr><tr><td class="text-start ps-3 fw-bold" data-owner-id="7">CARSOULE (1)<div class="badge-lot">Lot 1, C9</div></td><td class="text-center text-muted small">74</td><td>118.40</td><td class="text-warning fw-bold ">27.14</td><td class="text-info fw-bold ">30.86</td><td class="text-danger">0.00</td><td class="bg-light fw-bold text-dark border-start border-end">176.40</td><td class="text-primary bg-white fw-bold">10.16</td><td class="bg-success text-white fw-bold call-total" data-owner="CARSOULE (1)" data-amount="186.56">186.56</td><td><div class="d-flex gap-1 justify-content-center"><button class="btn btn-sm btn-light border" title="Email Unitaire" onclick="mailing.openSingleModal(7)"><i class="fa-solid fa-envelope text-warning"></i></button><button class="btn btn-sm btn-light border" onclick="budget.generatePDF(7)"><i class="fa-solid fa-file-pdf text-danger"></i></button></div></td></tr><tr><td class="text-start ps-3 fw-bold" data-owner-id="3">CARSOULE (2)<div class="badge-lot">Lot 21</div></td><td class="text-center text-muted small">43</td><td>68.80</td><td class="text-warning fw-bold ">15.77</td><td class="text-info fw-bold ">17.93</td><td class="text-danger">0.00</td><td class="bg-light fw-bold text-dark border-start border-end">102.50</td><td class="text-primary bg-white fw-bold">22.92</td><td class="bg-success text-white fw-bold call-total" data-owner="CARSOULE (2)" data-amount="125.42">125.42</td><td><div class="d-flex gap-1 justify-content-center"><button class="btn btn-sm btn-light border" title="Email Unitaire" onclick="mailing.openSingleModal(3)"><i class="fa-solid fa-envelope text-warning"></i></button><button class="btn btn-sm btn-light border" onclick="budget.generatePDF(3)"><i class="fa-solid fa-file-pdf text-danger"></i></button></div></td></tr><tr><td class="text-start ps-3 fw-bold" data-owner-id="13">CAUPENNE C<span class="exo-badge bg-exo-men" title="Exonéré Ménage">Exo.M</span><div class="badge-lot">Lots 10, 11</div></td><td class="text-center text-muted small">199</td><td>318.40</td><td class="text-warning fw-bold ">72.98</td><td class="text-info fw-bold text-decoration-line-through opacity-25">0.00</td><td class="text-danger">0.00</td><td class="bg-light fw-bold text-dark border-start border-end">391.38</td><td class="text-primary bg-white fw-bold">0.00</td><td class="bg-success text-white fw-bold call-total" data-owner="CAUPENNE C" data-amount="391.38">391.38</td><td><div class="d-flex gap-1 justify-content-center"><button class="btn btn-sm btn-light border" title="Email Unitaire" onclick="mailing.openSingleModal(13)"><i class="fa-solid fa-envelope text-warning"></i></button><button class="btn btn-sm btn-light border" onclick="budget.generatePDF(13)"><i class="fa-solid fa-file-pdf text-danger"></i></button></div></td></tr><tr><td class="text-start ps-3 fw-bold" data-owner-id="4">GABRIEL T<div class="badge-lot">Lot 14, C5</div></td><td class="text-center text-muted small">62</td><td>99.20</td><td class="text-warning fw-bold ">22.74</td><td class="text-info fw-bold ">25.86</td><td class="text-danger">0.00</td><td class="bg-light fw-bold text-dark border-start border-end">147.79</td><td class="text-primary bg-white fw-bold">65.99</td><td class="bg-success text-white fw-bold call-total" data-owner="GABRIEL T" data-amount="213.78">213.78</td><td><div class="d-flex gap-1 justify-content-center"><button class="btn btn-sm btn-light border" title="Email Unitaire" onclick="mailing.openSingleModal(4)"><i class="fa-solid fa-envelope text-warning"></i></button><button class="btn btn-sm btn-light border" onclick="budget.generatePDF(4)"><i class="fa-solid fa-file-pdf text-danger"></i></button></div></td></tr><tr><td class="text-start ps-3 fw-bold" data-owner-id="12">IDEA.L.C (Lambard)<div class="badge-lot">Lot 19, C9</div></td><td class="text-center text-muted small">125</td><td>200.00</td><td class="text-warning fw-bold ">45.84</td><td class="text-info fw-bold ">52.13</td><td class="text-danger">0.00</td><td class="bg-light fw-bold text-dark border-start border-end">297.97</td><td class="text-primary bg-white fw-bold">71.16</td><td class="bg-success text-white fw-bold call-total" data-owner="IDEA.L.C (Lambard)" data-amount="369.13">369.13</td><td><div class="d-flex gap-1 justify-content-center"><button class="btn btn-sm btn-light border" title="Email Unitaire" onclick="mailing.openSingleModal(12)"><i class="fa-solid fa-envelope text-warning"></i></button><button class="btn btn-sm btn-light border" onclick="budget.generatePDF(12)"><i class="fa-solid fa-file-pdf text-danger"></i></button></div></td></tr><tr><td class="text-start ps-3 fw-bold" data-owner-id="9">LE MERLE C<span class="exo-badge bg-exo-gest" title="Exonéré Syndic/Entretien">Exo.S</span><div class="badge-lot">Lot 18, C3</div></td><td class="text-center text-muted small">96</td><td>153.60</td><td class="text-warning fw-bold text-decoration-line-through opacity-25">0.00</td><td class="text-info fw-bold ">40.03</td><td class="text-danger">0.00</td><td class="bg-light fw-bold text-dark border-start border-end">193.63</td><td class="text-primary bg-white fw-bold">40.32</td><td class="bg-success text-white fw-bold call-total" data-owner="LE MERLE C" data-amount="233.95">233.95</td><td><div class="d-flex gap-1 justify-content-center"><button class="btn btn-sm btn-light border" title="Email Unitaire" onclick="mailing.openSingleModal(9)"><i class="fa-solid fa-envelope text-warning"></i></button><button class="btn btn-sm btn-light border" onclick="budget.generatePDF(9)"><i class="fa-solid fa-file-pdf text-danger"></i></button></div></td></tr><tr><td class="text-start ps-3 fw-bold" data-owner-id="2">PALMARO<div class="badge-lot">Lot 15, C6</div></td><td class="text-center text-muted small">41</td><td>65.60</td><td class="text-warning fw-bold ">15.04</td><td class="text-info fw-bold ">17.10</td><td class="text-danger">0.00</td><td class="bg-light fw-bold text-dark border-start border-end">97.73</td><td class="text-primary bg-white fw-bold">10.06</td><td class="bg-success text-white fw-bold call-total" data-owner="PALMARO" data-amount="107.79">107.79</td><td><div class="d-flex gap-1 justify-content-center"><button class="btn btn-sm btn-light border" title="Email Unitaire" onclick="mailing.openSingleModal(2)"><i class="fa-solid fa-envelope text-warning"></i></button><button class="btn btn-sm btn-light border" onclick="budget.generatePDF(2)"><i class="fa-solid fa-file-pdf text-danger"></i></button></div></td></tr><tr><td class="text-start ps-3 fw-bold" data-owner-id="6">PIRAS E<div class="badge-lot">Lot 20, C4</div></td><td class="text-center text-muted small">69</td><td>110.40</td><td class="text-warning fw-bold ">25.31</td><td class="text-info fw-bold ">28.77</td><td class="text-danger">0.00</td><td class="bg-light fw-bold text-dark border-start border-end">164.48</td><td class="text-primary bg-white fw-bold">58.68</td><td class="bg-success text-white fw-bold call-total" data-owner="PIRAS E" data-amount="223.16">223.16</td><td><div class="d-flex gap-1 justify-content-center"><button class="btn btn-sm btn-light border" title="Email Unitaire" onclick="mailing.openSingleModal(6)"><i class="fa-solid fa-envelope text-warning"></i></button><button class="btn btn-sm btn-light border" onclick="budget.generatePDF(6)"><i class="fa-solid fa-file-pdf text-danger"></i></button></div></td></tr><tr><td class="text-start ps-3 fw-bold" data-owner-id="1">SALAHUN Y<div class="badge-lot">Lot 16</div></td><td class="text-center text-muted small">37</td><td>59.20</td><td class="text-warning fw-bold ">13.57</td><td class="text-info fw-bold ">15.43</td><td class="text-danger">0.00</td><td class="bg-light fw-bold text-dark border-start border-end">88.20</td><td class="text-primary bg-white fw-bold">2.83</td><td class="bg-success text-white fw-bold call-total" data-owner="SALAHUN Y" data-amount="91.03">91.03</td><td><div class="d-flex gap-1 justify-content-center"><button class="btn btn-sm btn-light border" title="Email Unitaire" onclick="mailing.openSingleModal(1)"><i class="fa-solid fa-envelope text-warning"></i></button><button class="btn btn-sm btn-light border" onclick="budget.generatePDF(1)"><i class="fa-solid fa-file-pdf text-danger"></i></button></div></td></tr><tr><td class="text-start ps-3 fw-bold" data-owner-id="8">SCI LE CLOT<span class="exo-badge bg-exo-gest" title="Exonéré Syndic/Entretien">Exo.S</span><div class="badge-lot">Lot 17, C7</div></td><td class="text-center text-muted small">86</td><td>137.60</td><td class="text-warning fw-bold text-decoration-line-through opacity-25">0.00</td><td class="text-info fw-bold ">35.86</td><td class="text-danger">0.00</td><td class="bg-light fw-bold text-dark border-start border-end">173.46</td><td class="text-primary bg-white fw-bold">12.93</td><td class="bg-success text-white fw-bold call-total" data-owner="SCI LE CLOT" data-amount="186.39">186.39</td><td><div class="d-flex gap-1 justify-content-center"><button class="btn btn-sm btn-light border" title="Email Unitaire" onclick="mailing.openSingleModal(8)"><i class="fa-solid fa-envelope text-warning"></i></button><button class="btn btn-sm btn-light border" onclick="budget.generatePDF(8)"><i class="fa-solid fa-file-pdf text-danger"></i></button></div></td></tr><tr><td class="text-start ps-3 fw-bold" data-owner-id="5">TROPAMER V<div class="badge-lot">Lot 2</div></td><td class="text-center text-muted small">66</td><td>105.60</td><td class="text-warning fw-bold ">24.21</td><td class="text-info fw-bold ">27.52</td><td class="text-danger">0.00</td><td class="bg-light fw-bold text-dark border-start border-end">157.33</td><td class="text-primary bg-white fw-bold">3.93</td><td class="bg-success text-white fw-bold call-total" data-owner="TROPAMER V" data-amount="161.26">161.26</td><td><div class="d-flex gap-1 justify-content-center"><button class="btn btn-sm btn-light border" title="Email Unitaire" onclick="mailing.openSingleModal(5)"><i class="fa-solid fa-envelope text-warning"></i></button><button class="btn btn-sm btn-light border" onclick="budget.generatePDF(5)"><i class="fa-solid fa-file-pdf text-danger"></i></button></div></td></tr></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-finance" class="tab-content">
+        <div class="balance-bar" id="balance-bar-container"><div class="balance-box border-primary " onclick="finance.filterByAccount('512-CIC')"><div class="balance-header"><span>Compte Courant CIC</span></div><div class="bal-row fs-5 text-primary fw-bold">3599.76 €</div></div><div class="balance-box border-primary " onclick="finance.filterByAccount('5021-OBNL')"><div class="balance-header"><span>Livret OBNL</span></div><div class="bal-row fs-5 text-primary fw-bold">1555.50 €</div></div><div class="balance-box border-primary " onclick="finance.filterByAccount('5022-ALUR')"><div class="balance-header"><span>Livret Fonds Travaux</span></div><div class="bal-row fs-5 text-primary fw-bold">14437.27 €</div></div></div>
+        <div class="row mb-3">
+             <div class="col-md-8">
+                <div id="reconciliation-panel" class="p-3 mb-3 shadow-sm rounded d-none">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                        <div class="d-flex align-items-center gap-2"><i class="fa-solid fa-check-double fa-2x text-warning"></i><div><h6 class="m-0 fw-bold text-dark">Pointage : <span id="lblReconcileAccount"></span></h6></div></div>
+                        <div class="d-flex gap-4 bg-white p-2 rounded shadow-sm border">
+                            <div class="text-end"><small class="text-muted d-block text-uppercase" style="font-size:0.7em">Solde Calculé</small><span class="fw-bold fs-5 text-primary" id="valPointedSum">0.00 €</span></div>
+                            <div class="border-start ps-3 text-end"><small class="text-muted d-block text-uppercase" style="font-size:0.7em">Solde Réel</small><input type="number" id="inpBankReal" class="form-control form-control-sm text-end fw-bold" style="width:120px;" placeholder="Montant..." oninput="finance.saveRealBalance()"></div>
+                            <div class="border-start ps-3 text-end"><small class="text-muted d-block text-uppercase" style="font-size:0.7em">Écart</small><span class="fw-bold fs-5" id="valDiff">0.00 €</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                 <div class="card shadow-sm h-100"><div class="card-header bg-white py-1 small fw-bold">Analyse Visuelle</div><div class="card-body p-2 d-flex justify-content-center"><div style="width:200px;height:200px;"><canvas id="chartExpenses" height="0" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div><div style="width:200px;height:200px;" class="ms-2"><canvas id="chartIncExp" height="0" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas></div></div></div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="fw-bold"><i class="fa-solid fa-list me-2"></i>Journal des Opérations</span>
+                    <div class="d-flex align-items-center gap-2 bg-light p-1 rounded border">
+                        <div class="input-group input-group-sm"><span class="input-group-text">Du</span><input type="date" id="dateFilterStart" class="form-control" onchange="finance.renderAll()"><span class="input-group-text">Au</span><input type="date" id="dateFilterEnd" class="form-control" onchange="finance.renderAll()"></div>
+                    </div>
+                </div>
+                <div class="d-flex gap-2 align-items-center">
+                    <button id="btn-multi-delete" class="btn btn-danger btn-sm d-none" onclick="finance.deleteSelected()"><i class="fa-solid fa-trash-can me-1"></i> Supprimer (<span id="selected-count">0</span>)</button>
+                    <button class="btn btn-outline-primary btn-sm" onclick="finance.toggleSplitForm()"><i class="fa-solid fa-calculator me-1"></i>Ventiler</button>
+                    <button class="btn btn-primary btn-sm" onclick="finance.toggleForm()"><i class="fa-solid fa-plus me-1"></i>Ajouter</button>
+                </div>
+            </div>
+
+            <div id="split-form" class="bg-white p-3 border-bottom border-primary border-2 d-none shadow-sm mb-3">
+                <h6 class="fw-bold text-primary mb-3"><i class="fa-solid fa-calculator me-2"></i>Ventilation (Ménage / Poubelles)</h6>
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-2"><label class="small fw-bold">Date</label><input type="date" id="splitDate" class="form-control form-control-sm"></div>
+                    <div class="col-md-2"><label class="small fw-bold">Compte</label><select id="splitAccount" class="form-select form-select-sm"><option value="512-CIC">Compte Courant CIC</option><option value="5021-OBNL">Livret OBNL</option><option value="5022-ALUR">Livret Fonds Travaux</option></select></div>
+                    <div class="col-md-3"><label class="small fw-bold">Libellé Prestataire</label><input type="text" id="splitLabel" class="form-control form-control-sm" placeholder="ex: Facture GSF..."></div>
+                    <div class="col-md-2"><label class="small fw-bold text-dark">TOTAL FACTURE (€)</label><input type="number" id="splitTotal" class="form-control form-control-sm fw-bold border-dark" step="0.01" oninput="finance.updateSplitCalc()"></div>
+                    <div class="col-md-12"><hr class="my-2"></div>
+                    <div class="col-md-3"><label class="small fw-bold text-info">Part Ménage (615-MEN)</label><input type="number" id="splitMenage" class="form-control form-control-sm text-info fw-bold" step="0.01" oninput="finance.updateSplitCalc()"></div>
+                    <div class="col-md-3"><label class="small fw-bold text-warning">Part Poubelles (615-POU)</label><input type="number" id="splitPoubelle" class="form-control form-control-sm text-warning fw-bold" step="0.01" readonly=""></div>
+                    <div class="col-md-3"><label>&nbsp;</label><button class="btn btn-success btn-sm w-100 fw-bold" onclick="finance.saveSplitOp()">Valider</button></div>
+                    <div class="col-md-1"><label>&nbsp;</label><button class="btn btn-secondary btn-sm w-100" onclick="finance.toggleSplitForm()">Annuler</button></div>
+                </div>
+            </div>
+
+            <div id="op-form" class="bg-light p-3 border-bottom d-none">
+                <input type="hidden" id="opId" value="">
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-2"><label class="small fw-bold">Date</label><input type="date" id="opDate" class="form-control form-control-sm"></div>
+                    <div class="col-md-2"><label class="small fw-bold">Compte</label><select id="opAccount" class="form-select form-select-sm"><option value="512-CIC">Compte Courant CIC</option><option value="5021-OBNL">Livret OBNL</option><option value="5022-ALUR">Livret Fonds Travaux</option></select></div>
+                    <div class="col-md-2"><label class="small fw-bold">Type</label><select id="opType" class="form-select form-select-sm" onchange="finance.toggleCat()"><option value="depense">Dépense (-)</option><option value="recette">Recette (+)</option></select></div>
+                    <div class="col-md-3"><label class="small fw-bold">Poste</label><select id="opCat" class="form-select form-select-sm"></select></div>
+                    <div class="col-md-2"><label class="small fw-bold">Montant</label><input type="number" id="opAmount" class="form-control form-control-sm text-end" step="0.01"></div>
+                    <div class="col-md-1"><button class="btn btn-success btn-sm w-100" id="btnSaveOp" onclick="finance.saveOp()"><i class="fa-solid fa-check"></i></button></div>
+                    <div class="col-12 mt-2 d-flex gap-2"><input type="text" id="opLabel" class="form-control form-control-sm" placeholder="Libellé..."><button class="btn btn-secondary btn-sm" onclick="finance.cancelEdit()">Annuler</button></div>
+                </div>
+            </div>
+
+            <div class="table-responsive" style="max-height:500px; overflow-y:auto;">
+                <table class="table table-hover align-middle mb-0 small" id="journalTable">
+                    <thead class="table-light sticky-top"><tr><th class="text-center" style="width:40px">Sup.</th><th class="text-center" style="width:40px">Pt.</th><th>Date</th><th>Compte</th><th>Poste</th><th>Libellé</th><th class="text-end">Recette</th><th class="text-end">Dépense</th><th></th></tr></thead>
+                    <tbody id="journalBody"><tr class=""><td><input type="checkbox" class="checkbox-delete" value="1766993392704.7039" onchange="finance.updateSelectionUI()"></td><td class="text-center"></td><td>05/01/2026</td><td>512-CIC</td><td>623</td><td>Frais bancaire (2026)</td><td class="text-end text-success fw-bold"></td><td class="text-end text-danger fw-bold">9.00</td><td><i class="fa-solid fa-pen text-primary me-2" onclick="finance.editOp(1766993392704.7039)"></i></td></tr><tr class=""><td><input type="checkbox" class="checkbox-delete" value="1766993392704.3003" onchange="finance.updateSelectionUI()"></td><td class="text-center"></td><td>05/01/2026</td><td>512-CIC</td><td>615-POU</td><td>Poubelles (2026)</td><td class="text-end text-success fw-bold"></td><td class="text-end text-danger fw-bold">47.00</td><td><i class="fa-solid fa-pen text-primary me-2" onclick="finance.editOp(1766993392704.3003)"></i></td></tr><tr class=""><td><input type="checkbox" class="checkbox-delete" value="1766993392704.591" onchange="finance.updateSelectionUI()"></td><td class="text-center"></td><td>05/01/2026</td><td>512-CIC</td><td>580</td><td>Fond de travaux (2026)</td><td class="text-end text-success fw-bold"></td><td class="text-end text-danger fw-bold">750.00</td><td><i class="fa-solid fa-pen text-primary me-2" onclick="finance.editOp(1766993392704.591)"></i></td></tr><tr class=""><td><input type="checkbox" class="checkbox-delete" value="1766993392704.0574" onchange="finance.updateSelectionUI()"></td><td class="text-center"></td><td>05/01/2026</td><td>512-CIC</td><td>601</td><td>Réserve DPE PPT (2026)</td><td class="text-end text-success fw-bold"></td><td class="text-end text-danger fw-bold">200.00</td><td><i class="fa-solid fa-pen text-primary me-2" onclick="finance.editOp(1766993392704.0574)"></i></td></tr><tr class=""><td><input type="checkbox" class="checkbox-delete" value="1766993392704.2354" onchange="finance.updateSelectionUI()"></td><td class="text-center"></td><td>05/01/2026</td><td>512-CIC</td><td>601</td><td>Assurance ACC  (2026)</td><td class="text-end text-success fw-bold"></td><td class="text-end text-danger fw-bold">180.00</td><td><i class="fa-solid fa-pen text-primary me-2" onclick="finance.editOp(1766993392704.2354)"></i></td></tr><tr class="row-pointed"><td><input type="checkbox" class="checkbox-delete" value="1766993392704.4866" onchange="finance.updateSelectionUI()"></td><td class="text-center"></td><td>05/01/2026</td><td>512-CIC</td><td>622-SYN</td><td>Indemnité Syndic (2026)</td><td class="text-end text-success fw-bold"></td><td class="text-end text-danger fw-bold">150.00</td><td><i class="fa-solid fa-pen text-primary me-2" onclick="finance.editOp(1766993392704.4866)"></i></td></tr><tr class=""><td><input type="checkbox" class="checkbox-delete" value="1766993392704.1538" onchange="finance.updateSelectionUI()"></td><td class="text-center"></td><td>05/01/2026</td><td>512-CIC</td><td>622-RPTE</td><td>Indemnité RPTE (2026)</td><td class="text-end text-success fw-bold"></td><td class="text-end text-danger fw-bold">150.00</td><td><i class="fa-solid fa-pen text-primary me-2" onclick="finance.editOp(1766993392704.1538)"></i></td></tr><tr class=""><td><input type="checkbox" class="checkbox-delete" value="1766993392704.0107" onchange="finance.updateSelectionUI()"></td><td class="text-center"></td><td>05/01/2026</td><td>512-CIC</td><td>615-MEN</td><td>Ménage (2026)</td><td class="text-end text-success fw-bold"></td><td class="text-end text-danger fw-bold">138.00</td><td><i class="fa-solid fa-pen text-primary me-2" onclick="finance.editOp(1766993392704.0107)"></i></td></tr><tr class="row-pointed"><td><input type="checkbox" class="checkbox-delete" value="1766993074887.0295" onchange="finance.updateSelectionUI()"></td><td class="text-center"></td><td>02/01/2026</td><td>512-CIC</td><td>701</td><td>Appel - BELLIARD V (ST ESTEPHE)</td><td class="text-end text-success fw-bold">279.66</td><td class="text-end text-danger fw-bold"></td><td><i class="fa-solid fa-pen text-primary me-2" onclick="finance.editOp(1766993074887.0295)"></i></td></tr><tr class=""><td><input type="checkbox" class="checkbox-delete" value="1766993074887.653" onchange="finance.updateSelectionUI()"></td><td class="text-center"></td><td>02/01/2026</td><td>512-CIC</td><td>701</td><td>Appel - CARSOULE (1) (SAUTERNE)</td><td class="text-end text-success fw-bold">186.56</td><td class="text-end text-danger fw-bold"></td><td><i class="fa-solid fa-pen text-primary me-2" onclick="finance.editOp(1766993074887.653)"></i></td></tr><tr class=""><td><input type="checkbox" class="checkbox-delete" value="1766993074887.617" onchange="finance.updateSelectionUI()"></td><td class="text-center"></td><td>02/01/2026</td><td>512-CIC</td><td>701</td><td>Appel - CARSOULE (2) (PESSAC LEOGNAN)</td><td class="text-end text-success fw-bold">125.42</td><td class="text-end text-danger fw-bold"></td><td><i class="fa-solid fa-pen text-primary me-2" onclick="finance.editOp(1766993074887.617)"></i></td></tr><tr class=""><td><input type="checkbox" class="checkbox-delete" value="1766993074887.522" onchange="finance.updateSelectionUI()"></td><td class="text-center"></td><td>02/01/2026</td><td>512-CIC</td><td>701</td><td>Appel - CAUPENNE C (Librairie)</td><td class="text-end text-success fw-bold">391.38</td><td class="text-end text-danger fw-bold"></td><td><i class="fa-solid fa-pen text-primary me-2" onclick="finance.editOp(1766993074887.522)"></i></td></tr><tr class="row-pointed"><td><input type="checkbox" class="checkbox-delete" value="1766993074887.1885" onchange="finance.updateSelectionUI()"></td><td class="text-center"></td><td>02/01/2026</td><td>512-CIC</td><td>701</td><td>Appel - GABRIEL T (ST CROIX DU MONT)</td><td class="text-end text-success fw-bold">213.78</td><td class="text-end text-danger fw-bold"></td><td><i class="fa-solid fa-pen text-primary me-2" onclick="finance.editOp(1766993074887.1885)"></i></td></tr><tr class="row-pointed"><td><input type="checkbox" class="checkbox-delete" value="1766993074887.7705" onchange="finance.updateSelectionUI()"></td><td class="text-center"></td><td>02/01/2026</td><td>512-CIC</td><td>701</td><td>Appel - IDEA.L.C (Lambard) (POMEROL)</td><td class="text-end text-success fw-bold">369.13</td><td class="text-end text-danger fw-bold"></td><td><i class="fa-solid fa-pen text-primary me-2" onclick="finance.editOp(1766993074887.7705)"></i></td></tr><tr class="row-pointed"><td><input type="checkbox" class="checkbox-delete" value="1766993074887.2236" onchange="finance.updateSelectionUI()"></td><td class="text-center"></td><td>02/01/2026</td><td>512-CIC</td><td>701</td><td>Appel - LE MERLE C (MOULIS (Syndic))</td><td class="text-end text-success fw-bold">233.95</td><td class="text-end text-danger fw-bold"></td><td><i class="fa-solid fa-pen text-primary me-2" onclick="finance.editOp(1766993074887.2236)"></i></td></tr><tr class=""><td><input type="checkbox" class="checkbox-delete" value="1766993074887.2822" onchange="finance.updateSelectionUI()"></td><td class="text-center"></td><td>02/01/2026</td><td>512-CIC</td><td>701</td><td>Appel - PALMARO (MARGAUX)</td><td class="text-end text-success fw-bold">107.79</td><td class="text-end text-danger fw-bold"></td><td><i class="fa-solid fa-pen text-primary me-2" onclick="finance.editOp(1766993074887.2822)"></i></td></tr><tr class=""><td><input type="checkbox" class="checkbox-delete" value="1766993074887.3848" onchange="finance.updateSelectionUI()"></td><td class="text-center"></td><td>02/01/2026</td><td>512-CIC</td><td>701</td><td>Appel - PIRAS E (PAUILLAC)</td><td class="text-end text-success fw-bold">223.16</td><td class="text-end text-danger fw-bold"></td><td><i class="fa-solid fa-pen text-primary me-2" onclick="finance.editOp(1766993074887.3848)"></i></td></tr><tr class="row-pointed"><td><input type="checkbox" class="checkbox-delete" value="1766993074887.3306" onchange="finance.updateSelectionUI()"></td><td class="text-center"></td><td>02/01/2026</td><td>512-CIC</td><td>701</td><td>Appel - SALAHUN Y (ST EMILION)</td><td class="text-end text-success fw-bold">91.03</td><td class="text-end text-danger fw-bold"></td><td><i class="fa-solid fa-pen text-primary me-2" onclick="finance.editOp(1766993074887.3306)"></i></td></tr><tr class=""><td><input type="checkbox" class="checkbox-delete" value="1766993074887.4678" onchange="finance.updateSelectionUI()"></td><td class="text-center"></td><td>02/01/2026</td><td>512-CIC</td><td>701</td><td>Appel - SCI LE CLOT (LISTRAC (REPT))</td><td class="text-end text-success fw-bold">186.39</td><td class="text-end text-danger fw-bold"></td><td><i class="fa-solid fa-pen text-primary me-2" onclick="finance.editOp(1766993074887.4678)"></i></td></tr><tr class="row-pointed"><td><input type="checkbox" class="checkbox-delete" value="1766993074887.1462" onchange="finance.updateSelectionUI()"></td><td class="text-center"></td><td>02/01/2026</td><td>512-CIC</td><td>701</td><td>Appel - TROPAMER V (ENTRE 2 MERS)</td><td class="text-end text-success fw-bold">161.26</td><td class="text-end text-danger fw-bold"></td><td><i class="fa-solid fa-pen text-primary me-2" onclick="finance.editOp(1766993074887.1462)"></i></td></tr><tr class=""><td><input type="checkbox" class="checkbox-delete" value="1766993984379" onchange="finance.updateSelectionUI()"></td><td class="text-center"></td><td>01/01/2026</td><td>5022-ALUR</td><td>580</td><td></td><td class="text-end text-success fw-bold">750.00</td><td class="text-end text-danger fw-bold"></td><td><i class="fa-solid fa-pen text-primary me-2" onclick="finance.editOp(1766993984379)"></i></td></tr><tr class=""><td><input type="checkbox" class="checkbox-delete" value="1766994019794" onchange="finance.updateSelectionUI()"></td><td class="text-center"></td><td>01/01/2026</td><td>5022-ALUR</td><td>580</td><td></td><td class="text-end text-success fw-bold">200.00</td><td class="text-end text-danger fw-bold"></td><td><i class="fa-solid fa-pen text-primary me-2" onclick="finance.editOp(1766994019794)"></i></td></tr></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-annexes" class="tab-content">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h4 class="fw-bold text-primary mb-0"><i class="fa-solid fa-scale-balanced me-2"></i>Annexes Comptables (Bilan &amp; Résultat)</h4>
+            <div>
+                <button class="btn btn-outline-primary btn-sm me-2" onclick="annexes.addManualLine()"><i class="fa-solid fa-plus me-1"></i>Ajout Manuel</button>
+                <button class="btn btn-danger btn-sm" onclick="annexes.exportPDF()"><i class="fa-solid fa-file-pdf me-2"></i>Tout Exporter</button>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="annexe-section">
+                    <div class="annexe-title"><span>Annexe 1 : État Financier</span><span>BILAN</span></div>
+                    <h6 class="text-uppercase small fw-bold text-secondary mt-2 mb-1">Actif</h6>
+                    <table class="table table-sm table-bordered" id="annexe-bilan"><thead class="table-light"><tr><th>Comptes Bancaires &amp; Créances</th><th class="text-end" style="width:100px">Montant</th></tr></thead><tbody id="bilan-actif-body"><tr><td>Banque: Compte Courant CIC</td><td class="text-end">3599.76</td></tr><tr><td>Banque: Livret OBNL</td><td class="text-end">1555.50</td></tr><tr><td>Banque: Livret Fonds Travaux</td><td class="text-end">14437.27</td></tr></tbody><tfoot class="fw-bold bg-light"><tr><td>TOTAL ACTIF</td><td class="text-end" id="tot-actif">19592.53</td></tr></tfoot></table>
+                    <h6 class="text-uppercase small fw-bold text-secondary mt-3 mb-1">Passif</h6>
+                    <table class="table table-sm table-bordered" id="annexe-bilan-passif"><thead class="table-light"><tr><th>Fonds, Réserves &amp; Dettes</th><th class="text-end" style="width:100px">Montant</th></tr></thead><tbody id="bilan-passif-body"><tr><td>Fonds &amp; Réserves (Livret OBNL)</td><td class="text-end">1555.50</td></tr><tr><td>Fonds &amp; Réserves (Livret Fonds Travaux)</td><td class="text-end">14437.27</td></tr><tr><td>Excédent Exercice</td><td class="text-end">1695.51</td></tr><tr class="bg-warning bg-opacity-25 fw-bold"><td>Report à Nouveau (Solde N-1)</td><td class="text-end">1904.25</td></tr></tbody><tfoot class="fw-bold bg-light"><tr><td>TOTAL PASSIF</td><td class="text-end" id="tot-passif">19592.53</td></tr></tfoot></table>
+                    <div class="alert alert-success py-1 px-2 mt-2 small text-center" id="bilan-equilibre">Bilan Équilibré</div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="annexe-section">
+                    <div class="annexe-title"><span>Annexe 2 : Compte de Gestion</span><span>RÉSULTAT</span></div>
+                    <table class="table table-sm table-bordered table-striped" id="annexe-resultat"><thead class="table-light"><tr><th>Poste</th><th class="text-end" style="width:100px">Montant</th></tr></thead><tbody id="resultat-body"><tr><td>601</td><td class="text-end">380.00</td></tr><tr><td>615-MEN</td><td class="text-end">138.00</td></tr><tr><td>615-POU</td><td class="text-end">47.00</td></tr><tr><td>622-RPTE</td><td class="text-end">150.00</td></tr><tr><td>622-SYN</td><td class="text-end">150.00</td></tr><tr><td>623</td><td class="text-end">9.00</td></tr><tr><td>701</td><td class="text-end">2569.51</td></tr></tbody><tfoot class="fw-bold bg-light"><tr><td>RÉSULTAT DE L'EXERCICE</td><td class="text-end" id="tot-resultat">1695.51</td></tr></tfoot></table>
+                </div>
+                <div class="annexe-section">
+                    <div class="annexe-title"><span>Annexe 3 : Soldes Copropriétaires</span></div>
+                    <div style="max-height:200px; overflow-y:auto"><table class="table table-sm table-hover mb-0 small"><thead class="table-light"><tr><th>Nom</th><th class="text-end">Solde (Estimé)</th></tr></thead><tbody id="annexe-copro-body"></tbody></table></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-budget-detail" class="tab-content">
+        <div class="alert alert-info shadow-sm d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div><i class="fa-solid fa-calendar-alt me-2"></i><strong>Tableau de Bord Mensuel :</strong> Génération d'écritures comptables.</div>
+            <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end">
+                <div class="input-group input-group-sm" style="width:auto;"><span class="input-group-text fw-bold"><i class="fa-solid fa-building-columns"></i></span><select id="validationAccount" class="form-select border-primary fw-bold" style="max-width:180px;"><option value="512-CIC">Compte Courant CIC</option><option value="5021-OBNL">Livret OBNL</option><option value="5022-ALUR">Livret Fonds Travaux</option></select></div>
+                <div class="input-group input-group-sm" style="width:110px;"><span class="input-group-text">Jour</span><input type="number" id="validationDay" class="form-control fw-bold" value="28" min="1" max="31"></div>
+                <div class="input-group input-group-sm" style="width:auto;"><select id="validationMode" class="form-select fw-bold border-success"><option value="month">Générer Dépenses pour le Mois</option><option value="extrapolate">Extrapolation vers Budget (x12)</option></select><select id="validationMonth" class="form-select border-success"><option value="0">Jan</option><option value="1">Fev</option><option value="2">Mar</option><option value="3">Avr</option><option value="4">Mai</option><option value="5">Juin</option><option value="6">Juil</option><option value="7">Août</option><option value="8">Sep</option><option value="9">Oct</option><option value="10">Nov</option><option value="11">Déc</option></select><input type="number" id="validationYear" class="form-control border-success fw-bold text-success" style="max-width: 70px;" value="2026"></div>
+                <button class="btn btn-success fw-bold shadow btn-sm" onclick="budgetDetail.validateToFinance()"><i class="fa-solid fa-check-to-slot me-2"></i>VALIDER</button>
+                <button class="btn btn-outline-danger fw-bold shadow btn-sm" onclick="budgetDetail.clearMonthFromFinance()"><i class="fa-solid fa-eraser me-2"></i>VIDER</button>
+            </div>
+        </div>
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2"><span class="fw-bold text-danger">DÉPENSES PRÉVISIONNELLES (Mensualisées)</span><button class="btn btn-sm btn-outline-dark" onclick="budgetDetail.openManageModal()">⚙️ Gérer les Lignes</button></div>
+                <button class="btn btn-sm btn-outline-danger" onclick="budgetDetail.openAddLineModal()"><i class="fa-solid fa-plus me-1"></i>Ajouter une ligne rapide</button>
+            </div>
+            <div class="table-responsive" style="max-height: 600px;">
+                <table class="table table-bordered table-hover mb-0 small text-center table-striped" id="grid-expenses"><thead class="table-light sticky-top" style="z-index:20;"></thead><tbody></tbody><tfoot class="fw-bold bg-light sticky-bottom"></tfoot></table>
+            </div>
+        </div>
+        <div class="card shadow-sm">
+            <div class="card-header bg-white fw-bold text-success">RECETTES / TRÉSORERIE (Réel &amp; Prévisionnel)</div>
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover mb-0 small text-center" id="grid-income"><thead class="table-light"><tr><th class="sticky-col">Mois</th><th>Appels de Fonds</th><th>Régul. Charges</th><th>Autres Produits</th><th>TOTAL RECETTES</th><th class="table-dark">TOTAL DÉPENSES</th><th class="fw-bold">SOLDE (Rec-Dép)</th></tr></thead><tbody></tbody></table>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-params" class="tab-content">
+        <div class="row">
+            <div class="col-md-7">
+                <div class="card shadow-sm mb-3">
+                    <div class="card-header fw-bold">Liste des Copropriétaires</div>
+                    <div class="table-responsive"><table class="table table-bordered mb-0 align-middle"><thead class="table-light"><tr><th>Nom</th><th>Lots</th><th>Tantièmes</th><th>Exo. Syn/Ent</th><th>Exo. Ménage</th><th>E-mail</th></tr></thead><tbody id="paramsBody"><tr><td class="fw-bold">BELLIARD V</td><td>ST ESTEPHE<br><small class="text-muted">Lots 12, 13</small></td><td class="text-center">102</td><td class="text-center">-</td><td class="text-center"><span class="exo-badge bg-exo-men">EXO</span></td><td><small>veroniquebelliard@neuf.fr</small></td></tr><tr><td class="fw-bold">CARSOULE (1)</td><td>SAUTERNE<br><small class="text-muted">Lot 1, C9</small></td><td class="text-center">74</td><td class="text-center">-</td><td class="text-center">-</td><td><small>fcarsoule@yahoo.fr</small></td></tr><tr><td class="fw-bold">CARSOULE (2)</td><td>PESSAC LEOGNAN<br><small class="text-muted">Lot 21</small></td><td class="text-center">43</td><td class="text-center">-</td><td class="text-center">-</td><td><small>fcarsoule@yahoo.fr</small></td></tr><tr><td class="fw-bold">CAUPENNE C</td><td>Librairie<br><small class="text-muted">Lots 10, 11</small></td><td class="text-center">199</td><td class="text-center">-</td><td class="text-center"><span class="exo-badge bg-exo-men">EXO</span></td><td><small>librairiecorinne@orange.fr</small></td></tr><tr><td class="fw-bold">GABRIEL T</td><td>ST CROIX DU MONT<br><small class="text-muted">Lot 14, C5</small></td><td class="text-center">62</td><td class="text-center">-</td><td class="text-center">-</td><td><small>tho.gabriel@gmail.com</small></td></tr><tr><td class="fw-bold">IDEA.L.C (Lambard)</td><td>POMEROL<br><small class="text-muted">Lot 19, C9</small></td><td class="text-center">125</td><td class="text-center">-</td><td class="text-center">-</td><td><small>christinelambard66@gmail.com</small></td></tr><tr><td class="fw-bold">LE MERLE C</td><td>MOULIS (Syndic)<br><small class="text-muted">Lot 18, C3</small></td><td class="text-center">96</td><td class="text-center"><span class="exo-badge bg-exo-gest">EXO</span></td><td class="text-center">-</td><td><small>tof33123@gmail.com</small></td></tr><tr><td class="fw-bold">PALMARO</td><td>MARGAUX<br><small class="text-muted">Lot 15, C6</small></td><td class="text-center">41</td><td class="text-center">-</td><td class="text-center">-</td><td><small>bpalmaro@free.fr</small></td></tr><tr><td class="fw-bold">PIRAS E</td><td>PAUILLAC<br><small class="text-muted">Lot 20, C4</small></td><td class="text-center">69</td><td class="text-center">-</td><td class="text-center">-</td><td><small>eric.piras0046@orange.fr</small></td></tr><tr><td class="fw-bold">SALAHUN Y</td><td>ST EMILION<br><small class="text-muted">Lot 16</small></td><td class="text-center">37</td><td class="text-center">-</td><td class="text-center">-</td><td><small>yves.salahun@orange.fr</small></td></tr><tr><td class="fw-bold">SCI LE CLOT</td><td>LISTRAC (REPT)<br><small class="text-muted">Lot 17, C7</small></td><td class="text-center">86</td><td class="text-center"><span class="exo-badge bg-exo-gest">EXO</span></td><td class="text-center">-</td><td><small>sibrac_vince@hotmail.com</small></td></tr><tr><td class="fw-bold">TROPAMER V</td><td>ENTRE 2 MERS<br><small class="text-muted">Lot 2</small></td><td class="text-center">66</td><td class="text-center">-</td><td class="text-center">-</td><td><small>veronique.tropamer@orange.fr</small></td></tr></tbody></table></div>
+                </div>
+                <div class="card shadow-sm mb-3 border-info">
+                    <div class="card-header bg-info text-white fw-bold d-flex justify-content-between"><span>Gestion des Postes Comptables</span></div>
+                    <div class="card-body">
+                        <div class="input-group input-group-sm mb-2"><input type="text" id="newCatCode" class="form-control" placeholder="Code (ex: 605)"><input type="text" id="newCatLabel" class="form-control w-50" placeholder="Libellé"><button class="btn btn-primary" onclick="params.addCategory()">Ajouter</button></div>
+                        <div style="max-height: 200px; overflow-y:auto;" class="border rounded"><table class="table table-sm table-hover mb-0" id="table-categories"><tbody><tr><td><input type="text" class="inp-edit-table" value="601" onchange="params.updateCategory(0, 'code', this.value)"></td><td><input type="text" class="inp-edit-table" value="Eau" onchange="params.updateCategory(0, 'label', this.value)"></td><td><button class="btn btn-sm text-danger" onclick="params.deleteCategory(0)">x</button></td></tr><tr><td><input type="text" class="inp-edit-table" value="602" onchange="params.updateCategory(1, 'code', this.value)"></td><td><input type="text" class="inp-edit-table" value="Électricité" onchange="params.updateCategory(1, 'label', this.value)"></td><td><button class="btn btn-sm text-danger" onclick="params.deleteCategory(1)">x</button></td></tr><tr><td><input type="text" class="inp-edit-table" value="615-MEN" onchange="params.updateCategory(2, 'code', this.value)"></td><td><input type="text" class="inp-edit-table" value="Ménage" onchange="params.updateCategory(2, 'label', this.value)"></td><td><button class="btn btn-sm text-danger" onclick="params.deleteCategory(2)">x</button></td></tr><tr><td><input type="text" class="inp-edit-table" value="615-POU" onchange="params.updateCategory(3, 'code', this.value)"></td><td><input type="text" class="inp-edit-table" value="Poubelles" onchange="params.updateCategory(3, 'label', this.value)"></td><td><button class="btn btn-sm text-danger" onclick="params.deleteCategory(3)">x</button></td></tr><tr><td><input type="text" class="inp-edit-table" value="615-SEC" onchange="params.updateCategory(4, 'code', this.value)"></td><td><input type="text" class="inp-edit-table" value="Sécurité Incendie" onchange="params.updateCategory(4, 'label', this.value)"></td><td><button class="btn btn-sm text-danger" onclick="params.deleteCategory(4)">x</button></td></tr><tr><td><input type="text" class="inp-edit-table" value="616" onchange="params.updateCategory(5, 'code', this.value)"></td><td><input type="text" class="inp-edit-table" value="Assurances" onchange="params.updateCategory(5, 'label', this.value)"></td><td><button class="btn btn-sm text-danger" onclick="params.deleteCategory(5)">x</button></td></tr><tr><td><input type="text" class="inp-edit-table" value="622-SYN" onchange="params.updateCategory(6, 'code', this.value)"></td><td><input type="text" class="inp-edit-table" value="Indem. Syndic" onchange="params.updateCategory(6, 'label', this.value)"></td><td><button class="btn btn-sm text-danger" onclick="params.deleteCategory(6)">x</button></td></tr><tr><td><input type="text" class="inp-edit-table" value="622-RPTE" onchange="params.updateCategory(7, 'code', this.value)"></td><td><input type="text" class="inp-edit-table" value="Indem. RPTE" onchange="params.updateCategory(7, 'label', this.value)"></td><td><button class="btn btn-sm text-danger" onclick="params.deleteCategory(7)">x</button></td></tr><tr><td><input type="text" class="inp-edit-table" value="622-MNT" onchange="params.updateCategory(8, 'code', this.value)"></td><td><input type="text" class="inp-edit-table" value="Gestion Maint." onchange="params.updateCategory(8, 'label', this.value)"></td><td><button class="btn btn-sm text-danger" onclick="params.deleteCategory(8)">x</button></td></tr><tr><td><input type="text" class="inp-edit-table" value="623" onchange="params.updateCategory(9, 'code', this.value)"></td><td><input type="text" class="inp-edit-table" value="Frais Bancaires" onchange="params.updateCategory(9, 'label', this.value)"></td><td><button class="btn btn-sm text-danger" onclick="params.deleteCategory(9)">x</button></td></tr><tr><td><input type="text" class="inp-edit-table" value="701" onchange="params.updateCategory(10, 'code', this.value)"></td><td><input type="text" class="inp-edit-table" value="Appels de Fonds" onchange="params.updateCategory(10, 'label', this.value)"></td><td><button class="btn btn-sm text-danger" onclick="params.deleteCategory(10)">x</button></td></tr><tr><td><input type="text" class="inp-edit-table" value="702" onchange="params.updateCategory(11, 'code', this.value)"></td><td><input type="text" class="inp-edit-table" value="Travaux (Appel)" onchange="params.updateCategory(11, 'label', this.value)"></td><td><button class="btn btn-sm text-danger" onclick="params.deleteCategory(11)">x</button></td></tr><tr><td><input type="text" class="inp-edit-table" value="580" onchange="params.updateCategory(12, 'code', this.value)"></td><td><input type="text" class="inp-edit-table" value="Virement Interne" onchange="params.updateCategory(12, 'label', this.value)"></td><td><button class="btn btn-sm text-danger" onclick="params.deleteCategory(12)">x</button></td></tr><tr><td><input type="text" class="inp-edit-table" value="105" onchange="params.updateCategory(13, 'code', this.value)"></td><td><input type="text" class="inp-edit-table" value="Provision Fond Travaux" onchange="params.updateCategory(13, 'label', this.value)"></td><td><button class="btn btn-sm text-danger" onclick="params.deleteCategory(13)">x</button></td></tr></tbody></table></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-5">
+                <div class="card shadow-sm border-danger mb-3">
+                    <div class="card-header bg-danger text-white fw-bold"><i class="fa-solid fa-calendar-check me-2"></i>Clôture &amp; Nouvel Exercice</div>
+                    <div class="card-body"><p class="small text-muted mb-2">Sauvegarde et remise à zéro.</p><button class="btn btn-outline-danger w-100 fw-bold" onclick="app.startNewYear()"><i class="fa-solid fa-forward me-2"></i>CLÔTURER L'ANNÉE</button></div>
+                </div>
+                <div class="card shadow-sm border-warning">
+                    <div class="card-header bg-warning text-dark fw-bold">Gestion des Comptes Bancaires</div>
+                    <div class="card-body">
+                        <div id="account-list" class="list-group mb-3"><div class="list-group-item d-flex justify-content-between align-items-center small"><span><b>512-CIC</b> - Compte Courant CIC (2654.25€)</span><div><i class="fa-solid fa-pen text-primary cursor-pointer me-2" onclick="finance.fillEditAccount('512-CIC')"></i><i class="fa-solid fa-trash text-danger cursor-pointer" onclick="finance.deleteAccount('512-CIC')"></i></div></div><div class="list-group-item d-flex justify-content-between align-items-center small"><span><b>5021-OBNL</b> - Livret OBNL (1555.5€)</span><div><i class="fa-solid fa-pen text-primary cursor-pointer me-2" onclick="finance.fillEditAccount('5021-OBNL')"></i><i class="fa-solid fa-trash text-danger cursor-pointer" onclick="finance.deleteAccount('5021-OBNL')"></i></div></div><div class="list-group-item d-flex justify-content-between align-items-center small"><span><b>5022-ALUR</b> - Livret Fonds Travaux (13487.27€)</span><div><i class="fa-solid fa-pen text-primary cursor-pointer me-2" onclick="finance.fillEditAccount('5022-ALUR')"></i><i class="fa-solid fa-trash text-danger cursor-pointer" onclick="finance.deleteAccount('5022-ALUR')"></i></div></div></div><hr><h6 class="small fw-bold">Ajouter / Modifier</h6>
+                        <input type="hidden" id="acc-id-edit" value=""><div class="mb-2"><input type="text" id="acc-id-new" class="form-control form-control-sm" placeholder="ID (ex: 512-CIC)"></div>
+                        <div class="mb-2"><input type="text" id="acc-name-new" class="form-control form-control-sm" placeholder="Nom"></div>
+                        <div class="mb-2"><input type="number" id="acc-init-new" class="form-control form-control-sm" placeholder="Solde Initial" step="0.01"></div>
+                        <button class="btn btn-primary btn-sm w-100" onclick="finance.updateAccount()">Enregistrer</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="modal-recap-table" class="modal-overlay">
+    <div class="modal-box" style="max-width:98%;width:1800px;">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h5 class="m-0 fw-bold"><i class="fa-solid fa-table me-2"></i>Tableau Récapitulatif Détaillé</h5>
+                <small class="text-muted" id="recap-subtitle"></small>
+            </div>
+            <button class="btn-close" onclick="el('modal-recap-table').style.display='none'"></button>
+        </div>
+        <div class="mb-3 d-flex justify-content-end">
+            <button class="btn btn-danger fw-bold" onclick="budget.exportRecapPDF()"><i class="fa-solid fa-file-pdf me-2"></i>Exporter PDF</button>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped text-center small align-middle" id="recap-full-table">
+                <thead class="table-dark"></thead>
+                <tbody></tbody>
+                <tfoot class="fw-bold bg-secondary text-white"></tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="modal-add-line" class="modal-overlay"><div class="modal-box"><h5 class="mb-3">Ajouter Ligne Dépense</h5><div class="mb-2"><label class="small fw-bold">Nom</label><input type="text" id="add-line-name" class="form-control"></div><div class="mb-3"><label class="small fw-bold">Catégorie</label><select id="add-line-cat" class="form-select"><option value="general">Générales</option><option value="menage">Ménage</option><option value="poubelle">Poubelles</option><option value="special">Syndic</option><option value="travaux">Travaux</option></select></div><div class="d-flex justify-content-end gap-2"><button class="btn btn-secondary" onclick="el('modal-add-line').style.display='none'">Annuler</button><button class="btn btn-success" onclick="budgetDetail.confirmAddLine()">Créer</button></div></div></div>
+<div id="modal-manage-lines" class="modal-overlay"><div class="modal-box"><div class="d-flex justify-content-between align-items-center mb-3"><h5 class="m-0">Gérer les Postes Budgétaires</h5><button class="btn-close" onclick="el('modal-manage-lines').style.display='none'"></button></div><div class="alert alert-warning small py-1">Supprimer un poste efface l'historique de sa prévision.</div><ul class="list-group" id="list-manage-lines" style="max-height:400px; overflow-y:auto;"></ul><hr><button class="btn btn-primary w-100" onclick="budgetDetail.openAddLineModal()">+ Ajouter Nouveau</button></div></div>
+<div id="modal-mailing" class="modal-overlay"><div class="modal-box"><div class="d-flex justify-content-between align-items-center mb-3"><h5 class="m-0"><i class="fa-solid fa-envelope me-2"></i>Mailing Appels de Fonds</h5><button class="btn-close" onclick="el('modal-mailing').style.display='none'"></button></div><div class="mb-3"><label class="small fw-bold">Choisir Copropriétaire</label><select id="mail-owner-select" class="form-select" onchange="mailing.updateText()"></select></div><div class="mb-3"><label class="small fw-bold">Texte de l'email</label><textarea id="mail-content" class="form-control" rows="10" style="font-family:monospace; font-size:0.9rem;"></textarea></div><div class="d-flex gap-2"><a id="btn-mailto" href="#" class="btn btn-primary w-100 fw-bold"><i class="fa-solid fa-paper-plane me-2"></i>Ouvrir Email</a><button class="btn btn-outline-secondary" onclick="mailing.copyText()">Copier Texte</button></div></div></div>
+
+<script>
+const el = id => document.getElementById(id);
+const fmtMoney = v => (parseFloat(v)||0).toFixed(2);
+const DEFAULT_CATEGORIES=[{code:"601",label:"Eau"},{code:"602",label:"Électricité"},{code:"615-MEN",label:"Ménage"},{code:"615-POU",label:"Poubelles"},{code:"615-SEC",label:"Sécurité Incendie"},{code:"616",label:"Assurances"},{code:"622-SYN",label:"Indem. Syndic"},{code:"622-RPTE",label:"Indem. RPTE"},{code:"622-MNT",label:"Gestion Maint."},{code:"623",label:"Frais Bancaires"},{code:"701",label:"Appels de Fonds"},{code:"702",label:"Travaux (Appel)"},{code:"580",label:"Virement Interne"},{code:"105",label:"Provision Fond Travaux"}];
+
+/* <STATE_START> */
+let STATE = {"timestamp":1767091478856,"owners":[{"id":10,"name":"BELLIARD V","apt":"ST ESTEPHE","lot":"Lots 12, 13","tantiemes":102,"hasMeter":true,"exoGest":false,"exoMen":true,"email":"veroniquebelliard@neuf.fr"},{"id":7,"name":"CARSOULE (1)","apt":"SAUTERNE","lot":"Lot 1, C9","tantiemes":74,"hasMeter":true,"exoGest":false,"exoMen":false,"email":"fcarsoule@yahoo.fr"},{"id":3,"name":"CARSOULE (2)","apt":"PESSAC LEOGNAN","lot":"Lot 21","tantiemes":43,"hasMeter":true,"exoGest":false,"exoMen":false,"email":"fcarsoule@yahoo.fr"},{"id":13,"name":"CAUPENNE C","apt":"Librairie","lot":"Lots 10, 11","tantiemes":199,"hasMeter":false,"exoGest":false,"exoMen":true,"email":"librairiecorinne@orange.fr"},{"id":4,"name":"GABRIEL T","apt":"ST CROIX DU MONT","lot":"Lot 14, C5","tantiemes":62,"hasMeter":true,"exoGest":false,"exoMen":false,"email":"tho.gabriel@gmail.com"},{"id":12,"name":"IDEA.L.C (Lambard)","apt":"POMEROL","lot":"Lot 19, C9","tantiemes":125,"hasMeter":true,"exoGest":false,"exoMen":false,"email":"christinelambard66@gmail.com"},{"id":9,"name":"LE MERLE C","apt":"MOULIS (Syndic)","lot":"Lot 18, C3","tantiemes":96,"hasMeter":true,"exoGest":true,"exoMen":false,"email":"tof33123@gmail.com"},{"id":2,"name":"PALMARO","apt":"MARGAUX","lot":"Lot 15, C6","tantiemes":41,"hasMeter":true,"exoGest":false,"exoMen":false,"email":"bpalmaro@free.fr"},{"id":6,"name":"PIRAS E","apt":"PAUILLAC","lot":"Lot 20, C4","tantiemes":69,"hasMeter":true,"exoGest":false,"exoMen":false,"email":"eric.piras0046@orange.fr"},{"id":1,"name":"SALAHUN Y","apt":"ST EMILION","lot":"Lot 16","tantiemes":37,"hasMeter":true,"exoGest":false,"exoMen":false,"email":"yves.salahun@orange.fr"},{"id":8,"name":"SCI LE CLOT","apt":"LISTRAC (REPT)","lot":"Lot 17, C7","tantiemes":86,"hasMeter":true,"exoGest":true,"exoMen":false,"email":"sibrac_vince@hotmail.com"},{"id":5,"name":"TROPAMER V","apt":"ENTRE 2 MERS","lot":"Lot 2","tantiemes":66,"hasMeter":true,"exoGest":false,"exoMen":false,"email":"veronique.tropamer@orange.fr"},{"id":0,"name":"COMMUN (Général)","apt":"Services","lot":"","tantiemes":0,"hasMeter":true,"isCommon":true}],"accounts":[{"id":"512-CIC","name":"Compte Courant CIC","initial":2654.25},{"id":"5021-OBNL","name":"Livret OBNL","initial":1555.5},{"id":"5022-ALUR","name":"Livret Fonds Travaux","initial":13487.27}],"water":{"activeQuarter":"T2","priceMode":"annual","invoiceTotal":0,"annualTotal":1706.46,"annualSub":92.21,"annualVol":318,"manualPrice":4.5,"subAmount":23.0525,"readings":{"T1":{"0":{"old":11.333,"new":11.374},"1":{"old":182.652,"new":182.654},"2":{"old":223.02,"new":224.883},"3":{"old":186.007,"new":186.007},"4":{"old":538.426,"new":545.001},"5":{"old":307.648,"new":307.813},"6":{"old":614.519,"new":623.386},"7":{"old":375.698,"new":375.698},"8":{"old":558.393,"new":559.02},"9":{"old":574.478,"new":578.445},"10":{"old":1151.548,"new":1163.53},"12":{"old":686.401,"new":686.484},"13":{"old":0,"new":0}},"T2":{"0":{"old":0,"new":0},"1":{"old":182.654,"new":0},"2":{"old":224.883,"new":0},"3":{"old":186.007,"new":0},"4":{"old":545.001,"new":0},"5":{"old":307.813,"new":0},"6":{"old":623.386,"new":0},"7":{"old":375.698,"new":0},"8":{"old":559.02,"new":0},"9":{"old":578.445,"new":0},"10":{"old":1163.53,"new":0},"12":{"old":686.484,"new":0},"13":{"old":0,"new":0}}},"meters":{"0":"10ca171779","1":"186460","2":"183445","3":"183443","4":"183444","5":"173442","6":"183441","7":"183446","8":"183449","9":"10ca171778","10":"183457","12":"183450"},"projPrice":5.08,"projSub":92.21},"waterPrevi":{"subs":{"1":1.07,"2":1.19,"3":2.15,"4":1.8,"5":1.92,"6":2,"7":1.25,"8":2.5,"9":2.79,"10":2.96,"12":3.63},"charges":{"1":1.76,"2":8.87,"3":20.77,"4":64.19,"5":2.01,"6":56.68,"7":8.91,"8":10.43,"9":37.53,"10":76.09,"12":67.53},"reguls":{}},"finance":{"operations":[{"id":1766993074887.0295,"date":"2026-01-02","account":"512-CIC","type":"recette","category":"701","label":"Appel - BELLIARD V (ST ESTEPHE)","amount":279.66,"pointed":true},{"id":1766993074887.653,"date":"2026-01-02","account":"512-CIC","type":"recette","category":"701","label":"Appel - CARSOULE (1) (SAUTERNE)","amount":186.56,"pointed":false},{"id":1766993074887.617,"date":"2026-01-02","account":"512-CIC","type":"recette","category":"701","label":"Appel - CARSOULE (2) (PESSAC LEOGNAN)","amount":125.42,"pointed":false},{"id":1766993074887.522,"date":"2026-01-02","account":"512-CIC","type":"recette","category":"701","label":"Appel - CAUPENNE C (Librairie)","amount":391.38,"pointed":false},{"id":1766993074887.1885,"date":"2026-01-02","account":"512-CIC","type":"recette","category":"701","label":"Appel - GABRIEL T (ST CROIX DU MONT)","amount":213.78,"pointed":true},{"id":1766993074887.7705,"date":"2026-01-02","account":"512-CIC","type":"recette","category":"701","label":"Appel - IDEA.L.C (Lambard) (POMEROL)","amount":369.13,"pointed":true},{"id":1766993074887.2236,"date":"2026-01-02","account":"512-CIC","type":"recette","category":"701","label":"Appel - LE MERLE C (MOULIS (Syndic))","amount":233.95,"pointed":true},{"id":1766993074887.2822,"date":"2026-01-02","account":"512-CIC","type":"recette","category":"701","label":"Appel - PALMARO (MARGAUX)","amount":107.79,"pointed":false},{"id":1766993074887.3848,"date":"2026-01-02","account":"512-CIC","type":"recette","category":"701","label":"Appel - PIRAS E (PAUILLAC)","amount":223.16,"pointed":false},{"id":1766993074887.3306,"date":"2026-01-02","account":"512-CIC","type":"recette","category":"701","label":"Appel - SALAHUN Y (ST EMILION)","amount":91.03,"pointed":true},{"id":1766993074887.4678,"date":"2026-01-02","account":"512-CIC","type":"recette","category":"701","label":"Appel - SCI LE CLOT (LISTRAC (REPT))","amount":186.39,"pointed":false},{"id":1766993074887.1462,"date":"2026-01-02","account":"512-CIC","type":"recette","category":"701","label":"Appel - TROPAMER V (ENTRE 2 MERS)","amount":161.26,"pointed":true},{"id":1766993392704.7039,"date":"2026-01-05","account":"512-CIC","type":"depense","category":"623","label":"Frais bancaire (2026)","amount":9,"pointed":false},{"id":1766993392704.3003,"date":"2026-01-05","account":"512-CIC","type":"depense","category":"615-POU","label":"Poubelles (2026)","amount":47,"pointed":false},{"id":1766993392704.591,"date":"2026-01-05","account":"512-CIC","type":"depense","category":"580","label":"Fond de travaux (2026)","amount":750,"pointed":false},{"id":1766993392704.0574,"date":"2026-01-05","account":"512-CIC","type":"depense","category":"601","label":"Réserve DPE PPT (2026)","amount":200,"pointed":false},{"id":1766993392704.2354,"date":"2026-01-05","account":"512-CIC","type":"depense","category":"601","label":"Assurance ACC  (2026)","amount":180,"pointed":false},{"id":1766993392704.4866,"date":"2026-01-05","account":"512-CIC","type":"depense","category":"622-SYN","label":"Indemnité Syndic (2026)","amount":150,"pointed":true},{"id":1766993392704.1538,"date":"2026-01-05","account":"512-CIC","type":"depense","category":"622-RPTE","label":"Indemnité RPTE (2026)","amount":150,"pointed":false},{"id":1766993392704.0107,"date":"2026-01-05","account":"512-CIC","type":"depense","category":"615-MEN","label":"Ménage (2026)","amount":138,"pointed":false},{"id":1766993984379,"date":"2026-01-01","account":"5022-ALUR","type":"recette","category":"580","label":"","amount":750,"pointed":false},{"id":1766994019794,"date":"2026-01-01","account":"5022-ALUR","type":"recette","category":"580","label":"","amount":200,"pointed":false}],"realBalances":{"512-CIC":3853.06}},"budget":{"general":[{"name":"Frais bancaire","reel":138,"previ":140,"previ_n1":140},{"name":"Poubelles","reel":550,"previ":570,"previ_n1":570},{"name":"Sécurité incendie","reel":280,"previ":300,"previ_n1":300},{"name":"Assurance AXA","reel":1020,"previ":1050,"previ_n1":1050},{"name":"Gestion courante","reel":150,"previ":150,"previ_n1":150},{"name":"EDF communs","reel":195,"previ":210,"previ_n1":210},{"name":"Fond de travaux","reel":3000,"previ":3000,"previ_n1":3000},{"name":"Réserve DPE PPT","reel":800,"previ":800,"previ_n1":800},{"name":"Assurance ACC ","reel":0,"previ":180,"previ_n1":180}],"special":[{"name":"Indemnité Syndic","reel":600,"previ":600,"previ_n1":600},{"name":"Indemnité RPTE","reel":600,"previ":600,"previ_n1":600}],"menage":[{"name":"Ménage","reel":1100,"previ":1166,"previ_n1":1166}],"travaux":[]},"budgetMode":"previ","monthly":{"expenses":{"Assurance ACC ":[180,0,0,0,0,0,0,0,0,0,0,0],"Frais bancaire":[9,9,9,9,9,9,9,9,9,9,9,9],"Poubelles":[47,47,47,47,47,47,47,47,47,47,47,47],"Sécurité incendie":[0,0,0,300,0,0,0,0,0,0,0,0],"Assurance AXA":[0,0,0,1050,0,0,0,0,0,0,0,0],"Gestion courante":[0,0,0,0,0,0,0,0,0,0,0,0],"EDF communs":[0,42,0,42,0,42,0,42,0,42,0,0],"Fond de travaux":[750,0,0,750,0,0,750,0,0,750,0,0],"Réserve DPE PPT":[200,0,0,200,0,0,200,0,0,200,0,0],"Indemnité Syndic":[150,0,0,150,0,0,150,0,0,150,0,0],"Indemnité RPTE":[150,0,0,150,0,0,150,0,0,150,0,0],"Ménage":[138,138,138,138,138,138,138,138,138,138,138,138]},"income":{"0":{"calls":0,"reguls":0,"other":0},"1":{"calls":0,"reguls":0,"other":0},"2":{"calls":0,"reguls":0,"other":0},"3":{"calls":0,"reguls":0,"other":0},"4":{"calls":0,"reguls":0,"other":0},"5":{"calls":0,"reguls":0,"other":0},"6":{"calls":0,"reguls":0,"other":0},"7":{"calls":0,"reguls":0,"other":0},"8":{"calls":0,"reguls":0,"other":0},"9":{"calls":0,"reguls":0,"other":0},"10":{"calls":0,"reguls":0,"other":0},"11":{"calls":0,"reguls":0,"other":0}}},"annexesManual":[],"categories":[{"code":"601","label":"Eau"},{"code":"602","label":"Électricité"},{"code":"615-MEN","label":"Ménage"},{"code":"615-POU","label":"Poubelles"},{"code":"615-SEC","label":"Sécurité Incendie"},{"code":"616","label":"Assurances"},{"code":"622-SYN","label":"Indem. Syndic"},{"code":"622-RPTE","label":"Indem. RPTE"},{"code":"622-MNT","label":"Gestion Maint."},{"code":"623","label":"Frais Bancaires"},{"code":"701","label":"Appels de Fonds"},{"code":"702","label":"Travaux (Appel)"},{"code":"580","label":"Virement Interne"},{"code":"105","label":"Provision Fond Travaux"}]};
+/* <STATE_END> */
+
+const app = {
+    init: function() {
+        this.loadFromLocal();
+        if(!STATE.categories || STATE.categories.length === 0) STATE.categories = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
+        
+        el('opDate').valueAsDate = new Date();
+        el('budgetYear').value = new Date().getFullYear() + 1;
+        el('validationYear').value = "2026";
+        el('callValidationDate').valueAsDate = new Date();
+        el('budgetDueDate').value = "2026-01-15";
+        el('dateFilterStart').value = "2026-01-01";
+        el('dateFilterEnd').value = "2026-12-31";
+        
+        ['general','special','menage','travaux'].forEach(cat => {
+            STATE.budget[cat].forEach(item => { if(typeof item.previ_n1 === 'undefined') item.previ_n1 = item.previ; });
+        });
+
+        STATE.owners.sort((a,b) => {
+            if(a.isCommon) return 1; if(b.isCommon) return -1;
+            return a.name.localeCompare(b.name);
+        });
+        
+        budgetDetail.cleanDuplicates();
+        finance.init(); this.renderParams(); params.renderCategories(); water.init(); waterPrevi.render(); budget.init(); annexes.render(); budgetDetail.init();
+        document.addEventListener('paste', this.handlePaste);
+    },
+    loadFromLocal: function() {
+        const d = localStorage.getItem('copro_data_v9');
+        if(d) {
+            try {
+                const loaded = JSON.parse(d);
+                if ((STATE.timestamp || 0) >= (loaded.timestamp || 0) && STATE.timestamp > 0) return;
+                const freshOwners = STATE.owners;
+                Object.assign(STATE, loaded);
+            } catch(e) { console.error("Err Load", e); }
+        }
+    },
+    saveToLocal: function() {
+        STATE.timestamp = Date.now();
+        localStorage.setItem('copro_data_v9', JSON.stringify(STATE));
+        const ind = el('save-indicator'); ind.classList.add('visible'); setTimeout(() => ind.classList.remove('visible'), 2000);
+    },
+    exportHTML: function() {
+        this.saveToLocal();
+        let html = document.documentElement.outerHTML;
+        const stateStr = `/* <STATE_START> */\nlet STATE = ${JSON.stringify(STATE)};\n/* <STATE_END> */`;
+        html = html.replace(/\/\* <STATE_START> \*\/[\s\S]*?\/\* <STATE_END> \*\//, stateStr);
+        const b = new Blob([html], {type: 'text/html'});
+        const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `Copro_V9.9_Final_${new Date().toISOString().slice(0,10)}.html`;
+        a.click();
+    },
+    handlePaste: function(e) {
+        if (!e.target.classList.contains('inp-paste')) return;
+        e.preventDefault();
+        const text = (e.clipboardData || window.clipboardData).getData('text');
+        if (!text) return;
+        const rows = text.split(/\r?\n/);
+        const currentTd = e.target.closest('td'); if(!currentTd) return;
+        const startRow = currentTd.closest('tr');
+        const allRows = Array.from(startRow.closest('tbody').children);
+        const rIdx = allRows.indexOf(startRow);
+        const cIdx = currentTd.cellIndex;
+        rows.forEach((rTxt, i) => {
+            if (rIdx + i >= allRows.length) return;
+            const cells = rTxt.split('\t');
+            const targetRow = allRows[rIdx + i];
+            cells.forEach((val, j) => {
+                const cell = targetRow.children[cIdx + j]; 
+                if(cell) {
+                    const inp = cell.querySelector('input');
+                    if (inp) {
+                        let clean = val.replace(/[^0-9,.-]/g, '').replace(',', '.');
+                        if((inp.type==='number' || inp.classList.contains('inp-money')) && !isNaN(parseFloat(clean))) { inp.value = parseFloat(clean); }
+                        else inp.value = val.trim();
+                        inp.dispatchEvent(new Event('change'));
+                    }
+                }
+            });
+        });
+    },
+    switchTab: function(id) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        el('tab-' + id).classList.add('active');
+        document.querySelectorAll('.custom-tab').forEach(el => el.classList.remove('active'));
+        el('btn-' + id).classList.add('active');
+        if(id === 'finance') finance.renderAll();
+        if(id === 'annexes') annexes.render();
+        if(id === 'budget-detail') budgetDetail.render();
+        if(id === 'budget') budget.init();
+        if(id === 'water-all') {
+             // Refresh all water sub-modules
+             water.init(); waterPrevi.render(); waterProj.render();
+        }
+    },
+    resetAll: function() {
+        if(confirm("ATTENTION : Effacement TOTAL. Continuer ?")) { localStorage.removeItem('copro_data_v9'); location.reload(); }
+    },
+    startNewYear: function() {
+        if(!confirm("Clôturer l'exercice ? Sauvegarde auto + Reset.")) return;
+        this.exportHTML();
+        STATE.accounts = STATE.accounts.map(acc => {
+            let bal = acc.initial;
+            STATE.finance.operations.filter(o => o.account === acc.id).forEach(o => { bal += (o.type === 'recette' ? o.amount : -o.amount); });
+            return { ...acc, initial: parseFloat(bal.toFixed(2)) };
+        });
+        STATE.finance.operations = []; STATE.finance.realBalances = {}; STATE.water.readings = {}; STATE.waterPrevi = { subs: {}, charges: {}, reguls: {} };
+        Object.keys(STATE.monthly.expenses).forEach(k => { STATE.monthly.expenses[k] = new Array(12).fill(0); });
+        STATE.monthly.income = {};
+        el('budgetYear').value = parseInt(el('budgetYear').value) + 1;
+        ['general', 'special', 'menage', 'travaux'].forEach(cat => { 
+            STATE.budget[cat].forEach(item => { 
+                item.reel = 0; 
+                item.previ = item.previ_n1 || item.previ; 
+                item.previ_n1 = item.previ; 
+            }); 
+        });
+        this.saveToLocal(); location.reload();
+    },
+    updateMeterId: function(ownerId, val) { STATE.water.meters[ownerId] = val; this.saveToLocal(); },
+    renderParams: function() {
+        const tb = el('paramsBody'); let h = "";
+        STATE.owners.forEach(o => {
+            if(o.isCommon) return;
+            const gest = o.exoGest ? '<span class="exo-badge bg-exo-gest">EXO</span>' : '-';
+            const men = o.exoMen ? '<span class="exo-badge bg-exo-men">EXO</span>' : '-';
+            h += `<tr><td class="fw-bold">${o.name}</td><td>${o.apt}<br><small class="text-muted">${o.lot}</small></td><td class="text-center">${o.tantiemes}</td><td class="text-center">${gest}</td><td class="text-center">${men}</td><td><small>${o.email}</small></td></tr>`;
+        });
+        tb.innerHTML = h;
+        finance.renderAccountList();
+    }
+};
+
+const waterPrevi = {
+    render: function() {
+        const tb = el('waterPreviBody'); let h = "";
+        let tSub=0, tConso=0, tRegul=0, tTotal=0;
+
+        if(!STATE.waterPrevi) STATE.waterPrevi = {subs:{}, charges:{}, reguls:{}};
+        if(!STATE.waterPrevi.subs) STATE.waterPrevi.subs = {};
+        if(!STATE.waterPrevi.charges) STATE.waterPrevi.charges = {};
+        if(!STATE.waterPrevi.reguls) STATE.waterPrevi.reguls = {};
+
+        STATE.owners.forEach(o => {
+            if(o.isCommon) return;
+            const sub = parseFloat(STATE.waterPrevi.subs[o.id] || 0);
+            const chg = parseFloat(STATE.waterPrevi.charges[o.id] || 0);
+            const reg = parseFloat(STATE.waterPrevi.reguls[o.id] || 0);
+            const tot = sub + chg + reg;
+
+            tSub += sub; tConso += chg; tRegul += reg; tTotal += tot;
+
+            h += `<tr>
+                <td class="text-start ps-3 fw-bold">${o.name} <span class="badge-lot">${o.lot}</span></td>
+                <td><input type="number" class="inp-budget inp-paste" value="${sub.toFixed(2)}" onchange="waterPrevi.update(${o.id}, 'subs', this.value)"></td>
+                <td><input type="number" class="inp-budget inp-paste" value="${chg.toFixed(2)}" onchange="waterPrevi.update(${o.id}, 'charges', this.value)"></td>
+                <td><input type="number" class="inp-budget inp-paste" value="${reg.toFixed(2)}" onchange="waterPrevi.update(${o.id}, 'reguls', this.value)"></td>
+                <td class="fw-bold text-success">${tot.toFixed(2)}</td>
+            </tr>`;
+        });
+        tb.innerHTML = h;
+
+        el('wp-tot-sub').innerText = tSub.toFixed(2);
+        el('wp-tot-conso').innerText = tConso.toFixed(2);
+        el('wp-tot-regul').innerText = tRegul.toFixed(2);
+        el('wp-tot-total').innerText = tTotal.toFixed(2);
+    },
+    update: function(id, type, val) {
+        STATE.waterPrevi[type][id] = parseFloat(val) || 0;
+        app.saveToLocal();
+        this.render();
+    }
+};
+
+const budgetDetail = {
+    months: ["Jan", "Fev", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Sep", "Oct", "Nov", "Déc"],
+    categoryMapping: { "Frais bancaire": "623", "Poubelles": "615-POU", "Sécurité incendie": "615-SEC", "Assurance AXA": "616", "Acc assurance": "616", "Gestion courante": "622-MNT", "EDF communs": "602", "Fond de travaux": "580", "Réserve DPE PPT": "601", "Indemnité Syndic": "622-SYN", "Indemnité RPTE": "622-RPTE", "Ménage": "615-MEN" },
+    init: function() {
+        if(!STATE.monthly.income) STATE.monthly.income = {};
+        this.months.forEach((m, i) => { if(!STATE.monthly.income[i]) STATE.monthly.income[i] = { calls: 0, reguls: 0, other: 0 }; });
+        const sel = el('validationMonth'); sel.innerHTML = '';
+        this.months.forEach((m,i) => sel.innerHTML += `<option value="${i}">${m}</option>`);
+        const accSel = el('validationAccount'); accSel.innerHTML = '';
+        STATE.accounts.forEach(acc => { accSel.innerHTML += `<option value="${acc.id}">${acc.name}</option>`; });
+        el('validationYear').value = el('budgetYear').value || "2026";
+    },
+    cleanDuplicates: function() {
+        ['general', 'special', 'menage', 'travaux'].forEach(cat => {
+            const seen = new Set();
+            STATE.budget[cat] = STATE.budget[cat].filter(item => { const dup = seen.has(item.name); seen.add(item.name); return !dup; });
+        });
+    },
+    getAllBudgetItems: function() {
+        const items = []; ['general', 'special', 'menage', 'travaux'].forEach(cat => { STATE.budget[cat].forEach(item => items.push({ category: cat, name: item.name })); }); return items;
+    },
+    openAddLineModal: function() { el('modal-manage-lines').style.display='none'; el('modal-add-line').style.display = 'flex'; el('add-line-name').value = ''; },
+    confirmAddLine: function() {
+        const name = el('add-line-name').value; const catKey = el('add-line-cat').value;
+        if(!name) return alert("Nom requis");
+        let targetArray = STATE.budget[catKey === 'poubelle' ? 'general' : catKey];
+        if(targetArray.some(i => i.name === name)) return alert("Ce poste existe déjà !");
+        
+        targetArray.push({name: name, reel: 0, previ: 0});
+        if(!STATE.monthly.expenses[name]) STATE.monthly.expenses[name] = new Array(12).fill(0);
+        this.categoryMapping[name] = (catKey === 'menage') ? '615-MEN' : (catKey === 'poubelle') ? '615-POU' : (catKey === 'special') ? '622-SYN' : (catKey === 'travaux') ? '702' : '601';
+        app.saveToLocal(); budget.init(); this.render(); el('modal-add-line').style.display = 'none';
+    },
+    openManageModal: function() {
+        const list = el('list-manage-lines'); list.innerHTML = '';
+        this.getAllBudgetItems().forEach((item) => {
+            list.innerHTML += `<li class="list-group-item d-flex justify-content-between align-items-center">${item.name} <small class="text-muted">(${item.category})</small><button class="btn btn-sm btn-outline-danger fw-bold" onclick="budgetDetail.deleteLine('${item.category}', '${item.name.replace(/'/g, "\\'")}')"><i class="fa-solid fa-trash-can me-1"></i> Suppr</button></li>`;
+        });
+        el('modal-manage-lines').style.display = 'flex';
+    },
+    deleteLine: function(cat, name) {
+        if(confirm("Supprimer DÉFINITIVEMENT '" + name + "' et ses prévisions ?")) {
+            STATE.budget[cat] = STATE.budget[cat].filter(i => i.name !== name); delete STATE.monthly.expenses[name];
+            app.saveToLocal(); this.openManageModal(); budget.init(); this.render();
+        }
+    },
+    render: function() {
+        const items = this.getAllBudgetItems();
+        let headerHTML = '<tr><th class="sticky-col bg-light align-middle" style="width:100px;">Mois</th>';
+        items.forEach(item => {
+            let colorClass = item.category === 'special' ? "text-warning" : item.category === 'menage' ? "text-info" : item.category === 'travaux' ? "text-danger" : "text-dark";
+            const actionBtn = `<div class="d-flex justify-content-center gap-1 mt-1"><i class="fa-solid fa-bolt action-cell" onclick="budgetDetail.fillRow('${item.name}', 'all')"></i><i class="fa-solid fa-list-ol action-cell" onclick="budgetDetail.fillRow('${item.name}', 'quarter')"></i><i class="fa-solid fa-eraser action-cell" onclick="budgetDetail.fillRow('${item.name}', 'clear')"></i></div>`;
+            headerHTML += `<th class="th-rotate ${colorClass}"><div>${item.name}</div>${actionBtn}</th>`;
+        });
+        document.querySelector('#grid-expenses thead').innerHTML = headerHTML + '</tr>';
+        
+        const tbody = document.querySelector('#grid-expenses tbody'); let rows = '';
+        const colSums = new Array(items.length).fill(0); const monthlyExpenseSums = new Array(12).fill(0);
+        this.months.forEach((m, mIdx) => {
+            let rowHTML = `<tr><td class="sticky-col fw-bold text-start ps-3">${m}</td>`;
+            items.forEach((item, iIdx) => {
+                const key = item.name; if(!STATE.monthly.expenses[key]) STATE.monthly.expenses[key] = new Array(12).fill(0);
+                const val = STATE.monthly.expenses[key][mIdx] || 0;
+                colSums[iIdx] += val; monthlyExpenseSums[mIdx] += val;
+                rowHTML += `<td><input type="number" class="inp-grid inp-paste" value="${val === 0 ? '' : val}" onchange="budgetDetail.updateExpense('${key}', ${mIdx}, this.value)"></td>`;
+            });
+            rows += rowHTML + '</tr>';
+        });
+        tbody.innerHTML = rows;
+        let footHTML = '<tr><td class="sticky-col text-end pe-3">TOTAL</td>';
+        colSums.forEach(sum => footHTML += `<td class="small">${sum === 0 ? '-' : sum.toFixed(0)}</td>`);
+        document.querySelector('#grid-expenses tfoot').innerHTML = footHTML + '</tr>';
+
+        const tbIncome = document.querySelector('#grid-income tbody'); let incRows = '';
+        const realCalls = new Array(12).fill(0); const currentYear = el('budgetYear').value;
+        STATE.finance.operations.forEach(op => { if(op.type === 'recette' && op.category === '701') { const d = new Date(op.date); if(d.getFullYear() == currentYear) realCalls[d.getMonth()] += op.amount; } });
+
+        this.months.forEach((m, i) => {
+            const d = STATE.monthly.income[i]; const real = realCalls[i];
+            const incomeTotal = (real > 0 ? real : (d.calls||0)) + (d.reguls||0) + (d.other||0);
+            const expenseTotal = monthlyExpenseSums[i]; const balance = incomeTotal - expenseTotal;
+            let callInput = real > 0 ? `<input type="text" class="inp-grid inp-readonly w-100 text-center" value="${real.toFixed(2)}" readonly>` : `<input type="number" class="inp-grid inp-paste w-100 text-center" value="${d.calls||''}" onchange="budgetDetail.updateIncome(${i}, 'calls', this.value)">`;
+            incRows += `<tr><td class="sticky-col fw-bold text-start ps-3">${m}</td><td>${callInput}</td><td><input type="number" class="inp-grid inp-paste w-100 text-center" value="${d.reguls||''}" onchange="budgetDetail.updateIncome(${i}, 'reguls', this.value)"></td><td><input type="number" class="inp-grid inp-paste w-100 text-center" value="${d.other||''}" onchange="budgetDetail.updateIncome(${i}, 'other', this.value)"></td><td class="fw-bold bg-light text-success">${incomeTotal === 0 ? '-' : incomeTotal.toFixed(2)}</td><td class="fw-bold text-danger table-light border-start border-end">${expenseTotal === 0 ? '-' : expenseTotal.toFixed(2)}</td><td class="fw-bold ${balance >= 0 ? 'text-primary' : 'text-danger'}">${balance.toFixed(2)}</td></tr>`;
+        });
+        tbIncome.innerHTML = incRows;
+    },
+    fillRow: function(key, mode) {
+        if(mode === 'clear') { if(confirm('Effacer ligne ?')) { STATE.monthly.expenses[key] = new Array(12).fill(0); this.render(); app.saveToLocal(); } return; }
+        const val = parseFloat(prompt("Montant :")); if(isNaN(val)) return;
+        if(mode === 'all') STATE.monthly.expenses[key] = new Array(12).fill(val);
+        else if(mode === 'quarter') { const arr = new Array(12).fill(0); [0, 3, 6, 9].forEach(i => arr[i] = val); STATE.monthly.expenses[key] = arr; }
+        this.render(); app.saveToLocal();
+    },
+    updateExpense: function(key, mIdx, val) { if(!STATE.monthly.expenses[key]) STATE.monthly.expenses[key] = new Array(12).fill(0); STATE.monthly.expenses[key][mIdx] = parseFloat(val) || 0; this.render(); app.saveToLocal(); },
+    updateIncome: function(mIdx, field, val) { if(!STATE.monthly.income[mIdx]) STATE.monthly.income[mIdx] = { calls: 0, reguls: 0, other: 0 }; STATE.monthly.income[mIdx][field] = parseFloat(val) || 0; this.render(); app.saveToLocal(); },
+    validateToFinance: function() {
+        const mode = el('validationMode').value; const mIdx = parseInt(el('validationMonth').value); const y = el('validationYear').value;
+        if(mode === 'extrapolate') {
+            if(!confirm(`Extrapoler ce mois (x12) vers le budget ?`)) return;
+            ['general', 'special', 'menage', 'travaux'].forEach(cat => { STATE.budget[cat].forEach(item => { const d = STATE.monthly.expenses[item.name]; if(d) item.previ = (d[mIdx] || 0) * 12; }); });
+            app.saveToLocal(); budget.init(); app.switchTab('budget'); return;
+        }
+        const acc = el('validationAccount').value; const day = el('validationDay').value.padStart(2, '0');
+        if(!confirm(`Générer écritures ?`)) return;
+        const opDate = `${y}-${String(mIdx+1).padStart(2,'0')}-${day}`; let count = 0;
+        ['general', 'special', 'menage', 'travaux'].forEach(cat => {
+            STATE.budget[cat].forEach(item => {
+                const amount = (STATE.monthly.expenses[item.name] || [])[mIdx] || 0;
+                if(amount > 0) { STATE.finance.operations.push({ id: Date.now() + Math.random(), date: opDate, account: acc, type: 'depense', category: this.categoryMapping[item.name] || '601', label: `${item.name} (${y})`, amount: amount, pointed: false }); count++; }
+            });
+        });
+        finance.renderAll(); app.saveToLocal(); app.switchTab('finance'); alert(`${count} écritures.`);
+    },
+    clearMonthFromFinance: function() {
+        const idx = parseInt(el('validationMonth').value); const y = el('validationYear').value; const ym = `${y}-${String(idx + 1).padStart(2, '0')}`;
+        if(confirm(`Supprimer TOUTES les opérations du mois ${idx+1}/${y} ?`)) { STATE.finance.operations = STATE.finance.operations.filter(o => !o.date.startsWith(ym)); app.saveToLocal(); finance.renderAll(); }
+    }
+};
+
+const water = {
+    quarters: ['T1', 'T2', 'T3', 'T4'],
+    init: function() {
+        if(STATE.water.activeQuarter) el('w-activeQuarter').value = STATE.water.activeQuarter;
+        el('lblActiveQuarter').innerText = STATE.water.activeQuarter || "T1";
+        
+        if(STATE.water.priceMode) el('w-priceMode').value = STATE.water.priceMode;
+        
+        el('w-invoiceTotal').value = (STATE.water.invoiceTotal || 0).toFixed(2);
+        el('w-manualPrice').value = (STATE.water.manualPrice || 0).toFixed(4);
+        el('w-subAmount').value = (STATE.water.subAmount || 0).toFixed(2);
+        
+        el('w-annualTotal').value = (STATE.water.annualTotal || 0).toFixed(2);
+        el('w-annualSub').value = (STATE.water.annualSub || 0).toFixed(2);
+        el('w-annualVol').value = (STATE.water.annualVol || 0).toFixed(3);
+
+        this.render(); 
+    },
+    switchSubTab: function(subId) {
+        document.querySelectorAll('.sub-content').forEach(el => el.classList.remove('active'));
+        el('sub-content-' + subId).classList.add('active');
+        document.querySelectorAll('.sub-tab').forEach(el => el.classList.remove('active'));
+        el('sub-btn-' + subId).classList.add('active');
+    },
+    getComputedParams: function() {
+        const mode = STATE.water.priceMode || 'quarter';
+        let price = 0;
+        let annualSub = 0;
+
+        if (mode === 'annual') {
+            annualSub = parseFloat(STATE.water.annualSub) || 0;
+        } else {
+            annualSub = (parseFloat(STATE.water.subAmount) || 0) * 4;
+        }
+
+        if(mode === 'manual') { 
+            price = parseFloat(STATE.water.manualPrice) || 0; 
+        } else if (mode === 'annual') {
+            const annTot = parseFloat(STATE.water.annualTotal)||0; 
+            const annVol = parseFloat(STATE.water.annualVol)||1;
+            price = annVol > 0 ? Math.max(0, annTot - annualSub) / annVol : 0; 
+        } else { 
+            const totInv = parseFloat(STATE.water.invoiceTotal)||0;
+            const qSub = parseFloat(STATE.water.subAmount)||0;
+            const q = STATE.water.activeQuarter || 'T1';
+            let totalVol = 0;
+            STATE.owners.forEach(o => { 
+                if(!o.isCommon && o.hasMeter && STATE.water.readings[q] && STATE.water.readings[q][o.id]) {
+                    totalVol += Math.max(0, STATE.water.readings[q][o.id].new - STATE.water.readings[q][o.id].old); 
+                } 
+            });
+            price = totalVol > 0 ? Math.max(0, totInv - qSub) / totalVol : 0; 
+        }
+        return { price: price, sub: annualSub };
+    },
+    changeQuarter: function() { 
+        STATE.water.activeQuarter = el('w-activeQuarter').value; 
+        el('lblActiveQuarter').innerText = STATE.water.activeQuarter; 
+        this.prefillPreviousIndex();
+        this.render(); 
+        app.saveToLocal(); 
+    },
+    prefillPreviousIndex: function() {
+        const q = STATE.water.activeQuarter;
+        const prevQ = q === 'T2' ? 'T1' : q === 'T3' ? 'T2' : q === 'T4' ? 'T3' : null;
+        if (!prevQ) return; 
+
+        STATE.owners.forEach(o => {
+            if(!o.isCommon && o.hasMeter) {
+                if(!STATE.water.readings[q]) STATE.water.readings[q] = {};
+                if(!STATE.water.readings[prevQ]) STATE.water.readings[prevQ] = {};
+                
+                const currentOld = STATE.water.readings[q][o.id]?.old || 0;
+                const prevNew = STATE.water.readings[prevQ][o.id]?.new || 0;
+
+                if ((!currentOld || currentOld === 0) && prevNew > 0) {
+                    if (!STATE.water.readings[q][o.id]) STATE.water.readings[q][o.id] = {old: 0, new: 0};
+                    STATE.water.readings[q][o.id].old = prevNew;
+                }
+            }
+        });
+    },
+    render: function() {
+        STATE.water.priceMode = el('w-priceMode').value;
+        STATE.water.invoiceTotal = parseFloat(el('w-invoiceTotal').value)||0; 
+        STATE.water.manualPrice = parseFloat(el('w-manualPrice').value)||0; 
+        
+        STATE.water.annualTotal = parseFloat(el('w-annualTotal').value)||0;
+        STATE.water.annualSub = parseFloat(el('w-annualSub').value)||0;
+        STATE.water.annualVol = parseFloat(el('w-annualVol').value)||0;
+
+        if (STATE.water.priceMode === 'annual') {
+            STATE.water.subAmount = STATE.water.annualSub / 4;
+            el('w-subAmount').value = STATE.water.subAmount.toFixed(2);
+        } else {
+            STATE.water.subAmount = parseFloat(el('w-subAmount').value)||0;
+        }
+
+        el('panelQuarter').classList.toggle('d-none', STATE.water.priceMode !== 'quarter');
+        el('panelManual').classList.toggle('d-none', STATE.water.priceMode !== 'manual');
+        el('panelAnnual').classList.toggle('d-none', STATE.water.priceMode !== 'annual');
+        
+        const params = this.getComputedParams();
+        el('lblPricePerM3').innerText = params.price.toFixed(4);
+        
+        const q = STATE.water.activeQuarter; 
+        
+        const tb = el('waterBody'); let h = '';
+        let sVol=0, sFix=0, sVar=0, sTot=0, validTantiemes = 0;
+        
+        STATE.owners.forEach(o => { if(!o.isCommon && o.hasMeter) validTantiemes += o.tantiemes; });
+        
+        STATE.owners.forEach(o => {
+            if(!STATE.water.readings[q]) STATE.water.readings[q]={};
+            if(!STATE.water.readings[q][o.id]) STATE.water.readings[q][o.id] = {old:0, new:0};
+            const r = STATE.water.readings[q][o.id]; 
+            let cFix=0, cVar=0, conso=0;
+            
+            if(o.hasMeter) { 
+                cFix = validTantiemes > 0 ? STATE.water.subAmount * (o.tantiemes/validTantiemes) : 0; 
+                conso = Math.max(0, r.new - r.old); 
+                cVar = conso * params.price;
+                sVol+=conso; sFix+=cFix; sVar+=cVar; sTot+=cFix+cVar; 
+            }
+            
+            const inputs = o.hasMeter ? 
+                `<td><input type="text" class="inp-text inp-paste" value="${STATE.water.meters[o.id]||''}" onchange="app.updateMeterId(${o.id}, this.value)"></td>
+                 <td><input type="number" class="inp-money bg-primary bg-opacity-10 inp-paste" value="${r.old}" onchange="water.upd(${o.id},'old',this.value)"></td>
+                 <td><input type="number" class="inp-money bg-success bg-opacity-10 inp-paste" value="${r.new}" onchange="water.upd(${o.id},'new',this.value)"></td>
+                 <td class="fw-bold text-primary">${conso.toFixed(3)}</td>
+                 <td class="text-muted">${cFix.toFixed(2)}</td>
+                 <td class="text-muted">${cVar.toFixed(2)}</td>
+                 <td class="fw-bold bg-light border-start text-dark">${(cFix+cVar).toFixed(2)}</td>` 
+                : 
+                `<td><div class="no-meter-cell"></div></td><td><div class="no-meter-cell"></div></td><td><div class="no-meter-cell"></div></td><td>-</td><td>-</td><td>-</td><td>-</td>`;
+            
+            h += `<tr class="${o.isCommon?'bg-light fw-bold':''}"><td class="text-start ps-3"><div class="fw-bold">${o.name}</div><span class="badge-lot">${o.lot}</span></td>${inputs}</tr>`;
+        });
+        tb.innerHTML = h;
+        
+        el('tot-vol').innerText = sVol.toFixed(3); 
+        el('tot-fix').innerText = sFix.toFixed(2); 
+        el('tot-var').innerText = sVar.toFixed(2); 
+        el('tot-final').innerText = sTot.toFixed(2);
+        
+        app.saveToLocal();
+    },
+    upd: function(id,f,v) { 
+        if(!STATE.water.readings[STATE.water.activeQuarter][id]) STATE.water.readings[STATE.water.activeQuarter][id] = {old:0, new:0}; 
+        STATE.water.readings[STATE.water.activeQuarter][id][f]=parseFloat(v)||0; 
+        this.render(); 
+    },
+    exportReadingSheet: function() {
+        const { jsPDF } = window.jspdf; 
+        const doc = new jsPDF();
+        doc.setFontSize(16); doc.text("Relevé de Compteurs Eau", 105, 15, {align: 'center'});
+        doc.setFontSize(11); doc.text(`Période : ${STATE.water.activeQuarter} - ${new Date().getFullYear()}`, 105, 22, {align: 'center'});
+        const q = STATE.water.activeQuarter; 
+        const rows = [];
+        STATE.owners.forEach(o => {
+            if(!o.isCommon && o.hasMeter) {
+                const meterId = STATE.water.meters[o.id] || ""; 
+                const oldIndex = (STATE.water.readings[q] && STATE.water.readings[q][o.id]) ? STATE.water.readings[q][o.id].old : 0;
+                rows.push([o.name, `${o.apt} - ${o.lot}`, meterId, oldIndex, ""]);
+            }
+        });
+        doc.autoTable({ 
+            startY: 30, 
+            head: [['Propriétaire', 'Lot / Appt', 'N° Compteur', 'Ancien Index', 'Nouvel Index']], 
+            body: rows, 
+            theme: 'grid', 
+            headStyles: {fillColor: [44, 62, 80]}, 
+            columnStyles: {0:{cellWidth:50},1:{cellWidth:40},2:{cellWidth:35},3:{cellWidth:25,halign:'center'},4:{cellWidth:35}}, 
+            styles: {minCellHeight:12, valign:'middle'} 
+        });
+        doc.save(`Fiche_Releves_${q}.pdf`);
+    }
+};
+
+const waterProj = {
+    updateParams: function() {
+         STATE.water.projPrice = parseFloat(el('proj-price').value) || 0;
+         STATE.water.projSub = parseFloat(el('proj-sub').value) || 0;
+         app.saveToLocal();
+         this.render();
+    },
+    render: function() {
+        const currentData = water.getComputedParams();
+        const priceEst = (STATE.water.projPrice !== undefined && STATE.water.projPrice !== null) ? STATE.water.projPrice : currentData.price;
+        const subEst = (STATE.water.projSub !== undefined && STATE.water.projSub !== null) ? STATE.water.projSub : currentData.sub;
+        
+        const pInput = el('proj-price');
+        const sInput = el('proj-sub');
+        if(document.activeElement !== pInput) pInput.value = priceEst.toFixed(4);
+        if(document.activeElement !== sInput) sInput.value = subEst.toFixed(2);
+
+        const tb = el('waterProjBody'); let h = '';
+        
+        let validTantiemes = 0;
+        STATE.owners.forEach(o => { if(!o.isCommon && o.hasMeter) validTantiemes += o.tantiemes; });
+
+        STATE.owners.forEach(o => {
+            if(o.isCommon || !o.hasMeter) return;
+            
+            let rowConso = [];
+            let totalConso = 0;
+            ['T1','T2','T3','T4'].forEach(q => {
+                 const r = (STATE.water.readings[q] && STATE.water.readings[q][o.id]) ? STATE.water.readings[q][o.id] : {old:0, new:0};
+                 const val = Math.max(0, r.new - r.old);
+                 rowConso.push(val.toFixed(3));
+                 totalConso += val;
+            });
+
+            let projM3 = (STATE.water.projections && STATE.water.projections[o.id] !== undefined) ? STATE.water.projections[o.id] : totalConso;
+            
+            const shareAbo = validTantiemes > 0 ? subEst * (o.tantiemes/validTantiemes) : 0;
+            const costVar = projM3 * priceEst;
+            const totalBudget = shareAbo + costVar;
+
+            h += `
+            <tr>
+                <td class="text-start fw-bold">${o.name}</td>
+                <td class="text-muted small">${rowConso[0]}</td>
+                <td class="text-muted small">${rowConso[1]}</td>
+                <td class="text-muted small">${rowConso[2]}</td>
+                <td class="text-muted small">${rowConso[3]}</td>
+                <td class="fw-bold bg-primary text-white border-start">${totalConso.toFixed(3)}</td>
+                <td class="bg-warning bg-opacity-10 border-start"><input type="number" class="inp-budget inp-paste fw-bold" value="${projM3.toFixed(3)}" step="0.001" onchange="waterProj.updateProj(${o.id}, this.value)"></td>
+                <td class="fw-bold bg-success text-white border-start">${totalBudget.toFixed(2)} €</td>
+            </tr>`;
+        });
+        tb.innerHTML = h;
+    },
+    updateProj: function(id, val) {
+        if(!STATE.water.projections) STATE.water.projections = {};
+        STATE.water.projections[id] = parseFloat(val)||0;
+        app.saveToLocal();
+        this.render();
+    },
+    copyToClipboard: function() {
+        const range = document.createRange();
+        range.selectNode(el('table-water-proj'));
+        window.getSelection().removeAllRanges(); 
+        window.getSelection().addRange(range); 
+        document.execCommand('copy'); 
+        window.getSelection().removeAllRanges();
+        alert("Tableau copié !");
+    },
+    exportPDF: function() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('landscape');
+        doc.text("Bilan & Projection Eau", 14, 15);
+        doc.autoTable({ html: '#table-water-proj', startY: 20, theme: 'grid' });
+        doc.save('Projections_Eau.pdf');
+    }
+};
+
+const budget = {
+    init: function() { 
+        el('budgetModeSelect').value = STATE.budgetMode; 
+        this.renderInputs(); 
+        this.renderTable(); 
+    },
+    setMode: function(m) { 
+        STATE.budgetMode=m; 
+        this.renderInputs(); 
+        this.renderTable(); 
+        app.saveToLocal(); 
+    },
+    renderInputs: function() {
+        const hints = { special: '<small class="text-danger fw-bold d-block mb-1">Exo: LE MERLE, LE CLOT</small>', menage: '<small class="text-info fw-bold d-block mb-1">Exo: CAUPENNE, BELLIARD</small>' };
+        ['general','special','menage','travaux'].forEach(cat => {
+            const div = el('inp-'+cat); let h = hints[cat] || '';
+            STATE.budget[cat].forEach((item, i) => {
+                const styleInput = (field) => field === STATE.budgetMode ? 'border-primary bg-white fw-bold shadow-sm' : 'border-light bg-light text-muted';
+                h += `<div class="d-flex justify-content-between align-items-center mb-1"><small class="text-truncate" style="max-width:110px" title="${item.name}">${item.name}</small><div class="d-flex gap-1" style="width:70%"><input type="number" value="${item.reel||0}" class="inp-budget text-secondary" style="font-size:0.75rem" onchange="budget.updInp('${cat}',${i},'reel',this.value)"><input type="number" value="${item.previ||0}" class="inp-budget text-primary ${styleInput('previ')}" onchange="budget.updInp('${cat}',${i},'previ',this.value)"><input type="number" value="${item.previ_n1||0}" class="inp-budget text-dark ${styleInput('previ_n1')}" onchange="budget.updInp('${cat}',${i},'previ_n1',this.value)"></div></div>`; 
+            });
+            div.innerHTML = h;
+        });
+        this.updateTotals();
+    },
+    updInp: function(c,i,field,v){ 
+        STATE.budget[c][i][field]=parseFloat(v)||0; 
+        this.updateTotals(); 
+        if(field===STATE.budgetMode) this.renderTable(); 
+        app.saveToLocal(); 
+    },
+    updateTotals: function() { 
+        ['general','special','menage','travaux'].forEach(cat => { 
+            const t = STATE.budget[cat].reduce((acc,it) => acc+(it[STATE.budgetMode]||0),0); 
+            el('tot-'+cat).innerText = t.toFixed(2) + " €"; 
+        }); 
+    },
+    renderTable: function() {
+        const tb = el('budgetBody'); let h = ''; const mode = STATE.budgetMode;
+        const sums = {}; ['general','special','menage','travaux'].forEach(k => sums[k] = STATE.budget[k].reduce((a,b)=>a+(b[mode]||0),0));
+        
+        let divGen=0, divSpe=0, divMen=0, divTra=0;
+        STATE.owners.forEach(o => { 
+            if(!o.isCommon) { 
+                divGen += o.tantiemes; 
+                divTra += o.tantiemes; 
+                if(!o.exoGest) divSpe += o.tantiemes;
+                if(!o.exoMen) divMen += o.tantiemes;
+            } 
+        });
+        
+        STATE.owners.forEach(o => {
+            if(o.isCommon) return;
+            const partGen = (sums.general / divGen) * o.tantiemes * 0.25; 
+            const partTra = (sums.travaux / divTra) * o.tantiemes * 0.25;
+            const partSpe = (!o.exoGest && divSpe > 0) ? (sums.special / divSpe) * o.tantiemes * 0.25 : 0;
+            const partMen = (!o.exoMen && divMen > 0) ? (sums.menage / divMen) * o.tantiemes * 0.25 : 0;
+            
+            const subTotalQuarter = partGen + partTra + partSpe + partMen;
+            
+            // --- FIX : Récupération explicite depuis Saisie Provisions (Previ) ---
+            // C'est DEJA au trimestre, on ne divise PAS par 4.
+            let wCost = 0;
+            if(STATE.waterPrevi) {
+                const s = STATE.waterPrevi.subs ? (STATE.waterPrevi.subs[o.id] || 0) : 0;
+                const c = STATE.waterPrevi.charges ? (STATE.waterPrevi.charges[o.id] || 0) : 0;
+                const r = STATE.waterPrevi.reguls ? (STATE.waterPrevi.reguls[o.id] || 0) : 0;
+                wCost = (s + c + r); 
+            }
+
+            const totQuarter = subTotalQuarter + wCost; 
+            
+            let badges = ""; if(o.exoGest) badges += `<span class="exo-badge bg-exo-gest" title="Exonéré Syndic/Entretien">Exo.S</span>`; if(o.exoMen) badges += `<span class="exo-badge bg-exo-men" title="Exonéré Ménage">Exo.M</span>`;
+            
+            h += `<tr><td class="text-start ps-3 fw-bold" data-owner-id="${o.id}">${o.name}${badges}<div class="badge-lot">${o.lot}</div></td><td class="text-center text-muted small">${o.tantiemes}</td><td>${partGen.toFixed(2)}</td><td class="text-warning fw-bold ${o.exoGest?'text-decoration-line-through opacity-25':''}">${partSpe.toFixed(2)}</td><td class="text-info fw-bold ${o.exoMen?'text-decoration-line-through opacity-25':''}">${partMen.toFixed(2)}</td><td class="text-danger">${partTra.toFixed(2)}</td><td class="bg-light fw-bold text-dark border-start border-end">${subTotalQuarter.toFixed(2)}</td><td class="text-primary bg-white fw-bold">${wCost.toFixed(2)}</td><td class="bg-success text-white fw-bold call-total" data-owner="${o.name}" data-amount="${totQuarter.toFixed(2)}">${totQuarter.toFixed(2)}</td><td><div class="d-flex gap-1 justify-content-center"><button class="btn btn-sm btn-light border" title="Email Unitaire" onclick="mailing.openSingleModal(${o.id})"><i class="fa-solid fa-envelope text-warning"></i></button><button class="btn btn-sm btn-light border" onclick="budget.generatePDF(${o.id})"><i class="fa-solid fa-file-pdf text-danger"></i></button></div></td></tr>`;
+        });
+        tb.innerHTML = h;
+    },
+    getFlatBudgetItems: function() {
+        const items = [];
+        ['general', 'special', 'menage', 'travaux'].forEach(cat => {
+            STATE.budget[cat].forEach(item => items.push({...item, catKey: cat}));
+        });
+        return items;
+    },
+    openRecapTable: function() {
+        const items = []; ['general', 'special', 'menage', 'travaux'].forEach(cat => STATE.budget[cat].forEach(i => items.push({...i, catKey:cat})));
+        const modal = el('modal-recap-table');
+        const thead = document.querySelector('#recap-full-table thead');
+        const tbody = document.querySelector('#recap-full-table tbody');
+        const tfoot = document.querySelector('#recap-full-table tfoot');
+        thead.innerHTML = ''; tbody.innerHTML = ''; tfoot.innerHTML = '';
+        
+        let headRow = '<tr><th>Propriétaire</th><th>Tant.</th>';
+        items.forEach(i => headRow += `<th class="th-vertical">${i.name}</th>`);
+        headRow += '<th class="th-vertical text-primary">EAU (Est. Annuel)</th>';
+        headRow += '<th class="bg-success text-white">TOTAL ANNUEL</th></tr>';
+        thead.innerHTML = headRow;
+
+        let divGen=0, divSpe=0, divMen=0, divTra=0;
+        STATE.owners.forEach(o => { if(!o.isCommon) { divGen += o.tantiemes; divTra += o.tantiemes; if(!o.exoGest) divSpe += o.tantiemes; if(!o.exoMen) divMen += o.tantiemes; } });
+
+        const colTotals = new Array(items.length).fill(0);
+        let totalWaterAll = 0;
+        let totalAnAll = 0;
+
+        STATE.owners.forEach(o => {
+            if(o.isCommon) return;
+            let row = `<tr><td class="text-start fw-bold">${o.name}</td><td>${o.tantiemes}</td>`;
+            let rowTot = 0;
+            
+            items.forEach((item, idx) => {
+                const amt = item[STATE.budgetMode] || 0;
+                let val = 0;
+                if(item.catKey === 'special') val = o.exoGest ? 0 : (amt/divSpe)*o.tantiemes;
+                else if(item.catKey === 'menage') val = o.exoMen ? 0 : (amt/divMen)*o.tantiemes;
+                else if(item.catKey === 'travaux') val = (amt/divTra)*o.tantiemes;
+                else val = (amt/divGen)*o.tantiemes;
+                
+                colTotals[idx] += val;
+                rowTot += val;
+                row += `<td>${val === 0 ? '-' : val.toFixed(2)}</td>`;
+            });
+
+            // Pour l'eau, les données stockées sont trimestrielles.
+            // Pour le tableau récap (annuel), on doit multiplier par 4.
+            let wTrim = 0;
+            if(STATE.waterPrevi) {
+                wTrim += (STATE.waterPrevi.subs && STATE.waterPrevi.subs[o.id] || 0);
+                wTrim += (STATE.waterPrevi.charges && STATE.waterPrevi.charges[o.id] || 0);
+                wTrim += (STATE.waterPrevi.reguls && STATE.waterPrevi.reguls[o.id] || 0);
+            }
+            const wAnnuel = wTrim * 4;
+
+            totalWaterAll += wAnnuel;
+            rowTot += wAnnuel;
+            row += `<td class="text-primary fw-bold bg-light">${wAnnuel.toFixed(2)}</td>`;
+
+            row += `<td class="fw-bold bg-success text-white">${rowTot.toFixed(2)}</td></tr>`;
+            tbody.innerHTML += row;
+            totalAnAll += rowTot;
+        });
+        
+        let foot = '<tr><td>TOTAUX</td><td>-</td>';
+        colTotals.forEach(c => foot += `<td>${c.toFixed(2)}</td>`);
+        foot += `<td class="text-primary fw-bold">${totalWaterAll.toFixed(2)}</td>`;
+        foot += `<td>${totalAnAll.toFixed(2)}</td></tr>`;
+        tfoot.innerHTML = foot;
+
+        modal.style.display = 'flex';
+    },
+    exportRecapPDF: function() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('landscape');
+        doc.text("Tableau Récapitulatif Charges", 14, 15);
+        doc.autoTable({ html: '#recap-full-table', startY: 25, theme: 'grid' });
+        doc.save('Recap_Charges.pdf');
+    },
+    copyTotalColumn: function() { let text=""; document.querySelectorAll('.call-total').forEach(item => text += item.innerText.replace('€','').trim() + "\n"); navigator.clipboard.writeText(text); },
+    validateCalls: function() {
+        const valDate = el('callValidationDate').value; if(!valDate) return alert("Date requise.");
+        if(confirm(`Créer les écritures en date du ${valDate} ?`)) {
+            let c=0; document.querySelectorAll('.call-total').forEach(e => { const a=parseFloat(e.dataset.amount); if(a>0) {
+                const oId = parseInt(e.closest('tr').querySelector('td[data-owner-id]').dataset.ownerId); const owner = STATE.owners.find(o => o.id === oId);
+                STATE.finance.operations.push({ id:Date.now()+Math.random(), date:valDate, account:STATE.accounts[0].id, type:"recette", category:"701", label: `Appel - ${owner.name} (${owner.apt})`, amount:a, pointed:false }); c++;
+            }});
+            finance.renderAll(); app.switchTab('finance'); app.saveToLocal(); alert(c+" écritures.");
+        }
+    },
+    generatePDF: function(id) {
+        const { jsPDF } = window.jspdf; const doc = new jsPDF(); const o = STATE.owners.find(x => x.id === id); const q = el('budgetQuarter').value; const y = el('budgetYear').value; const mode = STATE.budgetMode;
+        
+        let divGen=0, divSpe=0, divMen=0, divTra=0; STATE.owners.forEach(ow => { if(!ow.isCommon) { divGen+=ow.tantiemes; divTra+=ow.tantiemes; if(!ow.exoGest) divSpe+=ow.tantiemes; if(!ow.exoMen) divMen+=ow.tantiemes; } });
+        
+        doc.setFontSize(10); doc.setTextColor(44, 62, 80); doc.text("Copropriété LES PYRÉNÉES\n7-9 rue André Leroux\n33780 SOULAC-SUR-MER\nEmail: coprolsp@gmail.com", 14, 15);
+        doc.setFontSize(11); doc.text(`Copropriétaire: ${o.name} (${o.apt})\nLot(s): ${o.lot}`, 120, 20);
+        doc.setFontSize(16); doc.setTextColor(0,0,0); doc.text("APPEL DE FONDS", 105, 50, {align:'center'}); doc.setFontSize(12); doc.text(`${q} ${y}`, 105, 57, {align:'center'});
+        
+        const tableBody = []; let totalGeneral = 0;
+        const addSection = (title, items, totalTantiemes, isExempt) => {
+            tableBody.push([{content: title, colSpan: 3, styles: {fillColor: [240, 240, 240], fontStyle: 'bold'}}]);
+            let subTotal = 0; items.forEach(it => { const val = it[mode] || 0; subTotal += val; tableBody.push([`- ${it.name}`, `${val.toFixed(2)} €`, `${(val/4).toFixed(2)} €`]); });
+            if(isExempt) { tableBody.push([{content: "Exonéré de ces charges", colSpan: 2, styles: {fontStyle:'italic', textColor: [150,150,150]}}, {content: "0.00 €", styles: {fontStyle:'bold'}}]); } 
+            else { const share = (subTotal / totalTantiemes) * o.tantiemes * 0.25; totalGeneral += share; tableBody.push([{content: `Quote-part (${o.tantiemes}/${totalTantiemes} t.)`, colSpan: 2, styles: {halign: 'right', fontStyle:'bold'}}, {content: `${share.toFixed(2)} €`, styles: {fontStyle:'bold', fillColor:[245,255,250]}}]); }
+        };
+        addSection("Charges Générales", STATE.budget.general, divGen, false); 
+        addSection("Charges Syndic & Entretien", STATE.budget.special, divSpe, o.exoGest);
+        addSection("Charges Ménage", STATE.budget.menage, divMen, o.exoMen);
+        addSection("Charges Travaux", STATE.budget.travaux, divTra, false);
+        
+        tableBody.push([{content: "Eau & Compteurs", colSpan: 3, styles: {fillColor: [240, 240, 240], fontStyle: 'bold'}}]);
+        
+        // --- FIX : Récupération des données qui sont DEJA TRIMESTRIELLES ---
+        let quarterWaterStored = 0;
+        if(STATE.waterPrevi) {
+             quarterWaterStored += (STATE.waterPrevi.subs && STATE.waterPrevi.subs[o.id] || 0);
+             quarterWaterStored += (STATE.waterPrevi.charges && STATE.waterPrevi.charges[o.id] || 0);
+             quarterWaterStored += (STATE.waterPrevi.reguls && STATE.waterPrevi.reguls[o.id] || 0);
+        }
+        
+        const annualBase = quarterWaterStored * 4;
+        totalGeneral += quarterWaterStored;
+
+        // Affichage : Base Annuelle (calculé x4) | Montant Période (réel stocké)
+        tableBody.push(["Provision Eau", `${annualBase.toFixed(2)} €`, `${quarterWaterStored.toFixed(2)} €`]);
+        
+        tableBody.push([{content: "TOTAL À PAYER", colSpan: 2, styles: {halign: 'right', fontSize: 12, fontStyle:'bold', textColor: [192, 57, 43]}}, {content: `${totalGeneral.toFixed(2)} €`, styles: {fontSize: 12, fontStyle:'bold', textColor: [192, 57, 43]}}]);
+        
+        doc.autoTable({ startY: 70, head: [['Poste', 'Base Annuelle', 'Montant Période']], body: tableBody, theme: 'grid', headStyles: {fillColor: [44, 62, 80]}, columnStyles: {0:{cellWidth:'auto'},1:{cellWidth:40,halign:'right'},2:{cellWidth:40,halign:'right'}} });
+        doc.text(`À régler avant le 15 du premier mois du trimestre.`, 14, doc.lastAutoTable.finalY + 15); doc.save(`Appel_${o.name}_${o.apt}.pdf`);
+    }
+};
+
+const mailing = {
+    openModal: function() { const sel = el('mail-owner-select'); sel.innerHTML = ''; STATE.owners.forEach(o => { if(!o.isCommon) sel.innerHTML += `<option value="${o.id}">${o.name}</option>`; }); el('modal-mailing').style.display = 'flex'; this.updateText(); },
+    openSingleModal: function(id) { this.openModal(); el('mail-owner-select').value = id; this.updateText(); },
+    updateText: function() { const id = parseInt(el('mail-owner-select').value); const o = STATE.owners.find(x => x.id === id); const row = Array.from(document.querySelectorAll('#budgetBody tr')).find(r => r.querySelector(`td[data-owner-id="${id}"]`)); const amount = row ? row.querySelector('.call-total').innerText : "0.00"; const txt = `Bonjour,\n\nVoici votre appel de fonds pour le trimestre ${el('budgetQuarter').value} ${el('budgetYear').value} concernant ${o.apt}.\n\nMontant à régler : ${amount} €\n\nMerci de procéder au virement sur le compte de la copropriété.\n\nCordialement,\nLe Syndic Bénévole`; el('mail-content').value = txt; el('btn-mailto').href = `mailto:${o.email}?subject=Appel de fonds - ${o.name}&body=${encodeURIComponent(txt)}`; },
+    copyText: function() { el('mail-content').select(); document.execCommand('copy'); alert("Texte copié !"); }
+};
+
+const finance = {
+    activeFilter: null, editingOpId: null, charts: { expense: null, income: null },
+    init: function() { this.renderAll(); },
+    renderAccountList: function() { const list = el('account-list'); let h = ''; STATE.accounts.forEach(acc => { h += `<div class="list-group-item d-flex justify-content-between align-items-center small"><span><b>${acc.id}</b> - ${acc.name} (${acc.initial}€)</span><div><i class="fa-solid fa-pen text-primary cursor-pointer me-2" onclick="finance.fillEditAccount('${acc.id}')"></i><i class="fa-solid fa-trash text-danger cursor-pointer" onclick="finance.deleteAccount('${acc.id}')"></i></div></div>`; }); list.innerHTML = h; },
+    fillEditAccount: function(id) { const acc = STATE.accounts.find(a=>a.id===id); el('acc-id-edit').value = acc.id; el('acc-id-new').value = acc.id; el('acc-name-new').value = acc.name; el('acc-init-new').value = acc.initial; },
+    updateAccount: function() { const oldId = el('acc-id-edit').value; const newId = el('acc-id-new').value; const name = el('acc-name-new').value; const init = parseFloat(el('acc-init-new').value)||0; if(oldId) { const idx = STATE.accounts.findIndex(a=>a.id===oldId); STATE.accounts[idx] = {id:newId, name:name, initial:init}; if(oldId!==newId) STATE.finance.operations.forEach(op => { if(op.account===oldId) op.account=newId; }); } else { STATE.accounts.push({id:newId, name:name, initial:init}); } app.saveToLocal(); this.renderAll(); app.renderParams(); },
+    deleteAccount: function(id) { if(confirm("Supprimer ?")) { STATE.accounts = STATE.accounts.filter(a=>a.id!==id); STATE.finance.operations = STATE.finance.operations.filter(o=>o.account!==id); app.saveToLocal(); this.renderAll(); app.renderParams(); } },
+    toggleForm: function() { el('op-form').classList.toggle('d-none'); el('split-form').classList.add('d-none'); this.cancelEdit(); },
+    toggleSplitForm: function() { el('split-form').classList.toggle('d-none'); el('op-form').classList.add('d-none'); },
+    updateSplitCalc: function() { el('splitPoubelle').value = (Math.max(0, (parseFloat(el('splitTotal').value)||0) - (parseFloat(el('splitMenage').value)||0))).toFixed(2); },
+    saveSplitOp: function() { const d = el('splitDate').value; const acc = el('splitAccount').value; const men = parseFloat(el('splitMenage').value); const pou = parseFloat(el('splitPoubelle').value); if(men > 0) STATE.finance.operations.push({ id: Date.now(), date: d, account: acc, type: 'depense', category: '615-MEN', label: "Facture (Ménage)", amount: men, pointed: false }); if(pou > 0) STATE.finance.operations.push({ id: Date.now()+1, date: d, account: acc, type: 'depense', category: '615-POU', label: "Facture (Poubelles)", amount: pou, pointed: false }); this.renderAll(); app.saveToLocal(); this.toggleSplitForm(); },
+    toggleCat: function() { const t = el('opType').value; const s = el('opCat'); s.innerHTML = t==='recette' ? '<option value="701">701 - Appels</option><option value="702">702 - Travaux</option><option value="580">580 - Virement Interne</option>' : ''; if(t!=='recette') STATE.categories.forEach(c=>{ if(c.code.startsWith('6') || c.code==='580') s.innerHTML+=`<option value="${c.code}">${c.code} - ${c.label}</option>`; }); },
+    saveOp: function() { const d=el('opDate').value, acc=el('opAccount').value, t=el('opType').value, c=el('opCat').value, l=el('opLabel').value, a=parseFloat(el('opAmount').value); if(c==='580' && t==='depense' && !this.editingOpId) { const dest = prompt("ID Compte destination ?"); if(dest) { STATE.finance.operations.push({id:Date.now(),date:d,account:acc,type:'depense',category:c,label:`Vir. vers ${dest}`,amount:a,pointed:false}); STATE.finance.operations.push({id:Date.now()+1,date:d,account:dest,type:'recette',category:c,label:`Vir. reçu de ${acc}`,amount:a,pointed:false}); this.renderAll(); app.saveToLocal(); return; } } if(this.editingOpId) { const idx = STATE.finance.operations.findIndex(o=>o.id === this.editingOpId); if(idx >= 0) STATE.finance.operations[idx] = { ...STATE.finance.operations[idx], date:d, account:acc, type:t, category:c, label:l, amount:a }; } else { STATE.finance.operations.push({ id: Date.now(), date: d, account: acc, type: t, category: c, label: l, amount: a, pointed: false }); } this.renderAll(); app.saveToLocal(); this.cancelEdit(); },
+    editOp: function(id) { const op = STATE.finance.operations.find(o=>o.id===id); if(!op) return; this.editingOpId = id; el('op-form').classList.remove('d-none'); el('opId').value = op.id; el('opDate').value = op.date; el('opAccount').value = op.account; el('opType').value = op.type; this.toggleCat(); el('opCat').value = op.category; el('opAmount').value = op.amount; el('opLabel').value = op.label; el('btnSaveOp').classList.replace('btn-success', 'btn-warning'); },
+    cancelEdit: function() { this.editingOpId = null; el('opId').value = ''; el('opAmount').value=''; el('btnSaveOp').classList.replace('btn-warning', 'btn-success'); },
+    deleteOp: function(id) { if(confirm("Supprimer ?")) { STATE.finance.operations = STATE.finance.operations.filter(o=>o.id!==id); this.renderAll(); app.saveToLocal(); } },
+    updateSelectionUI: function() { const selected = document.querySelectorAll('.checkbox-delete:checked'); const btn = el('btn-multi-delete'); if(selected.length > 0) { btn.classList.remove('d-none'); el('selected-count').innerText = selected.length; } else { btn.classList.add('d-none'); } },
+    deleteSelected: function() { const selected = Array.from(document.querySelectorAll('.checkbox-delete:checked')).map(cb => parseFloat(cb.value)); if(confirm(`Supprimer ${selected.length} lignes ?`)) { STATE.finance.operations = STATE.finance.operations.filter(o => !selected.includes(o.id)); app.saveToLocal(); this.renderAll(); } },
+    filterByAccount: function(id) { this.activeFilter = (this.activeFilter === id) ? null : id; this.renderAll(); },
+    saveRealBalance: function() { if(this.activeFilter) { STATE.finance.realBalances[this.activeFilter] = parseFloat(el('inpBankReal').value); this.calcDiff(); app.saveToLocal(); } },
+    renderCharts: function() {
+        const expC = el('chartExpenses'); const incC = el('chartIncExp'); if(!expC || !incC) return;
+        const expData = {}; let tExp = 0, tRec = 0; STATE.finance.operations.forEach(op => { if(op.type === 'depense' && op.category.startsWith('6')) { expData[op.category] = (expData[op.category] || 0) + op.amount; tExp += op.amount; } else if (op.type === 'recette' && op.category.startsWith('7')) { tRec += op.amount; } });
+        if(this.charts.expense) this.charts.expense.destroy(); this.charts.expense = new Chart(expC, { type: 'doughnut', data: { labels: Object.keys(expData), datasets: [{ data: Object.values(expData), backgroundColor: ['#e74c3c','#3498db','#f1c40f','#9b59b6','#2ecc71','#34495e'] }] }, options: { responsive: true, plugins: { title: {display: true, text: 'Répartition Dépenses'}, legend: {display: false} } } });
+        if(this.charts.income) this.charts.income.destroy(); this.charts.income = new Chart(incC, { type: 'pie', data: { labels: ['Recettes', 'Dépenses'], datasets: [{ data: [tRec, tExp], backgroundColor: ['#27ae60', '#c0392b'] }] }, options: { responsive: true, plugins: { title: {display: true, text: 'Recettes vs Dépenses'} } } });
+    },
+    renderAll: function() {
+        ['opAccount', 'splitAccount'].forEach(id => { const elem = el(id); const cur = elem.value; elem.innerHTML = ''; STATE.accounts.forEach(a => elem.innerHTML += `<option value="${a.id}">${a.name}</option>`); if(STATE.accounts.find(a=>a.id===cur)) elem.value = cur; });
+        const container = el('balance-bar-container'); let bar = '';
+        STATE.accounts.forEach(acc => { let bal = acc.initial; STATE.finance.operations.filter(o => o.account === acc.id).forEach(o => bal += (o.type === 'recette' ? o.amount : -o.amount)); bar += `<div class="balance-box border-primary ${this.activeFilter === acc.id ? 'active' : ''}" onclick="finance.filterByAccount('${acc.id}')"><div class="balance-header"><span>${acc.name}</span></div><div class="bal-row fs-5 text-primary fw-bold">${bal.toFixed(2)} €</div></div>`; });
+        container.innerHTML = bar;
+        const panel = el('reconciliation-panel'); if(this.activeFilter) { panel.classList.remove('d-none'); el('lblReconcileAccount').innerText = this.activeFilter; el('inpBankReal').value = STATE.finance.realBalances[this.activeFilter] || ''; this.calcDiff(); } else { panel.classList.add('d-none'); }
+        const tb = el('journalBody'); let rows = ''; let ops = [...STATE.finance.operations]; if(this.activeFilter) ops = ops.filter(o => o.account === this.activeFilter);
+        const fStart = el('dateFilterStart').value; const fEnd = el('dateFilterEnd').value; if(fStart) ops = ops.filter(o => o.date >= fStart); if(fEnd) ops = ops.filter(o => o.date <= fEnd);
+        ops.sort((a,b) => b.date.localeCompare(a.date));
+        ops.forEach(o => { const checkIcon = o.pointed ? 'fa-circle-check text-success active' : 'fa-circle text-muted opacity-25'; const checkHTML = this.activeFilter ? `<i class="fa-solid ${checkIcon} icon-check" onclick="finance.togglePointed(${o.id})"></i>` : ''; rows += `<tr class="${o.pointed ? 'row-pointed' : ''}"><td><input type="checkbox" class="checkbox-delete" value="${o.id}" onchange="finance.updateSelectionUI()"></td><td class="text-center">${checkHTML}</td><td>${new Date(o.date).toLocaleDateString()}</td><td>${o.account}</td><td>${o.category}</td><td>${o.label}</td><td class="text-end text-success fw-bold">${o.type==='recette' ? o.amount.toFixed(2) : ''}</td><td class="text-end text-danger fw-bold">${o.type!=='recette' ? o.amount.toFixed(2) : ''}</td><td><i class="fa-solid fa-pen text-primary me-2" onclick="finance.editOp(${o.id})"></i></td></tr>`; });
+        tb.innerHTML = rows;
+        this.updateSelectionUI(); this.renderCharts();
+    },
+    togglePointed: function(id) { const op = STATE.finance.operations.find(o=>o.id===id); if(op) { op.pointed = !op.pointed; app.saveToLocal(); this.renderAll(); } },
+    calcDiff: function() { if(!this.activeFilter) return; const acc = STATE.accounts.find(a=>a.id === this.activeFilter); let sum = acc.initial; STATE.finance.operations.forEach(o => { if(o.account === this.activeFilter && o.pointed) sum += (o.type === 'recette' ? o.amount : -o.amount); }); el('valPointedSum').innerText = sum.toFixed(2) + " €"; const real = parseFloat(el('inpBankReal').value); if(!isNaN(real)) el('valDiff').innerText = (sum - real).toFixed(2) + " €"; },
+};
+
+const annexes = {
+    render: function() {
+        const ops = STATE.finance.operations; const cats = {}; let t6=0, t7=0; ops.forEach(o => { if(o.category.startsWith('6') || o.category.startsWith('7')) { cats[o.category] = (cats[o.category]||0) + o.amount; if(o.category.startsWith('6')) t6+=o.amount; if(o.category.startsWith('7')) t7+=o.amount; } });
+        const tbRes = el('resultat-body'); let resH=''; Object.keys(cats).sort().forEach(k => { resH += `<tr><td>${k}</td><td class="text-end">${cats[k].toFixed(2)}</td></tr>`; }); tbRes.innerHTML=resH; el('tot-resultat').innerText = (t7-t6).toFixed(2);
+        const tbActif = el('bilan-actif-body'); let actH=''; let totActif = 0; STATE.accounts.forEach(acc => { let bal = acc.initial; ops.filter(o => o.account === acc.id).forEach(o => bal += (o.type === 'recette' ? o.amount : -o.amount)); if(bal > 0) { actH += `<tr><td>Banque: ${acc.name}</td><td class="text-end">${bal.toFixed(2)}</td></tr>`; totActif+=bal; } });
+        const tbPassif = el('bilan-passif-body'); let pasH=''; let totPassif = 0; STATE.accounts.forEach(acc => { if(acc.name.toLowerCase().includes('livret') || acc.id.includes('502')) { let bal = acc.initial; ops.filter(o => o.account === acc.id).forEach(o => bal += (o.type === 'recette' ? o.amount : -o.amount)); if(bal > 0) { pasH += `<tr><td>Fonds & Réserves (${acc.name})</td><td class="text-end">${bal.toFixed(2)}</td></tr>`; totPassif += bal; } } });
+        const res = t7-t6; if(res > 0) { pasH += `<tr><td>Excédent Exercice</td><td class="text-end">${res.toFixed(2)}</td></tr>`; totPassif += res; } else if (res < 0) { actH += `<tr><td>Déficit Exercice</td><td class="text-end">${Math.abs(res).toFixed(2)}</td></tr>`; totActif += Math.abs(res); }
+        if(!STATE.annexesManual) STATE.annexesManual = []; STATE.annexesManual.forEach(line => { if(line.type === 'actif') { actH += `<tr><td>${line.label} <i class="fa-solid fa-times text-danger ms-2 cursor-pointer" onclick="annexes.delLine(${line.id})"></i></td><td class="text-end">${line.amount.toFixed(2)}</td></tr>`; totActif+=line.amount; } else { pasH += `<tr><td>${line.label} <i class="fa-solid fa-times text-danger ms-2 cursor-pointer" onclick="annexes.delLine(${line.id})"></i></td><td class="text-end">${line.amount.toFixed(2)}</td></tr>`; totPassif+=line.amount; } });
+        const diff = totActif - totPassif; if(diff > 0.01) { pasH += `<tr class="bg-warning bg-opacity-25 fw-bold"><td>Report à Nouveau (Solde N-1)</td><td class="text-end">${diff.toFixed(2)}</td></tr>`; totPassif += diff; }
+        tbActif.innerHTML = actH; tbPassif.innerHTML = pasH;
+        el('tot-actif').innerText = totActif.toFixed(2); el('tot-passif').innerText = totPassif.toFixed(2); el('bilan-equilibre').innerText = Math.abs(totActif - totPassif) < 0.1 ? "Bilan Équilibré" : "Bilan NON Équilibré"; el('bilan-equilibre').className = Math.abs(totActif - totPassif) < 0.1 ? "alert alert-success py-1 px-2 mt-2 small text-center" : "alert alert-danger py-1 px-2 mt-2 small text-center";
+    },
+    addManualLine: function() { const type = prompt("Type? (actif / passif)").toLowerCase(); if(type!=='actif' && type!=='passif') return; const lbl = prompt("Libellé ?"); const amt = parseFloat(prompt("Montant ?")); if(lbl && !isNaN(amt)) { if(!STATE.annexesManual) STATE.annexesManual = []; STATE.annexesManual.push({id:Date.now(), type:type, label:lbl, amount:amt}); app.saveToLocal(); this.render(); } },
+    delLine: function(id) { STATE.annexesManual = STATE.annexesManual.filter(x => x.id !== id); app.saveToLocal(); this.render(); },
+    exportPDF: function() { const { jsPDF } = window.jspdf; const doc = new jsPDF(); doc.text("Dossier Comptable", 14, 15); doc.autoTable({html: '#annexe-bilan', startY: 25}); doc.autoTable({html: '#annexe-bilan-passif'}); doc.addPage(); doc.text("Compte de Résultat", 14, 15); doc.autoTable({html: '#annexe-resultat', startY: 20}); doc.save('Dossier_Comptable_2026.pdf'); }
+};
+
+const params = {
+    renderCategories: function() { const tb = document.querySelector('#table-categories tbody'); let h = ''; STATE.categories.forEach((cat, index) => { h += `<tr><td><input type="text" class="inp-edit-table" value="${cat.code}" onchange="params.updateCategory(${index}, 'code', this.value)"></td><td><input type="text" class="inp-edit-table" value="${cat.label}" onchange="params.updateCategory(${index}, 'label', this.value)"></td><td><button class="btn btn-sm text-danger" onclick="params.deleteCategory(${index})">x</button></td></tr>`; }); tb.innerHTML = h; },
+    updateCategory: function(index, field, value) { STATE.categories[index][field] = value.trim(); app.saveToLocal(); },
+    addCategory: function() { const code = el('newCatCode').value.trim(); const label = el('newCatLabel').value.trim(); if(code && label) { STATE.categories.push({ code, label }); app.saveToLocal(); this.renderCategories(); } },
+    deleteCategory: function(index) { if(confirm("Supprimer ?")) { STATE.categories.splice(index, 1); app.saveToLocal(); this.renderCategories(); } }
+};
+
+document.addEventListener('DOMContentLoaded', () => app.init());
+</script>
+
+</body></html>

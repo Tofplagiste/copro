@@ -1,0 +1,1292 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculateur AG Copro - PV & Votes</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        /* --- STYLE GÉNÉRAL --- */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        
+        .container { max-width: 1400px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; }
+        
+        /* En-tête */
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; position: relative; }
+        .header h1 { font-size: 2.5em; margin-bottom: 10px; }
+        .copro-detailed { background: rgba(255,255,255,0.2); padding: 20px; border-radius: 8px; margin-bottom: 20px; max-height: 200px; overflow-y: auto; text-align: left; font-size: 0.9em; }
+        
+        /* Input Date Custom */
+        .date-input-container { margin-top: 15px; background: rgba(255,255,255,0.2); display: inline-block; padding: 10px 20px; border-radius: 8px; }
+        .date-input-container label { font-weight: 600; margin-right: 10px; }
+        .date-input-container input { padding: 5px 10px; border: none; border-radius: 4px; font-family: inherit; }
+
+        /* Boutons de sauvegarde en haut */
+        .top-actions { margin-top: 20px; display: flex; gap: 10px; justify-content: center; }
+        .btn-data { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 0.9em; display: flex; align-items: center; gap: 5px; transition: 0.2s; }
+        .btn-save-json { background: #f39c12; color: white; } /* Orange */
+        .btn-load-json { background: #34495e; color: white; } /* Dark Blue */
+        .btn-data:hover { opacity: 0.9; transform: translateY(-2px); }
+
+        .content { padding: 30px; }
+
+        /* Section Présence */
+        .presence-config { background: #e3f2fd; padding: 20px; border-radius: 8px; margin-bottom: 25px; border: 3px solid #2196F3; }
+        .presence-config h3 { color: #1565C0; margin-bottom: 15px; font-size: 1.3em; }
+        .presence-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; margin-bottom: 15px; }
+        .presence-item { background: white; padding: 12px; border-radius: 6px; border-left: 4px solid #2196F3; }
+        .presence-item .copro-name-pres { font-weight: 600; font-size: 1em; color: #333; margin-bottom: 8px; }
+        
+        /* Boutons Présence */
+        .presence-buttons { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 8px; }
+        .presence-btn { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 0.85em; transition: all 0.2s; flex: 1; min-width: 60px; }
+        .presence-btn.present { background: #c8e6c9; color: #2e7d32; border: 2px solid #4caf50; }
+        .presence-btn.procuration { background: #fff9c4; color: #f57f17; border: 2px solid #fbc02d; }
+        .presence-btn.correspondance { background: #b3e5fc; color: #01579b; border: 2px solid #03a9f4; }
+        .presence-btn.absent { background: #ffcdd2; color: #c62828; border: 2px solid #f44336; }
+        .presence-btn.selected { transform: scale(1.08); box-shadow: 0 3px 10px rgba(0,0,0,0.3); font-weight: 700; }
+        
+        /* Sélecteur Procuration */
+        .procuration-select { display: none; margin-top: 8px; }
+        .procuration-select.visible { display: block; }
+        .procuration-select label { font-size: 0.8em; color: #666; font-weight: 600; display: block; margin-bottom: 4px; }
+        .procuration-select select { width: 100%; padding: 6px; border: 2px solid #fbc02d; border-radius: 4px; font-size: 0.85em; background: #fffef7; }
+        .procuration-info { font-size: 0.75em; color: #f57f17; margin-top: 4px; font-style: italic; }
+        .presence-status { font-size: 0.8em; color: #1976D2; margin-top: 5px; min-height: 18px; font-weight: 600; }
+        
+        /* Résumé Présence */
+        .presence-summary { background: #fff3e0; padding: 15px; border-radius: 6px; border: 2px solid #ff9800; }
+        .presence-summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; text-align: center; }
+        .presence-stat { background: white; padding: 10px; border-radius: 4px; }
+        .presence-stat-value { font-size: 1.5em; font-weight: 700; color: #e65100; }
+        .presence-stat-label { font-size: 0.85em; color: #666; }
+        
+        /* Liste Procurations */
+        .procurations-list { background: #fff8e1; padding: 15px; border-radius: 6px; margin-top: 15px; border: 2px solid #ffb300; }
+        .procuration-item { background: white; padding: 8px 12px; border-radius: 4px; margin-bottom: 6px; font-size: 0.9em; border-left: 3px solid #fbc02d; }
+        .procuration-count { display: inline-block; background: #fbc02d; color: #f57f17; padding: 2px 8px; border-radius: 3px; font-weight: 700; font-size: 0.85em; margin-left: 8px; }
+
+        /* Section Points de Vote */
+        .point-section { background: #f8f9fa; margin-bottom: 20px; padding: 20px; border-radius: 8px; border-left: 4px solid #667eea; }
+        .point-title { font-size: 1.3em; font-weight: 600; margin-bottom: 15px; color: #333; }
+        .article-selector { margin-bottom: 15px; }
+        .article-selector select { padding: 8px 12px; border: 2px solid #667eea; border-radius: 6px; font-size: 1em; }
+        
+        /* Grille des votes */
+        .votes-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 15px; }
+        .vote-buttons { display: flex; gap: 3px; flex-wrap: wrap; }
+        .vote-btn { padding: 5px 8px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 0.8em; transition: all 0.2s; flex:1; min-width:22px; }
+        .vote-btn.pour { background: #d4edda; color: #155724; border: 2px solid #28a745; } 
+        .vote-btn.contre { background: #f8d7da; color: #721c24; border: 2px solid #dc3545; }
+        .vote-btn.abst { background: #fff3cd; color: #856404; border: 2px solid #ffc107; }
+        .vote-btn.abs { background: #e2e3e5; color: #383d41; border: 2px solid #6c757d; }
+        .vote-btn.selected { transform: scale(1.05); box-shadow: 0 2px 8px rgba(0,0,0,0.3); font-weight: bold; }
+        .vote-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        
+        .btn-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .btn-reset-point { background:#6c757d; color:white; padding:8px 16px; border:none; border-radius:6px; font-weight:600; cursor:pointer; }
+        .btn-reset-point:hover { background: #5a6268; }
+
+        .btn-all-pour { background:#28a745; color:white; padding:8px 16px; border:none; border-radius:6px; font-weight:600; cursor:pointer; display: flex; align-items: center; gap: 5px; }
+        .btn-all-pour:hover { background: #218838; }
+
+        .btn-all-contre { background:#dc3545; color:white; padding:8px 16px; border:none; border-radius:6px; font-weight:600; cursor:pointer; display: flex; align-items: center; gap: 5px; }
+        .btn-all-contre:hover { background: #c82333; }
+        
+        /* Résultats */
+        .result-row { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: white; border-radius: 6px; border-top: 3px solid #667eea; }
+        .result-badge { font-size: 1.8em; font-weight: 700; padding: 10px 20px; border-radius: 6px; min-width: 120px; text-align: center; }
+        .result-badge.adopte { background: #d4edda; color: #155724; border: 2px solid #28a745; }
+        .result-badge.rejete { background: #f8d7da; color: #721c24; border: 2px solid #dc3545; }
+        .result-badge.attente { background: #e2e3e5; color: #383d41; border: 2px solid #6c757d; }
+        
+        .stats { display: flex; gap: 20px; font-size: 1.1em; font-weight: 600; }
+        .stat { text-align: center; }
+        .stat-label { font-size: 0.8em; color: #666; font-weight: 400; }
+        
+        .copro-name { margin-bottom: 5px; font-weight:600; font-size:0.85em; }
+        .vote-selected { font-weight:bold; font-size:0.8em; color:#667eea; margin-top:5px; min-height:18px; }
+        
+        /* Boutons Actions */
+        .export-buttons { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .btn-export { padding: 12px 20px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 1em; transition: all 0.2s; }
+        .btn-export-pdf { background: #4a148c; color: white; border: 2px solid #6a1b9a; }
+        .btn-export-pdf:hover { background: #6a1b9a; }
+        .btn-export-edit { background: #ff6b6b; color: white; border: 2px solid #ff5252; }
+        .btn-export-edit:hover { background: #ff5252; }
+        .btn-reset-total { background: #ffc107; color: #856404; border: 3px solid #ffc107; font-weight: 700; font-size: 1.1em; padding: 15px 25px; }
+        
+        /* Modales */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
+        .modal-content { background: white; margin: 15% auto; padding: 30px; border-radius: 12px; width: 90%; max-width: 500px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.4); }
+        .modal-buttons { display: flex; gap: 15px; justify-content: center; margin-top: 20px; }
+        .btn-confirm { background: #dc3545; color: white; padding: 12px 24px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; }
+        .btn-cancel { background: #6c757d; color: white; padding: 12px 24px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; }
+        .error-msg { color: #d32f2f; font-size: 0.8em; margin-top: 4px; font-weight: 600; }
+
+        /* Style pour l'édition des points */
+        .edit-point-item { background: #f8f9fa; padding: 15px; margin-bottom: 10px; border-radius: 8px; border-left: 4px solid #667eea; cursor: move; transition: all 0.2s; }
+        .edit-point-item:hover { background: #e9ecef; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .edit-point-item.dragging { opacity: 0.5; }
+        .edit-point-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .edit-point-number { background: #667eea; color: white; padding: 5px 10px; border-radius: 4px; font-weight: 700; min-width: 40px; text-align: center; }
+        .edit-point-input { flex: 1; padding: 8px 12px; border: 2px solid #ddd; border-radius: 6px; font-size: 1em; font-family: inherit; }
+        .edit-point-input:focus { border-color: #667eea; outline: none; }
+        .edit-point-controls { display: flex; gap: 10px; align-items: center; }
+        .edit-article-select { padding: 6px 10px; border: 2px solid #667eea; border-radius: 4px; font-size: 0.9em; }
+        .btn-delete-point { background: #dc3545; color: white; padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 0.85em; }
+        .btn-delete-point:hover { background: #c82333; }
+        .btn-add-point { background: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 10px; }
+        .btn-add-point:hover { background: #218838; }
+        .drag-handle { cursor: grab; font-size: 1.2em; color: #667eea; user-select: none; }
+        .drag-handle:active { cursor: grabbing; }
+
+        /* --- STYLE SPÉCIFIQUE POUR LE PDF GÉNÉRÉ --- */
+        #pdf-export {
+            display: none;
+            background: white;
+            padding: 40px;
+            width: 100%;
+            max-width: 800px;
+            margin: 20px auto;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            color: #000;
+            font-family: 'Helvetica', 'Arial', sans-serif;
+        }
+
+        #pdf-export h1 { font-size: 20px; text-align: center; margin-bottom: 5px; color: #333; text-transform: uppercase; border-bottom: 2px solid #333; padding-bottom: 10px; }
+        #pdf-export h2 { font-size: 16px; background-color: #eee; padding: 5px 10px; margin-top: 25px; margin-bottom: 15px; border-left: 5px solid #333; page-break-after: avoid; }
+        #pdf-export .meta-info { text-align: center; margin-bottom: 25px; font-size: 12px; color: #444; font-style: italic; }
+        
+        /* Tableaux PDF */
+        #pdf-export table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 11px; page-break-inside: auto; }
+        #pdf-export tr { page-break-inside: avoid; }
+        #pdf-export th, #pdf-export td { border: 1px solid #ccc; padding: 6px 8px; text-align: left; }
+        #pdf-export th { background-color: #f0f0f0; font-weight: bold; text-transform: uppercase; }
+        
+        /* Blocs résultats PDF */
+        #pdf-export .result-block { margin-bottom: 10px; border: 1px solid #ddd; padding: 10px; page-break-inside: avoid; }
+        #pdf-export .res-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+        #pdf-export .point-title-pdf { font-weight: bold; font-size: 13px; }
+        #pdf-export .point-badge-pdf { font-weight: bold; font-size: 11px; padding: 2px 6px; border-radius: 3px; border: 1px solid #ccc; }
+        #pdf-export .adopte-pdf { color: #155724; background: #d4edda; border-color: #c3e6cb; }
+        #pdf-export .rejete-pdf { color: #721c24; background: #f8d7da; border-color: #f5c6cb; }
+        #pdf-export .details-pdf { font-size: 10px; color: #555; margin-top: 5px; border-top: 1px dotted #ccc; padding-top: 3px;}
+    </style>
+</head>
+<body>
+    <div class="container" id="mainInterface">
+        <div class="header">
+            <h1>📋 Calculateur Vote AG Copro</h1>
+            <p>Vos 1000 tantiemes - 11 copropriétaires</p>
+            
+            <div class="date-input-container">
+                <label for="agDate">Date de l'AG :</label>
+                <input type="date" id="agDate">
+            </div>
+
+            <div class="top-actions">
+                <button class="btn-data btn-save-json" onclick="exportDataJSON()">💾 SAUVEGARDER</button>
+                <button class="btn-data btn-load-json" onclick="document.getElementById('jsonFileInput').click()">📂 OUVRIR</button>
+            </div>
+
+            <div class="copro-detailed">
+                🏠 SAUTERNE Apt 1 / PESSAC LEOGNAN Apt 21 | CARSOULE(117 tant.)<br>
+                🏠 ENTRE 2 MERS Apt 2 | TROPAMER(66 tant.)<br>
+                🏠 PAUILLAC Apt 20 | PIRAS(69 tant.)<br>
+                🏠 ST CROIX DU MONT Apt 14 | GABRIEL(62 tant.)<br>
+                🏠 MARGAUX Apt 15 | PALMARO(41 tant.)<br>
+                🏠 ST EMILION Apt 16 | SALAHUN(37 tant.)<br>
+                🏠 LISTRAC Apt 17 | SCI Clot(86 tant.)<br>
+                🏠 MOULIS Apt 18 | LE MERLE(96 tant.)<br>
+                🏠 POMEROL Apt 19 | LAMBARD(125 tant.)<br>
+                🏠 ST ESTEPHE Apt 12-13 | BELLIARD(102 tant.)<br>
+                🏠 Librairie LC 10-11 | CAUPENE(199 tant.)
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="presence-config">
+                <h3>👥 CONFIGURATION PRÉSENCE / PROCURATIONS</h3>
+                <div class="presence-grid" id="presenceGrid"></div>
+                <div class="presence-summary">
+                    <div class="presence-summary-grid">
+                        <div class="presence-stat">
+                            <div class="presence-stat-value" id="totalPresents">0</div>
+                            <div class="presence-stat-label">PRÉSENTS</div>
+                        </div>
+                        <div class="presence-stat">
+                            <div class="presence-stat-value" id="totalProcurations">0</div>
+                            <div class="presence-stat-label">PROCURATIONS</div>
+                        </div>
+                        <div class="presence-stat">
+                            <div class="presence-stat-value" id="totalCorrespondance">0</div>
+                            <div class="presence-stat-label">VOTE PAR CORRESP.</div>
+                        </div>
+                        <div class="presence-stat">
+                            <div class="presence-stat-value" id="totalAbsents">0</div>
+                            <div class="presence-stat-label">ABSENTS</div>
+                        </div>
+                        <div class="presence-stat">
+                            <div class="presence-stat-value" id="totalVotants">0</div>
+                            <div class="presence-stat-label">VOTANTS (tant.)</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="procurations-list" id="procurationsList" style="display:none;">
+                    <h4>📝 Récapitulatif des Procurations</h4>
+                    <div id="procurationsContent"></div>
+                </div>
+            </div>
+
+            <div class="export-buttons">
+                <button class="btn-export btn-export-pdf" onclick="exportPDF()">📄 Générer le PV (PDF)</button>
+                <button class="btn-export btn-export-edit" onclick="showEditModal()">✏️ MODIFIER LES POINTS</button>
+                <button class="btn-reset-total" onclick="showResetModal()">🗑️ RESET TOTAL VOTES</button>
+                <input type="file" id="jsonFileInput" style="display:none" accept=".json" onchange="importDataJSON(this)">
+            </div>
+
+            <div id="pointsContainer"></div>
+        </div>
+    </div>
+
+    <div id="resetModal" class="modal">
+        <div class="modal-content">
+            <h2>⚠️ CONFIRMATION</h2>
+            <p>Vous allez effacer TOUS les votes.</p>
+            <div class="modal-buttons">
+                <button class="btn-confirm" onclick="confirmResetTotal()">✅ OUI, EFFACER</button>
+                <button class="btn-cancel" onclick="hideResetModal()">❌ ANNULER</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="editModal" class="modal">
+        <div class="modal-content" style="max-width: 800px; max-height: 85vh; overflow-y: auto; position: relative;">
+            <div style="position: sticky; top: 0; background: white; z-index: 10; padding-bottom: 15px; border-bottom: 2px solid #eee; margin-bottom: 20px;">
+                <h2>✏️ MODIFIER LES POINTS DE VOTE</h2>
+                <p style="margin-bottom: 15px; color: #666;">Modifiez les intitulés et réorganisez l'ordre des points (glisser-déposer)</p>
+                <div class="modal-buttons">
+                    <button class="btn-confirm" style="background:#28a745;" onclick="savePointsEdition()">💾 ENREGISTRER</button>
+                    <button class="btn-cancel" onclick="hideEditModal()">❌ ANNULER</button>
+                </div>
+            </div>
+            <div id="editPointsList" style="margin-bottom: 20px;"></div>
+            <div style="position: sticky; bottom: 0; background: white; z-index: 10; padding-top: 15px; border-top: 2px solid #eee; margin-top: 20px;">
+                <div class="modal-buttons">
+                    <button class="btn-confirm" style="background:#28a745;" onclick="savePointsEdition()">💾 ENREGISTRER</button>
+                    <button class="btn-cancel" onclick="hideEditModal()">❌ ANNULER</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="pdf-export"></div>
+
+    <script>
+        // --- DONNEES INITIALES ---
+        var coproprietaires = [
+    {
+        "nom": "CARSOULE",
+        "tantiemes": 117,
+        "presence": null,
+        "procurationDonneeA": null
+    },
+    {
+        "nom": "TROPAMER",
+        "tantiemes": 66,
+        "presence": null,
+        "procurationDonneeA": null
+    },
+    {
+        "nom": "PIRAS",
+        "tantiemes": 69,
+        "presence": null,
+        "procurationDonneeA": null
+    },
+    {
+        "nom": "GABRIEL",
+        "tantiemes": 62,
+        "presence": null,
+        "procurationDonneeA": null
+    },
+    {
+        "nom": "PALMARO",
+        "tantiemes": 41,
+        "presence": null,
+        "procurationDonneeA": null
+    },
+    {
+        "nom": "SALAHUN",
+        "tantiemes": 37,
+        "presence": null,
+        "procurationDonneeA": null
+    },
+    {
+        "nom": "SCI Clot",
+        "tantiemes": 86,
+        "presence": null,
+        "procurationDonneeA": null
+    },
+    {
+        "nom": "LE MERLE",
+        "tantiemes": 96,
+        "presence": null,
+        "procurationDonneeA": null
+    },
+    {
+        "nom": "LAMBARD",
+        "tantiemes": 125,
+        "presence": null,
+        "procurationDonneeA": null
+    },
+    {
+        "nom": "BELLIARD",
+        "tantiemes": 102,
+        "presence": null,
+        "procurationDonneeA": null
+    },
+    {
+        "nom": "CAUPENE",
+        "tantiemes": 199,
+        "presence": null,
+        "procurationDonneeA": null
+    }
+];
+
+        var pointsAG = [
+    {
+        "titre": "1. Élection du Bureau de Séance",
+        "article": "24"
+    },
+    {
+        "titre": "2. Renouvellement du Conseil Syndical",
+        "article": "25"
+    },
+    {
+        "titre": "3. Renouvellement du Syndic Bénévole",
+        "article": "25"
+    },
+    {
+        "titre": "4. Validation du Procès-Verbal AG 2024",
+        "article": "24"
+    },
+    {
+        "titre": "5. Rapport Moral de l'Année 2025",
+        "article": "24"
+    },
+    {
+        "titre": "6. Validation des Comptes au 31 déc 2025",
+        "article": "24"
+    },
+    {
+        "titre": "7. Obligations Légales 2026 DPE PPT",
+        "article": "25"
+    },
+    {
+        "titre": "8. Proposition et Financement DPE PPT",
+        "article": "25"
+    },
+    {
+        "titre": "9. Travaux 2026-2027 et Planification",
+        "article": "24"
+    },
+    {
+        "titre": "10. Financement Prêt Collectif - OPTION 1",
+        "article": "25"
+    },
+    {
+        "titre": "11. Financement Prêt Collectif - OPTION 2",
+        "article": "25"
+    },
+    {
+        "titre": "12. Bilan et Reconduction poste REPT",
+        "article": "24"
+    },
+    {
+        "titre": "13. Questions Diverses",
+        "article": "24"
+    },
+    {
+        "titre": "14. Renouvellement et Reconduction Contrats",
+        "article": "24"
+    },
+    {
+        "titre": "15. Autorisation Syndic compte bancaire",
+        "article": "25"
+    },
+    {
+        "titre": "16. Présentation Budget Prévisionnel 2026",
+        "article": "24"
+    },
+    {
+        "titre": "17. Vote Budget Prévisionnel Gestion 2026",
+        "article": "24"
+    },
+    {
+        "titre": "18. VOTE VIERGE (modifiable)",
+        "article": "24"
+    }
+];
+
+        const totalTantiemes = 1000;
+        const MAX_PROCURATIONS = 3;
+
+        // --- GESTION DES PRESENCES ---
+
+        function countProcurationsRecues(coproIdx) {
+            let count = 0;
+            coproprietaires.forEach(c => {
+                if (c.procurationDonneeA === coproIdx) count++;
+            });
+            return count;
+        }
+
+        function initPresenceSection() {
+            const grid = document.getElementById('presenceGrid');
+            grid.innerHTML = '';
+            coproprietaires.forEach((copro, idx) => {
+                const item = document.createElement('div');
+                item.className = 'presence-item';
+                
+                let optionsHTML = '<option value="">-- Choisir --</option>';
+                coproprietaires.forEach((c, i) => {
+                    if (i !== idx) {
+                        optionsHTML += `<option value="${i}">${c.nom} (${c.tantiemes})</option>`;
+                    }
+                });
+                
+                // Pré-remplissage des sélecteurs si données existantes
+                let selectedVal = copro.procurationDonneeA !== null ? copro.procurationDonneeA : '';
+                
+                item.innerHTML = `
+                    <div class="copro-name-pres">${copro.nom} (${copro.tantiemes})</div>
+                    <div class="presence-buttons">
+                        <button class="presence-btn present ${copro.presence === 'present' ? 'selected' : ''}" onclick="setPresence(${idx}, 'present')">✓ Présent</button>
+                        <button class="presence-btn procuration ${copro.presence === 'procuration' ? 'selected' : ''}" onclick="setPresence(${idx}, 'procuration')">📝 Procur.</button>
+                        <button class="presence-btn correspondance ${copro.presence === 'correspondance' ? 'selected' : ''}" onclick="setPresence(${idx}, 'correspondance')">✉️ Vote Corresp.</button>
+                        <button class="presence-btn absent ${copro.presence === 'absent' ? 'selected' : ''}" onclick="setPresence(${idx}, 'absent')">✗ Absent</button>
+                    </div>
+                    <div class="procuration-select ${copro.presence === 'procuration' ? 'visible' : ''}" id="procurationSelect${idx}">
+                        <label>Procuration donnée à :</label>
+                        <select id="procurationTo${idx}" onchange="setProcuration(${idx})">
+                            ${optionsHTML}
+                        </select>
+                        <div class="procuration-info" id="procurationInfo${idx}"></div>
+                        <div class="error-msg" id="procurationError${idx}"></div>
+                    </div>
+                    <div class="presence-status" id="presenceStatus${idx}"></div>
+                `;
+                grid.appendChild(item);
+
+                // Restaurer la valeur du select si procuration
+                if(copro.presence === 'procuration' && selectedVal !== '') {
+                    setTimeout(() => {
+                        const sel = document.getElementById(`procurationTo${idx}`);
+                        if(sel) sel.value = selectedVal;
+                        // Forcer la mise à jour visuelle du texte d'info
+                        if(selectedVal !== '') {
+                            const targetIdx = parseInt(selectedVal);
+                            const nbProcurations = countProcurationsRecues(targetIdx); 
+                            // Note: Le compte inclut celle-ci car déjà dans l'objet coproprietaires
+                            document.getElementById(`procurationInfo${idx}`).textContent = `✓ Donnée à ${coproprietaires[targetIdx].nom}`;
+                        }
+                    }, 0);
+                }
+                
+                // Restaurer texte status
+                const labels = {
+                    'present': '✓ Présent',
+                    'procuration': '📝 Procuration',
+                    'correspondance': '✉️ Vote par correspondance',
+                    'absent': '✗ Absent'
+                };
+                if(copro.presence) {
+                    item.querySelector(`#presenceStatus${idx}`).textContent = labels[copro.presence];
+                }
+            });
+            updatePresenceSummary();
+            updateProcurationsList();
+        }
+
+        function setPresence(idx, type) {
+            coproprietaires[idx].presence = type;
+            
+            if (type !== 'procuration') {
+                coproprietaires[idx].procurationDonneeA = null;
+                const sel = document.getElementById(`procurationTo${idx}`);
+                if(sel) sel.value = '';
+            }
+            
+            const item = document.querySelectorAll('.presence-item')[idx];
+            const buttons = item.querySelectorAll('.presence-btn');
+            buttons.forEach(btn => btn.classList.remove('selected'));
+            const selectedBtn = item.querySelector(`.presence-btn.${type}`);
+            if (selectedBtn) selectedBtn.classList.add('selected');
+            
+            const procurationSelect = document.getElementById(`procurationSelect${idx}`);
+            if (type === 'procuration') {
+                procurationSelect.classList.add('visible');
+                updateProcurationOptions();
+            } else {
+                procurationSelect.classList.remove('visible');
+            }
+            
+            const statusDiv = document.getElementById(`presenceStatus${idx}`);
+            const labels = {
+                'present': '✓ Présent',
+                'procuration': '📝 Procuration',
+                'correspondance': '✉️ Vote par correspondance',
+                'absent': '✗ Absent'
+            };
+            statusDiv.textContent = labels[type] || '';
+            
+            updatePresenceSummary();
+            updateAllVoteButtons();
+            updateProcurationsList();
+        }
+
+        function setProcuration(idx) {
+            const selectElement = document.getElementById(`procurationTo${idx}`);
+            const targetIdx = parseInt(selectElement.value);
+            const errorDiv = document.getElementById(`procurationError${idx}`);
+            const infoDiv = document.getElementById(`procurationInfo${idx}`);
+            
+            errorDiv.textContent = '';
+            infoDiv.textContent = '';
+            
+            if (selectElement.value === '') {
+                coproprietaires[idx].procurationDonneeA = null;
+                updateProcurationsList();
+                return;
+            }
+            
+            if (coproprietaires[targetIdx].presence !== 'present') {
+                errorDiv.textContent = '⚠️ Ce copropriétaire doit être marqué comme "Présent"';
+                selectElement.value = '';
+                return;
+            }
+            
+            const nbProcurations = countProcurationsRecues(targetIdx);
+            if (nbProcurations >= MAX_PROCURATIONS) {
+                errorDiv.textContent = `⚠️ Max ${MAX_PROCURATIONS} procurations atteint`;
+                selectElement.value = '';
+                return;
+            }
+            
+            coproprietaires[idx].procurationDonneeA = targetIdx;
+            infoDiv.textContent = `✓ Donnée à ${coproprietaires[targetIdx].nom} (${nbProcurations + 1}/${MAX_PROCURATIONS})`;
+            
+            updateProcurationOptions();
+            updateProcurationsList();
+        }
+
+        function updateProcurationOptions() {
+            coproprietaires.forEach((copro, idx) => {
+                if (copro.presence === 'procuration') {
+                    const select = document.getElementById(`procurationTo${idx}`);
+                    const currentValue = select.value;
+                    let optionsHTML = '<option value="">-- Choisir --</option>';
+                    coproprietaires.forEach((c, i) => {
+                        if (i !== idx && c.presence === 'present') {
+                            // On compte les procurations sauf si c'est déjà celle du copropriétaire courant (pour pas bloquer changement)
+                            let nbProc = 0;
+                            coproprietaires.forEach((subC, subI) => {
+                                if(subC.procurationDonneeA === i && subI !== idx) nbProc++;
+                            });
+
+                            const disabled = nbProc >= MAX_PROCURATIONS ? 'disabled' : '';
+                            const countInfo = nbProc > 0 ? ` [${nbProc}/${MAX_PROCURATIONS}]` : '';
+                            optionsHTML += `<option value="${i}" ${disabled}>${c.nom}${countInfo}</option>`;
+                        }
+                    });
+                    select.innerHTML = optionsHTML;
+                    select.value = currentValue;
+                }
+            });
+        }
+
+        function updateProcurationsList() {
+            const listDiv = document.getElementById('procurationsList');
+            const contentDiv = document.getElementById('procurationsContent');
+            const procurationsParPersonne = {};
+            
+            coproprietaires.forEach((copro, idx) => {
+                if (copro.presence === 'present') {
+                    procurationsParPersonne[idx] = [];
+                }
+            });
+            
+            coproprietaires.forEach((copro, idx) => {
+                if (copro.presence === 'procuration' && copro.procurationDonneeA !== null) {
+                    if (!procurationsParPersonne[copro.procurationDonneeA]) {
+                        procurationsParPersonne[copro.procurationDonneeA] = [];
+                    }
+                    procurationsParPersonne[copro.procurationDonneeA].push({
+                        nom: copro.nom,
+                        tantiemes: copro.tantiemes
+                    });
+                }
+            });
+            
+            let hasProcurations = false;
+            let html = '';
+            
+            Object.keys(procurationsParPersonne).forEach(idx => {
+                const procurations = procurationsParPersonne[idx];
+                if (procurations.length > 0) {
+                    hasProcurations = true;
+                    const copro = coproprietaires[idx];
+                    html += `<div class="procuration-item"><strong>${copro.nom}</strong> vote pour : <span class="procuration-count">${procurations.length} proc.</span><br><span style="font-size:0.85em; color:#666;">${procurations.map(p => `${p.nom} (${p.tantiemes})`).join(', ')}</span></div>`;
+                }
+            });
+            
+            if (hasProcurations) {
+                contentDiv.innerHTML = html;
+                listDiv.style.display = 'block';
+            } else {
+                listDiv.style.display = 'none';
+            }
+        }
+
+        function updatePresenceSummary() {
+            let presents = 0, procurations = 0, correspondance = 0, absents = 0, votants = 0;
+            coproprietaires.forEach(c => {
+                if (c.presence === 'present') { 
+                    presents++; 
+                    votants += c.tantiemes;
+                    coproprietaires.forEach(other => {
+                        if (other.procurationDonneeA === coproprietaires.indexOf(c)) {
+                            votants += other.tantiemes;
+                        }
+                    });
+                }
+                else if (c.presence === 'procuration') procurations++;
+                else if (c.presence === 'correspondance') { correspondance++; votants += c.tantiemes; }
+                else if (c.presence === 'absent') absents++;
+            });
+            document.getElementById('totalPresents').textContent = presents;
+            document.getElementById('totalProcurations').textContent = procurations;
+            document.getElementById('totalCorrespondance').textContent = correspondance;
+            document.getElementById('totalAbsents').textContent = absents;
+            document.getElementById('totalVotants').textContent = votants;
+        }
+
+        // --- GESTION DES VOTES ---
+
+        function updateAllVoteButtons() {
+            pointsAG.forEach((_, pointIdx) => {
+                coproprietaires.forEach((copro, coproIdx) => {
+                    const buttons = document.querySelectorAll(`#buttons${coproIdx}-${pointIdx} .vote-btn`);
+                    buttons.forEach(btn => {
+                        btn.disabled = copro.presence === 'absent' || copro.presence === null || copro.presence === 'procuration';
+                    });
+                });
+            });
+        }
+
+        function initPoints() {
+            const container = document.getElementById('pointsContainer');
+            container.innerHTML = '';
+            
+            pointsAG.forEach((point, idx) => {
+                const section = document.createElement('div');
+                section.className = 'point-section';
+                section.id = `point${idx}`;
+                
+                const titleDiv = document.createElement('div');
+                titleDiv.className = 'point-title';
+                titleDiv.innerHTML = `📌 ${point.titre}`;
+                section.appendChild(titleDiv);
+                
+                const contentWrapper = document.createElement('div');
+                
+                let votesGridHTML = '';
+                coproprietaires.forEach((copro, coproIdx) => {
+                    // Restauration des votes existants s'il y en a
+                    const currentVote = copro[`vote_point${idx}`];
+                    
+                    const isP = currentVote === 'P' ? 'selected' : '';
+                    const isC = currentVote === 'C' ? 'selected' : '';
+                    const isA = currentVote === 'A' ? 'selected' : '';
+                    const isAbs = currentVote === 'Abs' ? 'selected' : '';
+                    
+                    let labelVote = '';
+                    if(currentVote === 'P') labelVote = '✅ POUR';
+                    if(currentVote === 'C') labelVote = '❌ CONTRE';
+                    if(currentVote === 'A') labelVote = '🟡 ABST';
+                    if(currentVote === 'Abs') labelVote = '⚪ ABS';
+
+                    votesGridHTML += `
+                        <div id="copro${coproIdx}-point${idx}">
+                            <div class="copro-name">${copro.nom}</div>
+                            <div class="vote-buttons" id="buttons${coproIdx}-${idx}">
+                                <button class="vote-btn pour ${isP}" onclick="updateVote(${idx},${coproIdx},'P')">P</button>
+                                <button class="vote-btn contre ${isC}" onclick="updateVote(${idx},${coproIdx},'C')">C</button>
+                                <button class="vote-btn abst ${isA}" onclick="updateVote(${idx},${coproIdx},'A')">A</button>
+                                <button class="vote-btn abs ${isAbs}" onclick="updateVote(${idx},${coproIdx},'Abs')">Abs</button>
+                            </div>
+                            <div class="vote-selected" id="selected${coproIdx}-${idx}">${labelVote}</div>
+                        </div>
+                    `;
+                });
+
+                contentWrapper.innerHTML = `
+                    <div style="display:flex; gap:15px; align-items:center; margin-bottom:15px; flex-wrap:wrap;">
+                        <div class="article-selector">
+                            <label>Article: </label>
+                            <select id="article${idx}" onchange="updatePointResult(${idx})">
+                                <option value="24" ${point.article === '24' ? 'selected' : ''}>Art 24 - Majorité simple</option>
+                                <option value="25" ${point.article === '25' ? 'selected' : ''}>Art 25 - Majorité absolue</option>
+                                <option value="26" ${point.article === '26' ? 'selected' : ''}>Art 26 - Double majorité</option>
+                                <option value="unanimite" ${point.article === 'unanimite' ? 'selected' : ''}>Unanimité</option>
+                            </select>
+                        </div>
+                        <div class="btn-actions">
+                            <button class="btn-all-pour" onclick="voteAllPour(${idx})">✅ TOUT POUR</button>
+                            <button class="btn-all-contre" onclick="voteAllContre(${idx})">❌ TOUT CONTRE</button>
+                            <button class="btn-reset-point" onclick="resetPointVotes(${idx})">🔄 RESET</button>
+                        </div>
+                    </div>
+                    <div class="votes-grid">${votesGridHTML}</div>
+                    <div class="result-row">
+                        <div id="result${idx}" class="result-badge attente">⏳ EN ATTENTE</div>
+                        <div class="stats">
+                            <div class="stat"><span id="stats-pour${idx}">0</span><br><span class="stat-label">POUR</span></div>
+                            <div class="stat"><span id="stats-contre${idx}">0</span><br><span class="stat-label">CONTRE</span></div>
+                            <div class="stat"><span id="stats-abst${idx}">0</span><br><span class="stat-label">ABST.</span></div>
+                            <div class="stat"><span id="stats-abs${idx}">0</span><br><span class="stat-label">ABS.</span></div>
+                        </div>
+                    </div>
+                `;
+                
+                section.appendChild(contentWrapper);
+                container.appendChild(section);
+                
+                // Calcul initial si votes existants
+                setTimeout(() => updatePointResult(idx), 0);
+            });
+            
+            updateAllVoteButtons();
+        }
+
+        function voteAllPour(pointIdx) {
+            coproprietaires.forEach((copro, coproIdx) => {
+                if (copro.presence === 'present' || copro.presence === 'correspondance') {
+                    copro[`vote_point${pointIdx}`] = 'P';
+                    const buttons = document.querySelectorAll(`#buttons${coproIdx}-${pointIdx} .vote-btn`);
+                    buttons.forEach(btn => btn.classList.remove('selected'));
+                    buttons[0].classList.add('selected'); // Index 0 = Pour
+                    document.getElementById(`selected${coproIdx}-${pointIdx}`).textContent = '✅ POUR';
+                }
+            });
+            updatePointResult(pointIdx);
+        }
+
+        function voteAllContre(pointIdx) {
+            coproprietaires.forEach((copro, coproIdx) => {
+                if (copro.presence === 'present' || copro.presence === 'correspondance') {
+                    copro[`vote_point${pointIdx}`] = 'C';
+                    const buttons = document.querySelectorAll(`#buttons${coproIdx}-${pointIdx} .vote-btn`);
+                    buttons.forEach(btn => btn.classList.remove('selected'));
+                    buttons[1].classList.add('selected'); // Index 1 = Contre
+                    document.getElementById(`selected${coproIdx}-${pointIdx}`).textContent = '❌ CONTRE';
+                }
+            });
+            updatePointResult(pointIdx);
+        }
+
+        function calculerResultat(article, pour, contre, abst, absents, votesExprimees) {
+            if (votesExprimees === 0) {
+                return { resultat: null, texte: '', pour, contre, abst, absents };
+            }
+            let resultat = false;
+            let texte = '';
+            if (article === '24') {
+                resultat = pour > contre;
+                texte = `Art 24: ${pour} > ${contre}`;
+            } else if (article === '25') {
+                resultat = pour > totalTantiemes / 2;
+                texte = `Art 25: ${pour} > 500`;
+            } else if (article === '26') {
+                const deuxTiers = totalTantiemes * 2/3;
+                resultat = pour >= deuxTiers;
+                texte = `Art 26: ${pour} ≥ ${Math.round(deuxTiers)}`;
+            } else if (article === 'unanimite') {
+                resultat = pour === totalTantiemes;
+                texte = `Unanimité: ${pour} = 1000`;
+            }
+            return { resultat, texte, pour, contre, abst, absents };
+        }
+
+        function updateVote(pointIndex, coproIndex, vote) {
+            const copro = coproprietaires[coproIndex];
+            if (copro.presence === 'absent' || copro.presence === null || copro.presence === 'procuration') {
+                return;
+            }
+            
+            coproprietaires[coproIndex][`vote_point${pointIndex}`] = vote;
+            const buttons = document.querySelectorAll(`#buttons${coproIndex}-${pointIndex} .vote-btn`);
+            buttons.forEach((btn, idx) => {
+                if (['P','C','A','Abs'][idx] === vote) {
+                    btn.classList.add('selected');
+                } else {
+                    btn.classList.remove('selected');
+                }
+            });
+            const selectedDiv = document.getElementById(`selected${coproIndex}-${pointIndex}`);
+            const nomsVotes = {'P':'✅ POUR', 'C':'❌ CONTRE', 'A':'🟡 ABST', 'Abs':'⚪ ABS'};
+            selectedDiv.textContent = nomsVotes[vote] || '';
+            updatePointResult(pointIndex);
+        }
+
+        function resetPointVotes(pointIndex) {
+            coproprietaires.forEach((c, idx) => {
+                c[`vote_point${pointIndex}`] = undefined;
+                const buttons = document.querySelectorAll(`#buttons${idx}-${pointIndex} .vote-btn`);
+                buttons.forEach(btn => btn.classList.remove('selected'));
+                document.getElementById(`selected${idx}-${pointIndex}`).textContent = '';
+            });
+            updatePointResult(pointIndex);
+        }
+
+        function updatePointResult(pointIndex) {
+            const articleEl = document.getElementById(`article${pointIndex}`);
+            if(!articleEl) return;
+            
+            const article = articleEl.value;
+            // On met à jour l'objet data aussi au cas où
+            pointsAG[pointIndex].article = article;
+
+            let pour = 0, contre = 0, abst = 0, absents = 0, votesExprimees = 0;
+            
+            coproprietaires.forEach((copro, i) => {
+                const vote = copro[`vote_point${pointIndex}`];
+                let tantTotal = copro.tantiemes;
+                
+                if (copro.presence === 'present') {
+                    coproprietaires.forEach((other, j) => {
+                        if (other.procurationDonneeA === i) {
+                            tantTotal += other.tantiemes;
+                        }
+                    });
+                }
+                
+                if (vote === 'P') { pour += tantTotal; votesExprimees += tantTotal; }
+                else if (vote === 'C') { contre += tantTotal; votesExprimees += tantTotal; }
+                else if (vote === 'A') { abst += tantTotal; }
+                else if (copro.presence === 'correspondance') {
+                    absents += copro.tantiemes;
+                } else if (copro.presence !== 'procuration') {
+                    absents += tantTotal;
+                }
+            });
+            
+            const result = calculerResultat(article, pour, contre, abst, absents, votesExprimees);
+            const resultDiv = document.getElementById(`result${pointIndex}`);
+            if (votesExprimees === 0) {
+                resultDiv.className = 'result-badge attente';
+                resultDiv.innerHTML = '⏳ EN ATTENTE';
+            } else {
+                resultDiv.className = `result-badge ${result.resultat ? 'adopte' : 'rejete'}`;
+                resultDiv.innerHTML = `<div>${result.resultat ? '✓ ADOPTÉ' : '✗ REJETÉ'}</div><div style="font-size:0.7em">${result.texte}</div>`;
+            }
+            document.getElementById(`stats-pour${pointIndex}`).textContent = pour;
+            document.getElementById(`stats-contre${pointIndex}`).textContent = contre;
+            document.getElementById(`stats-abst${pointIndex}`).textContent = abst;
+            document.getElementById(`stats-abs${pointIndex}`).textContent = absents;
+        }
+
+        // --- NOUVELLES FONCTIONS DE SAUVEGARDE JSON ---
+
+        function exportDataJSON() {
+            const dateInput = document.getElementById('agDate').value;
+            const dataToSave = {
+                dateAG: dateInput,
+                coproprietaires: coproprietaires,
+                pointsAG: pointsAG
+            };
+            
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dataToSave, null, 4));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "Sauvegarde_AG_" + (dateInput || "new") + ".json");
+            document.body.appendChild(downloadAnchorNode); // required for firefox
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+
+        function importDataJSON(inputElement) {
+            const file = inputElement.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const loadedData = JSON.parse(e.target.result);
+                    
+                    // Mise à jour des variables globales
+                    if (loadedData.coproprietaires) coproprietaires = loadedData.coproprietaires;
+                    if (loadedData.pointsAG) pointsAG = loadedData.pointsAG;
+                    if (loadedData.dateAG) document.getElementById('agDate').value = loadedData.dateAG;
+
+                    // Réinitialisation de l'interface avec les nouvelles données
+                    initPresenceSection();
+                    initPoints();
+                    
+                    alert("✅ Données chargées avec succès !");
+                } catch (error) {
+                    console.error(error);
+                    alert("❌ Erreur lors de la lecture du fichier. Assurez-vous qu'il s'agit bien d'une sauvegarde JSON valide.");
+                }
+                // Reset l'input pour pouvoir recharger le même fichier si besoin
+                inputElement.value = '';
+            };
+            reader.readAsText(file);
+        }
+
+        // --- EXPORT PDF ---
+
+        function exportPDF() {
+            // Récupération de la date depuis l'input
+            const dateInput = document.getElementById('agDate').value;
+            let dateStr = "";
+            if (dateInput) {
+                // Formatage YYYY-MM-DD vers JJ/MM/AAAA
+                const parts = dateInput.split('-');
+                dateStr = `${parts[2]}/${parts[1]}/${parts[0]}`;
+            } else {
+                dateStr = new Date().toLocaleDateString('fr-FR');
+            }
+            
+            const mainInterface = document.getElementById('mainInterface');
+            const exportContainer = document.getElementById('pdf-export');
+            
+            let presents = 0, procurations = 0, votantsTantiemes = 0;
+            coproprietaires.forEach(c => {
+                if (c.presence === 'present') {
+                    presents++;
+                    votantsTantiemes += c.tantiemes;
+                    coproprietaires.forEach(other => {
+                        if (other.procurationDonneeA === coproprietaires.indexOf(c)) {
+                            votantsTantiemes += other.tantiemes;
+                        }
+                    });
+                } else if (c.presence === 'procuration') {
+                    procurations++;
+                } else if (c.presence === 'correspondance') {
+                    votantsTantiemes += c.tantiemes;
+                }
+            });
+
+            // TITRE DYNAMIQUE AVEC LA DATE
+            let htmlContent = `
+                <h1>RÉSULTATS DES VOTES DE L'ASSEMBLÉE GÉNÉRALE DU ${dateStr.toUpperCase()}</h1>
+                <div class="meta-info">
+                    Date : ${dateStr} <br>
+                    Total Copropriété : 1000 tantièmes <br>
+                    Présents : ${presents} | Procurations : ${procurations} | Total Votants : ${votantsTantiemes} / 1000
+                </div>
+
+                <h2>1. FEUILLE DE PRÉSENCE</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Copropriétaire</th>
+                            <th>Tantièmes</th>
+                            <th>Statut</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            coproprietaires.forEach((c) => {
+                let statut = '';
+                if(c.presence === 'present') statut = 'PRÉSENT';
+                else if(c.presence === 'absent') statut = 'ABSENT';
+                else if(c.presence === 'correspondance') statut = 'VOTE PAR CORRESPONDANCE';
+                else if(c.presence === 'procuration') {
+                    const mandataire = c.procurationDonneeA !== null ? coproprietaires[c.procurationDonneeA].nom : '?';
+                    statut = `REPRÉSENTÉ PAR ${mandataire}`;
+                } else statut = 'NON RENSEIGNÉ';
+
+                htmlContent += `
+                    <tr>
+                        <td>${c.nom}</td>
+                        <td>${c.tantiemes}</td>
+                        <td>${statut}</td>
+                    </tr>
+                `;
+            });
+
+            htmlContent += `
+                    </tbody>
+                </table>
+                <h2>2. RÉSULTAT DES RÉSOLUTIONS</h2>
+            `;
+
+            pointsAG.forEach((point, idx) => {
+                let pour = 0, contre = 0, abst = 0;
+                coproprietaires.forEach((copro, i) => {
+                    const vote = copro[`vote_point${idx}`];
+                    let tantTotal = copro.tantiemes;
+                    
+                    if (copro.presence === 'present') {
+                        coproprietaires.forEach((other) => {
+                            if (other.procurationDonneeA === i) tantTotal += other.tantiemes;
+                        });
+                    }
+                    
+                    if (vote === 'P') pour += tantTotal;
+                    else if (vote === 'C') contre += tantTotal;
+                    else if (vote === 'A') abst += tantTotal;
+                });
+
+                let isAdopte = false;
+                if (point.article === '24') isAdopte = pour > contre;
+                else if (point.article === '25') isAdopte = pour > 500;
+                else if (point.article === '26') isAdopte = pour >= 666;
+                else if (point.article === 'unanimite') isAdopte = pour === 1000;
+
+                const statusClass = isAdopte ? 'adopte-pdf' : 'rejete-pdf';
+                const statusText = isAdopte ? 'ADOPTÉ' : 'REJETÉ';
+
+                htmlContent += `
+                    <div class="result-block">
+                        <div class="res-header">
+                            <span class="point-title-pdf">${point.titre} (Art. ${point.article})</span>
+                            <span class="point-badge-pdf ${statusClass}">${statusText}</span>
+                        </div>
+                        <div class="details-pdf">
+                            POUR : ${pour} | CONTRE : ${contre} | ABSTENTION : ${abst}
+                        </div>
+                    </div>
+                `;
+            });
+
+            exportContainer.innerHTML = htmlContent;
+            
+            mainInterface.style.display = 'none';
+            exportContainer.style.display = 'block';
+            window.scrollTo(0,0);
+
+            const opt = {
+                margin: 10,
+                filename: 'PV_AG_' + dateStr.replace(/\//g, '-') + '.pdf', // Nom de fichier avec la date choisie
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak: { mode: ['css', 'legacy'] }
+            };
+
+            setTimeout(() => {
+                html2pdf().set(opt).from(exportContainer).save().then(() => {
+                    exportContainer.style.display = 'none';
+                    mainInterface.style.display = 'block';
+                });
+            }, 500);
+        }
+
+        // --- RESET ---
+        function showResetModal() { document.getElementById('resetModal').style.display = 'block'; }
+        function hideResetModal() { document.getElementById('resetModal').style.display = 'none'; }
+        function confirmResetTotal() {
+            // Reset des votes
+            coproprietaires.forEach(c => {
+                Object.keys(c).forEach(k => {
+                    if(k.startsWith('vote_point')) delete c[k];
+                });
+                c.presence = null;
+                c.procurationDonneeA = null;
+            });
+            
+            // Refresh complet
+            initPresenceSection();
+            initPoints();
+            
+            hideResetModal();
+            alert('✅ TOUS les votes et présences ont été effacés !');
+        }
+
+        // --- ÉDITION DES POINTS ---
+        let draggedElement = null;
+
+        function showEditModal() {
+            const modal = document.getElementById('editModal');
+            const listContainer = document.getElementById('editPointsList');
+            
+            listContainer.innerHTML = '';
+            
+            pointsAG.forEach((point, idx) => {
+                const item = document.createElement('div');
+                item.className = 'edit-point-item';
+                item.draggable = true;
+                item.dataset.originalIndex = idx; // Important: On garde la ref de l'index d'origine
+                
+                // Protection des guillemets pour l'attribut value
+                const safeTitle = point.titre.replace(/"/g, '&quot;');
+                
+                item.innerHTML = `
+                    <div class="edit-point-header">
+                        <span class="drag-handle">☰</span>
+                        <span class="edit-point-number">${idx + 1}</span>
+                        <input type="text" class="edit-point-input" value="${safeTitle}">
+                    </div>
+                    <div class="edit-point-controls">
+                        <label style="font-size: 0.9em; color: #666; font-weight: 600;">Article :</label>
+                        <select class="edit-article-select">
+                            <option value="24" ${point.article === '24' ? 'selected' : ''}>Art 24 - Majorité simple</option>
+                            <option value="25" ${point.article === '25' ? 'selected' : ''}>Art 25 - Majorité absolue</option>
+                            <option value="26" ${point.article === '26' ? 'selected' : ''}>Art 26 - Double majorité</option>
+                            <option value="unanimite" ${point.article === 'unanimite' ? 'selected' : ''}>Unanimité</option>
+                        </select>
+                        <button class="btn-delete-point" onclick="deletePoint(this)">🗑️ Supprimer</button>
+                    </div>
+                `;
+                
+                item.addEventListener('dragstart', handleDragStart);
+                item.addEventListener('dragover', handleDragOver);
+                item.addEventListener('drop', handleDrop);
+                item.addEventListener('dragend', handleDragEnd);
+                
+                listContainer.appendChild(item);
+            });
+            
+            const addBtn = document.createElement('button');
+            addBtn.className = 'btn-add-point';
+            addBtn.innerHTML = '➕ AJOUTER UN POINT';
+            addBtn.onclick = addNewPoint;
+            listContainer.appendChild(addBtn);
+            
+            modal.style.display = 'block';
+        }
+
+        function hideEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+
+        function handleDragStart(e) {
+            draggedElement = this;
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleDragOver(e) {
+            if (e.preventDefault) e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            
+            const target = e.target.closest('.edit-point-item');
+            if (target && target !== draggedElement && target.draggable) {
+                const container = target.parentNode;
+                const allItems = [...container.querySelectorAll('.edit-point-item')];
+                const draggedIdx = allItems.indexOf(draggedElement);
+                const targetIdx = allItems.indexOf(target);
+                
+                if (draggedIdx < targetIdx) {
+                    target.after(draggedElement);
+                } else {
+                    target.before(draggedElement);
+                }
+            }
+            return false;
+        }
+
+        function handleDrop(e) {
+            if (e.stopPropagation) e.stopPropagation();
+            return false;
+        }
+
+        function handleDragEnd(e) {
+            this.classList.remove('dragging');
+            
+            const items = document.querySelectorAll('.edit-point-item');
+            items.forEach((item, idx) => {
+                const numberSpan = item.querySelector('.edit-point-number');
+                if (numberSpan) numberSpan.textContent = idx + 1;
+            });
+        }
+
+        function addNewPoint() {
+            // On ferme et on rouvre le modal, en ajoutant un point au modèle
+            pointsAG.push({
+                titre: `Nouveau point ${pointsAG.length + 1}`,
+                article: '24'
+            });
+            hideEditModal();
+            showEditModal();
+        }
+
+        function deletePoint(btnElement) {
+            const item = btnElement.closest('.edit-point-item');
+            if(document.querySelectorAll('.edit-point-item').length <= 1) {
+                alert("Impossible de supprimer le dernier point.");
+                return;
+            }
+            if(confirm("Supprimer ce point ?")) {
+                item.remove();
+                // Renumérotation visuelle
+                const items = document.querySelectorAll('.edit-point-item');
+                items.forEach((item, idx) => {
+                    item.querySelector('.edit-point-number').textContent = idx + 1;
+                });
+            }
+        }
+
+        function savePointsEdition() {
+            const items = document.querySelectorAll('.edit-point-item');
+            const newPoints = [];
+            const newVotesMap = []; // Pour stocker les maps de votes par copro
+
+            // On prépare la structure pour les nouveaux votes
+            coproprietaires.forEach(() => newVotesMap.push({}));
+
+            items.forEach((item, newIdx) => {
+                const originalIdx = parseInt(item.dataset.originalIndex);
+                
+                // Récupération des données du formulaire
+                const titre = item.querySelector('.edit-point-input').value;
+                const article = item.querySelector('.edit-article-select').value;
+                
+                newPoints.push({ titre, article });
+
+                // Migration des votes : si le point existait avant (pas un nouveau ajouté dans le modal sans save)
+                // et qu'il n'a pas été supprimé
+                if (!isNaN(originalIdx)) {
+                    coproprietaires.forEach((copro, cIdx) => {
+                        const oldVoteKey = `vote_point${originalIdx}`;
+                        if (copro[oldVoteKey]) {
+                            newVotesMap[cIdx][`vote_point${newIdx}`] = copro[oldVoteKey];
+                        }
+                    });
+                }
+            });
+
+            // Mise à jour du modèle global
+            pointsAG.length = 0;
+            pointsAG.push(...newPoints);
+
+            // Nettoyage et application des votes
+            coproprietaires.forEach((copro, cIdx) => {
+                // Supprimer tous les anciens votes
+                Object.keys(copro).forEach(key => {
+                    if(key.startsWith('vote_point')) delete copro[key];
+                });
+                // Appliquer les nouveaux
+                Object.assign(copro, newVotesMap[cIdx]);
+            });
+
+            hideEditModal();
+            initPoints();
+            
+            alert('✅ Points modifiés avec succès !');
+        }
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            initPresenceSection();
+            initPoints();
+        });
+    </script>
+</body>
+</html>

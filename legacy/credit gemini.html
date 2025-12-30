@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulateur de Crédit Copropriété</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            body {
+                background: white !important;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+    <div class="max-w-7xl mx-auto">
+        <div class="bg-white rounded-2xl shadow-xl p-6 mb-6">
+            <div class="mb-6">
+                <div class="flex items-center gap-3 mb-2">
+                    <svg class="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+                        <line x1="8" y1="12" x2="16" y2="12"></line>
+                        <line x1="8" y1="16" x2="16" y2="16"></line>
+                        <line x1="8" y1="8" x2="16" y2="8"></line>
+                    </svg>
+                    <h1 class="text-3xl font-bold text-gray-800">Simulateur de Crédit Copropriété</h1>
+                </div>
+                <p class="text-gray-600 ml-11">9 Rue André Leroux - Soulac-sur-Mer (33780)</p>
+            </div>
+
+            <div class="no-print mb-6 flex gap-3 justify-end">
+                <button onclick="sauvegarderHTML()" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+                    </svg>
+                    Sauvegarder HTML
+                </button>
+                <button onclick="exportPDF('complet')" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    Exporter PDF Complet
+                </button>
+                <button onclick="exportPDF('recap')" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    Exporter PDF Récapitulatif
+                </button>
+            </div>
+
+            <div id="params-credit" class="bg-indigo-50 rounded-xl p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                        <line x1="1" y1="10" x2="23" y2="10"></line>
+                    </svg>
+                    Paramètres du Crédit
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Durée (mois)</label>
+                        <input type="number" id="duree" value="120" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500" onchange="calculer()">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">TEG (%)</label>
+                        <input type="number" id="tauxNominal" value="3.5" step="0.01" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500" onchange="calculer()">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Taux Assurance (%)</label>
+                        <input type="number" id="tauxAssurance" value="0.36" step="0.01" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500" onchange="calculer()">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Fonds Travaux Loi Alur (€)</label>
+                        <input type="number" id="fondsTravaux" value="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500" onchange="calculer()">
+                    </div>
+                    <div class="flex items-end">
+                        <div class="text-sm">
+                            <div class="font-semibold text-gray-700">Montant total</div>
+                            <div class="text-2xl font-bold text-indigo-600" id="montantTotal">0 €</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-amber-50 rounded-xl p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                    </svg>
+                    Mode de Saisie
+                </h2>
+                <div class="flex gap-4">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="modeInput" value="simple" checked onchange="toggleInputMode()" class="w-4 h-4">
+                        <span class="text-sm font-medium">Saisie Simple (montants globaux)</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="modeInput" value="detaille" onchange="toggleInputMode()" class="w-4 h-4">
+                        <span class="text-sm font-medium">Saisie Détaillée (par poste de dépense)</span>
+                    </label>
+                </div>
+            </div>
+
+            <div id="postes-depenses-simple" class="bg-green-50 rounded-xl p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                    </svg>
+                    Montants Globaux
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Parties Communes (€)</label>
+                        <input type="number" id="partiesCommunes" value="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" onchange="calculer()">
+                        <p class="text-xs text-gray-600 mt-1">Répartition sur 1000 tantièmes</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Grand Balcon (€) - Privatif</label>
+                        <input type="number" id="grandBalcon" value="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" onchange="calculer()">
+                        <p class="text-xs text-gray-600 mt-1">Répartition aux tantièmes</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Petits Balcons (€) - Privatif</label>
+                        <input type="number" id="petitsBalcons" value="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" onchange="calculer()">
+                        <p class="text-xs text-gray-600 mt-1">Parts égales</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Celliers (€)</label>
+                        <input type="number" id="celliers" value="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" onchange="calculer()">
+                        <p class="text-xs text-gray-600 mt-1">22 tantièmes celliers</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="postes-depenses-detaille" class="bg-green-50 rounded-xl p-6 mb-6" style="display: none;">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                    </svg>
+                    Détail par Poste de Dépense
+                </h2>
+                <div id="postesDetailList" class="space-y-4"></div>
+                <button onclick="ajouterPoste()" class="mt-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
+                    + Ajouter un poste
+                </button>
+            </div>
+
+            <div id="gestion-copro" class="bg-purple-50 rounded-xl p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                    Copropriétaires - Total: 1000 tantièmes
+                </h2>
+                <div class="space-y-3" id="coproList"></div>
+            </div>
+
+            <div id="tableau-repartition" class="bg-white rounded-xl border-2 border-gray-200 overflow-hidden">
+                <h2 class="text-xl font-semibold text-gray-800 p-6 bg-gray-50">Répartition Détaillée par Copropriétaire</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="px-3 py-3 text-left text-xs font-semibold text-gray-700">Copropriétaire</th>
+                                <th class="px-3 py-3 text-center text-xs font-semibold text-gray-700">Lot</th>
+                                <th class="px-3 py-3 text-right text-xs font-semibold text-gray-700">Tant.</th>
+                                <th class="px-3 py-3 text-right text-xs font-semibold text-gray-700">P. Communes</th>
+                                <th class="px-3 py-3 text-right text-xs font-semibold text-gray-700">Balcons</th>
+                                <th class="px-3 py-3 text-right text-xs font-semibold text-gray-700">Celliers</th>
+                                <th class="px-3 py-3 text-right text-xs font-semibold text-gray-700">Total Travaux</th>
+                                <th class="px-3 py-3 text-right text-xs font-semibold text-gray-700">Fonds Alur</th>
+                                <th class="px-3 py-3 text-right text-xs font-semibold text-gray-700">Apport Perso</th>
+                                <th class="px-3 py-3 text-right text-xs font-semibold text-gray-700">À Financer</th>
+                                <th class="px-3 py-3 text-right text-xs font-semibold text-gray-700">Mensualité</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody" class="divide-y divide-gray-200"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="resume-financier" class="mt-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
+                    <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-5 text-white">
+                        <div class="text-xs opacity-90 mb-1">Montant Total Travaux</div>
+                        <div class="text-2xl font-bold" id="resumeMontantTotal">0 €</div>
+                    </div>
+                    <div class="bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-xl p-5 text-white">
+                        <div class="text-xs opacity-90 mb-1">Fonds Travaux Loi Alur</div>
+                        <div class="text-2xl font-bold" id="resumeFondsTravaux">0 €</div>
+                    </div>
+                    <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-5 text-white">
+                        <div class="text-xs opacity-90 mb-1">Apports Personnels</div>
+                        <div class="text-2xl font-bold" id="resumeApports">0 €</div>
+                    </div>
+                    <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-5 text-white">
+                        <div class="text-xs opacity-90 mb-1">Montant Financé</div>
+                        <div class="text-2xl font-bold" id="resumeMontantFinance">0 €</div>
+                    </div>
+                    <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-5 text-white">
+                        <div class="text-xs opacity-90 mb-1">Coût Total Crédit</div>
+                        <div class="text-2xl font-bold" id="resumeCoutTotal">0 €</div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-gradient-to-br from-red-500 to-red-600 rounded-xl p-5 text-white">
+                        <div class="text-xs opacity-90 mb-1">Intérêts TEG</div>
+                        <div class="text-2xl font-bold" id="resumeInteretsTEG">0 €</div>
+                    </div>
+                    <div class="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl p-5 text-white">
+                        <div class="text-xs opacity-90 mb-1">Coût Assurance</div>
+                        <div class="text-2xl font-bold" id="resumeCoutAssurance">0 €</div>
+                    </div>
+                    <div class="bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl p-5 text-white">
+                        <div class="text-xs opacity-90 mb-1">Surprix Total (Intérêts + Assurance)</div>
+                        <div class="text-2xl font-bold" id="resumeSurprix">0 €</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="recap-postes" class="mt-6 bg-white rounded-xl border-2 border-gray-200 overflow-hidden" style="display: none;">
+                <h2 class="text-xl font-semibold text-gray-800 p-6 bg-gray-50">Récapitulatif par Poste de Dépense</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Poste</th>
+                                <th class="px-4 py-3 text-right text-sm font-semibold text-gray-700">Parties Communes</th>
+                                <th class="px-4 py-3 text-right text-sm font-semibold text-gray-700">Grand Balcon</th>
+                                <th class="px-4 py-3 text-right text-sm font-semibold text-gray-700">Petits Balcons</th>
+                                <th class="px-4 py-3 text-right text-sm font-semibold text-gray-700">Celliers</th>
+                                <th class="px-4 py-3 text-right text-sm font-semibold text-gray-700">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recapPostesBody" class="divide-y divide-gray-200"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const totalTantiemes = 1000;
+        const totalTantiemesCelliers = 22;
+        
+        const coproprietaires = [
+            { id: 1, nom: 'SALAHUN Yves', commune: 'ST EMILION', lot: 'Apt 16', tantiemes: 37, paiementComptant: false, apportPersonnel: 0, aCellier: false, aBalcon: true, grandBalcon: true, cellier: null, tantCellier: 0 },
+            { id: 2, nom: 'PALMARO', commune: 'MARGAUX', lot: 'Apt 15', tantiemes: 38, paiementComptant: false, apportPersonnel: 0, aCellier: true, aBalcon: true, grandBalcon: true, cellier: 6, tantCellier: 3 },
+            { id: 3, nom: 'DESSALES / GABRIEL Thomas', commune: 'ST CROIX DU MONT', lot: 'Apt 14', tantiemes: 59, paiementComptant: false, apportPersonnel: 0, aCellier: true, aBalcon: false, grandBalcon: false, cellier: 5, tantCellier: 3 },
+            { id: 4, nom: 'TROPAMER Véronique', commune: 'ENTRE 2 MERS', lot: 'LC Apt 2', tantiemes: 66, paiementComptant: false, apportPersonnel: 0, aCellier: false, aBalcon: false, grandBalcon: false, cellier: null, tantCellier: 0 },
+            { id: 5, nom: 'PIRAS Eric', commune: 'PAUILLAC', lot: 'Apt 20', tantiemes: 66, paiementComptant: false, apportPersonnel: 0, aCellier: true, aBalcon: false, grandBalcon: false, cellier: 4, tantCellier: 3 },
+            { id: 6, nom: 'SCI du Clot', commune: 'LISTRAC', lot: 'Apt 17', tantiemes: 84, paiementComptant: false, apportPersonnel: 0, aCellier: true, aBalcon: true, grandBalcon: true, cellier: 7, tantCellier: 2 },
+            { id: 7, nom: 'LE MERLE Christophe', commune: 'MOULIS', lot: 'Apt 18', tantiemes: 93, paiementComptant: false, apportPersonnel: 0, aCellier: true, aBalcon: true, grandBalcon: true, cellier: 3, tantCellier: 3 },
+            { id: 8, nom: 'BELLIARD Véronique', commune: 'ST ESTEPHE', lot: 'Apt 12/13', tantiemes: 102, paiementComptant: false, apportPersonnel: 0, aCellier: false, aBalcon: false, grandBalcon: false, cellier: null, tantCellier: 0 },
+            { id: 9, nom: 'CARSOULE', commune: 'SAUTERNE', lot: 'Apt 1 & 21', tantiemes: 113, paiementComptant: false, apportPersonnel: 0, aCellier: true, aBalcon: false, grandBalcon: false, cellier: 9, tantCellier: 4 },
+            { id: 10, nom: 'IDEALAMBARD SAS', commune: 'POMEROL', lot: 'Apt 19', tantiemes: 121, paiementComptant: false, apportPersonnel: 0, aCellier: true, aBalcon: true, grandBalcon: false, cellier: 8, tantCellier: 4 },
+            { id: 11, nom: 'CAUPENE Corinne', commune: 'LIBRAIRIE', lot: 'LC 10/11', tantiemes: 199, paiementComptant: false, apportPersonnel: 0, aCellier: false, aBalcon: false, grandBalcon: false, cellier: null, tantCellier: 0 }
+        ];
+
+        let postesDepenses = [];
+        let nextPosteId = 1;
+
+        function formatNumber(num) {
+            return num.toLocaleString('fr-FR', {maximumFractionDigits: 0});
+        }
+
+        function formatDecimal(num) {
+            return num.toLocaleString('fr-FR', {maximumFractionDigits: 2});
+        }
+
+        function toggleInputMode() {
+            const mode = document.querySelector('input[name="modeInput"]:checked').value;
+            const simpleDiv = document.getElementById('postes-depenses-simple');
+            const detailleDiv = document.getElementById('postes-depenses-detaille');
+            const recapDiv = document.getElementById('recap-postes');
+            
+            if (mode === 'simple') {
+                simpleDiv.style.display = 'block';
+                detailleDiv.style.display = 'none';
+                recapDiv.style.display = 'none';
+            } else {
+                simpleDiv.style.display = 'none';
+                detailleDiv.style.display = 'block';
+                recapDiv.style.display = 'block';
+                renderPostesDetail();
+            }
+            calculer();
+        }
+
+        function ajouterPoste() {
+            postesDepenses.push({
+                id: nextPosteId++,
+                nom: '',
+                partiesCommunes: 0,
+                grandBalcon: 0,
+                petitsBalcons: 0,
+                celliers: 0
+            });
+            renderPostesDetail();
+            calculer();
+        }
+
+        function supprimerPoste(id) {
+            postesDepenses = postesDepenses.filter(p => p.id !== id);
+            renderPostesDetail();
+            calculer();
+        }
+
+        function updatePoste(id, field, value) {
+            const poste = postesDepenses.find(p => p.id === id);
+            if (poste) {
+                poste[field] = field === 'nom' ? value : (parseFloat(value) || 0);
+                calculer();
+            }
+        }
+
+        function renderPostesDetail() {
+            const container = document.getElementById('postesDetailList');
+            
+            if (postesDepenses.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-sm">Aucun poste ajouté. Cliquez sur "Ajouter un poste" pour commencer.</p>';
+                return;
+            }
+            
+            container.innerHTML = postesDepenses.map(poste => `
+                <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+                    <div class="grid grid-cols-1 md:grid-cols-6 gap-3 items-start">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Nom du poste</label>
+                            <input type="text" value="${poste.nom}" 
+                                placeholder="Ex: Menuiserie" 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500" 
+                                onchange="updatePoste(${poste.id}, 'nom', this.value)">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">P. Communes (€)</label>
+                            <input type="number" value="${poste.partiesCommunes}" 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500" 
+                                onchange="updatePoste(${poste.id}, 'partiesCommunes', this.value)">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Grand Balcon (€)</label>
+                            <input type="number" value="${poste.grandBalcon}" 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500" 
+                                onchange="updatePoste(${poste.id}, 'grandBalcon', this.value)">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Petits Balcons (€)</label>
+                            <input type="number" value="${poste.petitsBalcons}" 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500" 
+                                onchange="updatePoste(${poste.id}, 'petitsBalcons', this.value)">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Celliers (€)</label>
+                            <input type="number" value="${poste.celliers}" 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500" 
+                                onchange="updatePoste(${poste.id}, 'celliers', this.value)">
+                        </div>
+                        <div class="flex items-end">
+                            <button onclick="supprimerPoste(${poste.id})" 
+                                class="w-full px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition text-sm">
+                                Supprimer
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function calculerMensualite(capital, duree, tauxNominal, tauxAssurance) {
+            if (capital <= 0) return 0;
+            
+            const tauxMensuel = tauxNominal / 100 / 12;
+            const tauxAssuranceMensuel = tauxAssurance / 100 / 12;
+            
+            if (tauxMensuel === 0) {
+                return capital / duree + capital * tauxAssuranceMensuel;
+            }
+            
+            const mensualiteHorsAssurance = capital * (tauxMensuel / (1 - Math.pow(1 + tauxMensuel, -duree)));
+            const assurance = capital * tauxAssuranceMensuel;
+            
+            return mensualiteHorsAssurance + assurance;
+        }
+
+        function renderCoproList() {
+            const list = document.getElementById('coproList');
+            list.innerHTML = coproprietaires.map(copro => `
+                <div class="bg-white rounded-lg p-4 shadow-sm">
+                    <div class="grid grid-cols-1 md:grid-cols-6 gap-3 items-center text-sm">
+                        <div class="md:col-span-2">
+                            <div class="font-semibold text-gray-900">${copro.nom}</div>
+                            <div class="text-xs text-gray-600">${copro.commune} - ${copro.lot}</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-xs text-gray-600">Tantièmes</div>
+                            <div class="font-bold text-indigo-600">
+                                Appt: ${copro.tantiemes}
+                                ${copro.aCellier ? `<div class="text-green-600">Cell: ${copro.tantCellier}</div>` : ''}
+                                <div class="text-gray-900 border-t border-gray-300 mt-1 pt-1">
+                                    Total: ${copro.tantiemes + copro.tantCellier}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-xs text-gray-600">Quote-part</div>
+                            <div class="font-semibold text-gray-700">${((copro.tantiemes + copro.tantCellier) / totalTantiemes * 100).toFixed(2)}%</div>
+                        </div>
+                        <div class="text-center flex flex-col gap-1">
+                            ${copro.aBalcon && copro.grandBalcon ? '<span class="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">Grand Balcon</span>' : ''}
+                            ${copro.aBalcon && !copro.grandBalcon ? '<span class="inline-block px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">Petits Balcons</span>' : ''}
+                            ${copro.aCellier ? `<span class="inline-block px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">Cellier ${copro.cellier}</span>` : ''}
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Apport perso (€)</label>
+                            <input type="number" value="${copro.apportPersonnel}" class="w-full px-2 py-1 border border-gray-300 rounded text-sm" onchange="updateApport(${copro.id}, this.value)">
+                        </div>
+                        <label class="flex items-center gap-2 cursor-pointer justify-center">
+                            <input type="checkbox" ${copro.paiementComptant ? 'checked' : ''} class="w-4 h-4" onchange="updateComptant(${copro.id}, this.checked)">
+                            <span class="text-sm font-medium">Comptant</span>
+                        </label>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateApport(id, value) {
+            const copro = coproprietaires.find(c => c.id === id);
+            copro.apportPersonnel = parseFloat(value) || 0;
+            calculer();
+        }
+
+        function updateComptant(id, checked) {
+            const copro = coproprietaires.find(c => c.id === id);
+            copro.paiementComptant = checked;
+            calculer();
+        }
+
+        function getMontantsGlobaux() {
+            const mode = document.querySelector('input[name="modeInput"]:checked').value;
+            
+            if (mode === 'simple') {
+                return {
+                    partiesCommunes: parseFloat(document.getElementById('partiesCommunes').value) || 0,
+                    grandBalcon: parseFloat(document.getElementById('grandBalcon').value) || 0,
+                    petitsBalcons: parseFloat(document.getElementById('petitsBalcons').value) || 0,
+                    celliers: parseFloat(document.getElementById('celliers').value) || 0
+                };
+            } else {
+                return {
+                    partiesCommunes: postesDepenses.reduce((sum, p) => sum + p.partiesCommunes, 0),
+                    grandBalcon: postesDepenses.reduce((sum, p) => sum + p.grandBalcon, 0),
+                    petitsBalcons: postesDepenses.reduce((sum, p) => sum + p.petitsBalcons, 0),
+                    celliers: postesDepenses.reduce((sum, p) => sum + p.celliers, 0)
+                };
+            }
+        }
+
+        function renderRecapPostes() {
+            const mode = document.querySelector('input[name="modeInput"]:checked').value;
+            if (mode !== 'detaille') return;
+            
+            const tbody = document.getElementById('recapPostesBody');
+            const totaux = {
+                partiesCommunes: 0,
+                grandBalcon: 0,
+                petitsBalcons: 0,
+                celliers: 0,
+                total: 0
+            };
+            
+            tbody.innerHTML = postesDepenses.map(poste => {
+                const total = poste.partiesCommunes + poste.grandBalcon + poste.petitsBalcons + poste.celliers;
+                totaux.partiesCommunes += poste.partiesCommunes;
+                totaux.grandBalcon += poste.grandBalcon;
+                totaux.petitsBalcons += poste.petitsBalcons;
+                totaux.celliers += poste.celliers;
+                totaux.total += total;
+                
+                return `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 text-sm font-medium text-gray-900">${poste.nom || 'Sans nom'}</td>
+                        <td class="px-4 py-3 text-sm text-right text-gray-700">${formatNumber(poste.partiesCommunes)} €</td>
+                        <td class="px-4 py-3 text-sm text-right text-gray-700">${formatNumber(poste.grandBalcon)} €</td>
+                        <td class="px-4 py-3 text-sm text-right text-gray-700">${formatNumber(poste.petitsBalcons)} €</td>
+                        <td class="px-4 py-3 text-sm text-right text-gray-700">${formatNumber(poste.celliers)} €</td>
+                        <td class="px-4 py-3 text-sm text-right font-semibold text-gray-900">${formatNumber(total)} €</td>
+                    </tr>
+                `;
+            }).join('');
+            
+            tbody.innerHTML += `
+                <tr class="bg-gray-100 font-bold">
+                    <td class="px-4 py-3 text-sm text-gray-900">TOTAL</td>
+                    <td class="px-4 py-3 text-sm text-right text-gray-900">${formatNumber(totaux.partiesCommunes)} €</td>
+                    <td class="px-4 py-3 text-sm text-right text-gray-900">${formatNumber(totaux.grandBalcon)} €</td>
+                    <td class="px-4 py-3 text-sm text-right text-gray-900">${formatNumber(totaux.petitsBalcons)} €</td>
+                    <td class="px-4 py-3 text-sm text-right text-gray-900">${formatNumber(totaux.celliers)} €</td>
+                    <td class="px-4 py-3 text-sm text-right text-gray-900">${formatNumber(totaux.total)} €</td>
+                </tr>
+            `;
+        }
+
+        function calculer() {
+            const duree = parseFloat(document.getElementById('duree').value) || 0;
+            const tauxNominal = parseFloat(document.getElementById('tauxNominal').value) || 0;
+            const tauxAssurance = parseFloat(document.getElementById('tauxAssurance').value) || 0;
+            const fondsTravaux = parseFloat(document.getElementById('fondsTravaux').value) || 0;
+            
+            const montants = getMontantsGlobaux();
+            const { partiesCommunes, grandBalcon, petitsBalcons, celliers } = montants;
+            
+            const montantTotal = partiesCommunes + grandBalcon + petitsBalcons + celliers;
+            
+            document.getElementById('montantTotal').textContent = formatNumber(montantTotal) + ' €';
+            
+            renderRecapPostes();
+            
+            // Calculer les totaux de tantièmes spécifiques
+            const coprosAvecGrandBalcon = coproprietaires.filter(c => c.grandBalcon);
+            const totalTantiemesGrandBalcon = coprosAvecGrandBalcon.reduce((sum, c) => sum + c.tantiemes, 0);
+
+            // Calcul du nombre de petits balcons pour répartition équitable
+            const coprosAvecPetitBalcon = coproprietaires.filter(c => c.aBalcon && !c.grandBalcon);
+            const nbPetitsBalcons = coprosAvecPetitBalcon.length;
+            
+            const repartition = coproprietaires.map(copro => {
+                // CORRECTION: Somme des tantièmes appart + cellier pour les charges générales
+                const totalTantiemesLot = copro.tantiemes + copro.tantCellier;
+                const quotiteCommunes = totalTantiemesLot / totalTantiemes;
+                const partCommunes = partiesCommunes * quotiteCommunes;
+                
+                let partBalcon = 0;
+                if (copro.grandBalcon) {
+                    const quotiteGrandBalcon = copro.tantiemes / totalTantiemesGrandBalcon;
+                    partBalcon = grandBalcon * quotiteGrandBalcon;
+                } else if (copro.aBalcon && !copro.grandBalcon) {
+                    // CORRECTION: Répartition égale pour les petits balcons
+                    partBalcon = nbPetitsBalcons > 0 ? petitsBalcons / nbPetitsBalcons : 0;
+                }
+                
+                const quotiteCellier = copro.aCellier ? copro.tantCellier / totalTantiemesCelliers : 0;
+                const partCellier = copro.aCellier ? celliers * quotiteCellier : 0;
+                
+                const totalPart = partCommunes + partBalcon + partCellier;
+                
+                const partFondsTravaux = montantTotal > 0 ? (totalPart / montantTotal) * fondsTravaux : 0;
+                const montantApresfondsTravauxLur = totalPart - partFondsTravaux;
+                const apportPersonnelUtilise = Math.min(copro.apportPersonnel, montantApresfondsTravauxLur);
+                const montantAFinancerCopro = Math.max(0, montantApresfondsTravauxLur - apportPersonnelUtilise);
+
+                return {
+                    ...copro,
+                    partCommunes,
+                    partBalcon,
+                    partCellier,
+                    totalPart,
+                    partFondsTravaux,
+                    montantApresfondsTravauxLur,
+                    apportPersonnelUtilise,
+                    montantAFinancerCopro
+                };
+            });
+            
+            const tableBody = document.getElementById('tableBody');
+            let totalApportsPersonnels = 0;
+            let montantTotalAFinancer = 0;
+            
+            tableBody.innerHTML = repartition.map(copro => {
+                totalApportsPersonnels += copro.apportPersonnelUtilise;
+                if (!copro.paiementComptant) {
+                    montantTotalAFinancer += copro.montantAFinancerCopro;
+                }
+                
+                const mensualite = copro.paiementComptant ? 0 : calculerMensualite(copro.montantAFinancerCopro, duree, tauxNominal, tauxAssurance);
+                
+                return `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-3 py-3 text-xs font-medium text-gray-900">${copro.nom}</td>
+                        <td class="px-3 py-3 text-xs text-center text-gray-700">${copro.lot}</td>
+                        <td class="px-3 py-3 text-xs text-right text-gray-700">${copro.tantiemes + copro.tantCellier}</td>
+                        <td class="px-3 py-3 text-xs text-right text-gray-700">${formatNumber(copro.partCommunes)} €</td>
+                        <td class="px-3 py-3 text-xs text-right text-gray-700">${copro.partBalcon > 0 ? formatNumber(copro.partBalcon) + ' €' : '-'}</td>
+                        <td class="px-3 py-3 text-xs text-right text-gray-700">${copro.aCellier ? formatNumber(copro.partCellier) + ' €' : '-'}</td>
+                        <td class="px-3 py-3 text-xs text-right font-semibold text-gray-900">${formatNumber(copro.totalPart)} €</td>
+                        <td class="px-3 py-3 text-xs text-right text-blue-600">-${formatNumber(copro.partFondsTravaux)} €</td>
+                        <td class="px-3 py-3 text-xs text-right text-green-600">${copro.apportPersonnelUtilise > 0 ? '-' + formatNumber(copro.apportPersonnelUtilise) + ' €' : '-'}</td>
+                        <td class="px-3 py-3 text-xs text-right font-semibold text-indigo-600">
+                            ${copro.paiementComptant ? '<span class="text-green-600 font-bold">Comptant</span>' : formatNumber(copro.montantAFinancerCopro) + ' €'}
+                        </td>
+                        <td class="px-3 py-3 text-xs text-right font-bold text-indigo-700">
+                            ${copro.paiementComptant ? '-' : formatDecimal(mensualite) + ' €'}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+            
+            tableBody.innerHTML += `
+                <tr class="bg-gray-100 font-bold">
+                    <td colspan="2" class="px-3 py-3 text-xs text-gray-900">TOTAL</td>
+                    <td class="px-3 py-3 text-xs text-right">1000</td>
+                    <td class="px-3 py-3 text-xs text-right">${formatNumber(partiesCommunes)} €</td>
+                    <td class="px-3 py-3 text-xs text-right">${formatNumber(grandBalcon + petitsBalcons)} €</td>
+                    <td class="px-3 py-3 text-xs text-right">${formatNumber(celliers)} €</td>
+                    <td class="px-3 py-3 text-xs text-right text-gray-900">${formatNumber(montantTotal)} €</td>
+                    <td class="px-3 py-3 text-xs text-right text-blue-600">-${formatNumber(fondsTravaux)} €</td>
+                    <td class="px-3 py-3 text-xs text-right text-green-600">-${formatNumber(totalApportsPersonnels)} €</td>
+                    <td class="px-3 py-3 text-xs text-right text-indigo-600">${formatNumber(montantTotalAFinancer)} €</td>
+                    <td></td>
+                </tr>
+            `;
+            
+            const tauxMensuel = tauxNominal / 100 / 12;
+            const tauxAssuranceMensuel = tauxAssurance / 100 / 12;
+            
+            let coutTotalCredit = 0;
+            let interetsTEG = 0;
+            let coutAssurance = 0;
+            
+            if (montantTotalAFinancer > 0 && tauxMensuel > 0) {
+                const mensualiteHorsAssurance = montantTotalAFinancer * (tauxMensuel / (1 - Math.pow(1 + tauxMensuel, -duree)));
+                const totalRembourse = mensualiteHorsAssurance * duree;
+                interetsTEG = totalRembourse - montantTotalAFinancer;
+            } else if (montantTotalAFinancer > 0) {
+                interetsTEG = 0;
+            }
+            
+            coutAssurance = montantTotalAFinancer * tauxAssuranceMensuel * duree;
+            coutTotalCredit = montantTotalAFinancer + interetsTEG + coutAssurance;
+            const surprix = interetsTEG + coutAssurance;
+            
+            document.getElementById('resumeMontantTotal').textContent = formatNumber(montantTotal) + ' €';
+            document.getElementById('resumeFondsTravaux').textContent = formatNumber(fondsTravaux) + ' €';
+            document.getElementById('resumeApports').textContent = formatNumber(totalApportsPersonnels) + ' €';
+            document.getElementById('resumeMontantFinance').textContent = formatNumber(montantTotalAFinancer) + ' €';
+            document.getElementById('resumeCoutTotal').textContent = formatNumber(coutTotalCredit) + ' €';
+            document.getElementById('resumeInteretsTEG').textContent = formatNumber(interetsTEG) + ' €';
+            document.getElementById('resumeCoutAssurance').textContent = formatNumber(coutAssurance) + ' €';
+            document.getElementById('resumeSurprix').textContent = formatNumber(surprix) + ' €';
+        }
+
+        renderCoproList();
+        calculer();
+
+        function sauvegarderHTML() {
+            const filename = prompt('Nom du fichier (sans extension) :', 'simulation-copro-' + new Date().toISOString().split('T')[0]);
+            if (!filename) return;
+            
+            const htmlContent = document.documentElement.outerHTML;
+            const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = filename + '.html';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(link.href);
+        }
+
+        function exportPDF(type) {
+            const originalElement = document.querySelector('.max-w-7xl');
+            const cloneContainer = document.createElement('div');
+            cloneContainer.style.position = 'absolute';
+            cloneContainer.style.left = '-9999px';
+            cloneContainer.style.top = '0';
+            cloneContainer.style.width = '1400px';
+            cloneContainer.style.background = 'white';
+            cloneContainer.style.padding = '30px';
+            
+            if (type === 'recap') {
+                cloneContainer.innerHTML = `
+                    <div class="bg-white">
+                        <div class="mb-4">
+                            <h1 class="text-2xl font-bold text-gray-800 mb-1">Simulateur de Crédit Copropriété - Récapitulatif</h1>
+                            <p class="text-sm text-gray-600">9 Rue André Leroux - Soulac-sur-Mer (33780)</p>
+                        </div>
+                        ${document.getElementById('tableau-repartition').outerHTML}
+                        ${document.getElementById('recap-postes').style.display !== 'none' ? document.getElementById('recap-postes').outerHTML : ''}
+                        <div class="mt-4">${document.getElementById('resume-financier').outerHTML}</div>
+                    </div>
+                `;
+            } else {
+                const fullClone = originalElement.cloneNode(true);
+                fullClone.querySelectorAll('.no-print').forEach(el => el.remove());
+                cloneContainer.appendChild(fullClone);
+            }
+            
+            document.body.appendChild(cloneContainer);
+            
+            setTimeout(() => {
+                html2canvas(cloneContainer, {
+                    scale: type === 'recap' ? 1.5 : 2,
+                    useCORS: true,
+                    logging: false,
+                    backgroundColor: '#ffffff',
+                    windowWidth: 1400
+                }).then(canvas => {
+                    document.body.removeChild(cloneContainer);
+                    
+                    const { jsPDF } = window.jspdf;
+                    const pdf = new jsPDF('l', 'mm', 'a4');
+                    const pdfWidth = pdf.internal.pageSize.getWidth();
+                    const pdfHeight = pdf.internal.pageSize.getHeight();
+                    
+                    if (type === 'recap') {
+                        const imgData = canvas.toDataURL('image/jpeg', 0.98);
+                        const canvasWidth = canvas.width;
+                        const canvasHeight = canvas.height;
+                        const ratio = canvasWidth / canvasHeight;
+                        
+                        let imgWidth = pdfWidth - 20;
+                        let imgHeight = imgWidth / ratio;
+                        
+                        if (imgHeight > pdfHeight - 20) {
+                            imgHeight = pdfHeight - 20;
+                            imgWidth = imgHeight * ratio;
+                        }
+                        
+                        const marginX = (pdfWidth - imgWidth) / 2;
+                        const marginY = (pdfHeight - imgHeight) / 2;
+                        
+                        pdf.addImage(imgData, 'JPEG', marginX, marginY, imgWidth, imgHeight);
+                        
+                    } else {
+                        const pageCanvas = document.createElement('canvas');
+                        const pageContext = pageCanvas.getContext('2d');
+                        const imgWidth = pdfWidth - 20;
+                        const imgHeight = pdfHeight - 20;
+                        
+                        pageCanvas.width = canvas.width;
+                        const pageHeightInPixels = (imgHeight / imgWidth) * canvas.width;
+                        pageCanvas.height = pageHeightInPixels;
+                        
+                        let srcY = 0;
+                        let pageNum = 0;
+                        
+                        while (srcY < canvas.height) {
+                            if (pageNum > 0) {
+                                pdf.addPage();
+                            }
+                            
+                            pageContext.fillStyle = 'white';
+                            pageContext.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+                            
+                            const remainingHeight = canvas.height - srcY;
+                            const srcHeight = Math.min(pageHeightInPixels, remainingHeight);
+                            
+                            pageContext.drawImage(
+                                canvas, 
+                                0, srcY, 
+                                canvas.width, srcHeight,
+                                0, 0, 
+                                canvas.width, srcHeight
+                            );
+                            
+                            const pageImgData = pageCanvas.toDataURL('image/jpeg', 0.98);
+                            const actualHeight = (srcHeight / canvas.width) * imgWidth;
+                            
+                            pdf.addImage(pageImgData, 'JPEG', 10, 10, imgWidth, actualHeight);
+                            
+                            srcY += pageHeightInPixels;
+                            pageNum++;
+                        }
+                    }
+                    
+                    const filename = type === 'complet' ? 'simulation-copro-complete.pdf' : 'simulation-copro-recap.pdf';
+                    pdf.save(filename);
+                }).catch(err => {
+                    document.body.removeChild(cloneContainer);
+                    console.error('Erreur:', err);
+                    alert('Erreur lors de la génération du PDF. Veuillez réessayer.');
+                });
+            }, 500);
+        }
+    </script>
+</body>
+</html>

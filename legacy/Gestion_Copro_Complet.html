@@ -1,0 +1,1549 @@
+<html lang="fr"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Gestion Copro - V19 (Carnet Complet)</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<style>
+    :root { 
+        --primary: #2c3e50; --secondary: #34495e; --accent: #2980b9; 
+        --light: #ecf0f1; --success: #27ae60; --danger: #c0392b; --bg: #eef2f5;
+        --save: #e74c3c;
+    }
+    
+    body { 
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+        margin: 0; background-color: var(--bg); color: #333; font-size: 14px; 
+        -webkit-tap-highlight-color: transparent;
+    }
+    
+    /* HEADER */
+    header { background-color: var(--primary); color: white; padding: 15px; text-align: center; position: sticky; top:0; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+    h1 { margin: 0; font-size: 18px; font-weight: 600; }
+    
+    .data-tools { background: #fff; padding: 15px; display: flex; justify-content: center; gap: 15px; border-bottom: 1px solid #ddd; flex-wrap: wrap; align-items: center; }
+    
+    /* NAVIGATION */
+    .nav-container { display: flex; overflow-x: auto; background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.05); white-space: nowrap; -webkit-overflow-scrolling: touch; }
+    .nav-btn { flex: 1; min-width: 80px; background: none; border: none; padding: 12px 10px; font-size: 13px; font-weight: 600; color: #7f8c8d; cursor: pointer; border-bottom: 3px solid transparent; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+    .nav-btn i { font-size: 18px; margin-bottom: 2px; }
+    .nav-btn.active { color: var(--accent); border-bottom-color: var(--accent); background-color: #f9f9f9; }
+
+    /* CONTENU */
+    .tab-content { display: none; padding: 15px; padding-bottom: 80px; max-width: 1200px; margin: 0 auto; animation: fadeIn 0.3s; }
+    .tab-content.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    /* BOUTONS */
+    .btn { border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; color: white; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .btn:active { transform: scale(0.98); }
+    .btn-add { background-color: var(--success); }
+    .btn-save { background-color: var(--primary); }
+    .btn-load { background-color: #e67e22; }
+    .btn-print { background-color: #7f8c8d; }
+    .btn-edit-info { background-color: var(--accent); }
+    .btn-img { background-color: #9b59b6; }
+    .btn-autonome { background-color: var(--save); font-size: 14px; border: 2px solid white; outline: 2px solid var(--save); }
+    
+    .action-group { display: flex; gap: 5px; justify-content: flex-end; }
+    .btn-icon { width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
+    .btn-edit { background-color: #f39c12; color: white; }
+    .btn-del { background-color: var(--danger); color: white; }
+    .btn-pdf { background-color: var(--secondary); color: white; }
+
+    /* PLAN */
+    .plan-container { overflow-x: auto; -webkit-overflow-scrolling: touch; background: white; padding: 10px; border-radius: 8px; text-align: center; }
+    .plan-image { max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    .plan-grid { display: grid; grid-template-columns: repeat(21, 40px); gap: 2px; min-width: 850px; margin: 0 auto; }
+    .plan-cell { height: 35px; display: flex; align-items: center; justify-content: center; font-size: 10px; border-radius: 3px; text-align: center; word-break: break-all; padding: 1px; line-height: 1; }
+    .cell-filled { background-color: #e3f2fd; border: 1px solid #90caf9; color: var(--primary); font-weight: bold; }
+
+    /* TABLEAUX */
+    .table-responsive { background: transparent; }
+    table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; }
+    
+    @media (min-width: 769px) {
+        table { box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #eee; vertical-align: top; }
+        th { background-color: var(--accent); color: white; }
+        tr:hover { background-color: #f1f1f1; }
+    }
+
+    @media (max-width: 768px) {
+        table, thead, tbody, th, td, tr { display: block; }
+        thead { display: none; }
+        tr { margin-bottom: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); padding: 15px; border: 1px solid #eee; }
+        td { padding: 8px 0; border-bottom: 1px solid #eee; position: relative; padding-left: 0; text-align: right; display: flex; justify-content: space-between; align-items: center; }
+        td:last-child { border-bottom: none; justify-content: flex-end; margin-top: 10px; }
+        td::before { content: attr(data-label); font-weight: 700; color: #7f8c8d; text-align: left; margin-right: 15px; font-size: 12px; text-transform: uppercase; }
+        .action-group { width: 100%; justify-content: space-between; }
+        .plan-grid { transform: scale(0.9); transform-origin: top left; }
+    }
+
+    /* CARNET & PDF SPECIFICS */
+    .carnet-section { background: white; padding: 20px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+    .carnet-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--accent); padding-bottom: 10px; margin-bottom: 15px; }
+    .carnet-header h3 { margin: 0; color: var(--primary); }
+    
+    .info-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; }
+    .info-item label { display: block; font-weight: bold; font-size: 11px; color: #7f8c8d; text-transform: uppercase; margin-bottom: 3px; }
+    .info-item span { display: block; font-size: 14px; font-weight: 500; white-space: pre-line; }
+
+    /* UTILITAIRES */
+    .multi-line { display: flex; flex-direction: column; gap: 5px; }
+    .multi-line a, .multi-line span { text-decoration: none; color: var(--accent); display: block; }
+    .multi-line a:hover { text-decoration: underline; }
+    .format-addr { white-space: pre-line; }
+
+    /* MODAL */
+    .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); backdrop-filter: blur(2px); }
+    .modal-content { background-color: white; margin: 2% auto; padding: 20px; border-radius: 12px; width: 95%; max-width: 700px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 13px; color: var(--secondary); }
+    .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; font-family: inherit; }
+    .form-group textarea { resize: vertical; min-height: 60px; }
+    .divider { font-weight: bold; color: var(--accent); margin: 20px 0 10px 0; border-bottom: 1px solid #eee; padding-bottom: 5px; text-transform: uppercase; font-size: 12px; }
+
+    /* PRINT ENGINE OPTIMISÉ */
+    @media print {
+        @page { size: A4; margin: 15mm; }
+        body { margin: 0; padding: 0; background: white; }
+        body * { visibility: hidden; }
+        
+        #print-area, #print-area * { visibility: visible; }
+        #print-area { 
+            position: absolute; left: 0; top: 0; width: 100%; padding: 0; 
+            font-family: "Times New Roman", serif; color: #000; box-sizing: border-box;
+        }
+        
+        .printable-table, .printable-table * { visibility: visible; }
+        .printable-table { position: absolute; left: 0; top: 0; width: 100%; }
+        
+        td:last-child, th:last-child, .no-print { display: none !important; }
+        
+        table { 
+            display: table !important; width: 100% !important; border-collapse: collapse !important; 
+            border: 1px solid #000; font-size: 11px; page-break-inside: auto;
+        }
+        thead { display: table-header-group !important; }
+        tr { display: table-row !important; border: 1px solid #000 !important; page-break-inside: avoid; }
+        td, th { display: table-cell !important; text-align: left !important; border: 1px solid #000 !important; padding: 4px !important; }
+        td::before { content: none !important; }
+        
+        /* Styles spécifiques Carnet */
+        .pdf-header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px; }
+        .pdf-header h1 { font-size: 20px; margin: 0; text-transform: uppercase; }
+        .pdf-header h2 { font-size: 14px; margin: 5px 0; font-weight: normal; }
+        
+        .pdf-section { margin-bottom: 20px; page-break-inside: avoid; }
+        .pdf-section-title { 
+            font-size: 12px; font-weight: bold; background-color: #eee !important; 
+            -webkit-print-color-adjust: exact; padding: 5px; border: 1px solid #000; margin-bottom: 10px; text-transform: uppercase; 
+        }
+        
+        .pdf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+        .pdf-item { margin-bottom: 5px; }
+        .pdf-label { font-weight: bold; font-size: 11px; }
+        .pdf-val { font-size: 11px; }
+        
+        ul.pdf-list { padding-left: 15px; margin: 5px 0; }
+        ul.pdf-list li { margin-bottom: 8px; font-size: 11px; }
+        
+        a { text-decoration: none; color: #000; }
+        #print-plan-img { max-width: 100%; height: auto; display: block; margin: 0 auto; }
+    }
+</style>
+<style type="text/css" id="operaUserStyle"></style></head>
+<body>
+
+<header>
+    <h1><i class="fas fa-building"></i> Copro Les Pyrénées</h1>
+</header>
+
+<div class="data-tools no-print">
+    <button class="btn btn-autonome" onclick="saveAutonomous()"><i class="fas fa-save"></i> <strong>CRÉER FICHIER AUTONOME</strong></button>
+    <div style="flex-grow:1"></div>
+    <button class="btn btn-save" onclick="downloadJSON()"><i class="fas fa-download"></i> JSON</button>
+    <button class="btn btn-load" onclick="document.getElementById('file-input').click()"><i class="fas fa-upload"></i> Charger</button>
+    <input type="file" id="file-input" style="display:none" onchange="loadJSON(event)" accept=".json">
+</div>
+
+<div class="nav-container no-print">
+    <button class="nav-btn active" onclick="switchTab('tab-carnet')"><i class="fas fa-book"></i> Carnet</button>
+    <button class="nav-btn" onclick="switchTab('tab-repart')"><i class="fas fa-calculator"></i> Répart.</button>
+    <button class="nav-btn" onclick="switchTab('tab-annuaire')"><i class="fas fa-address-book"></i> Annu.</button>
+    <button class="nav-btn" onclick="switchTab('tab-prest')"><i class="fas fa-tools"></i> Prest.</button>
+    <button class="nav-btn" onclick="switchTab('tab-plan')"><i class="fas fa-th"></i> Plan</button>
+</div>
+
+<div id="print-area"></div>
+
+<div id="tab-carnet" class="tab-content active">
+    <div style="text-align:right; margin-bottom:10px;">
+        <button class="btn btn-print" onclick="printCarnet()"><i class="fas fa-file-pdf"></i> Télécharger PDF (Carnet)</button>
+    </div>
+
+    <div class="carnet-section">
+        <div class="carnet-header">
+            <h3><i class="fas fa-info-circle"></i> Informations Générales</h3>
+            <button class="btn btn-edit-info" onclick="openModal('general')"><i class="fas fa-pen"></i> Modifier Infos</button>
+        </div>
+        <div class="info-grid">
+            <div class="info-item"><label>Adresse Immeuble</label><span id="view-address">7-9 rue André Leroux, 33780 Soulac-sur-Mer</span></div>
+            <div class="info-item"><label>Lots</label><span id="view-lots">21 (14 Principaux, 7 Celliers)</span></div>
+            <div class="info-item"><label>Règlement Copro</label><span id="view-reglement">29 septembre 2009 - Notaire: S.C.P Michel MARTIN (Ref: 52-531)</span></div>
+            <div class="info-item"><label>Modifications</label><span id="view-modifs">Aucune</span></div>
+        </div>
+    </div>
+
+    <div class="carnet-section">
+        <div class="carnet-header">
+            <h3><i class="fas fa-users"></i> Administration &amp; Conseil Syndical</h3>
+        </div>
+        <div class="info-grid">
+            <div class="info-item"><label>Syndic Bénévole</label><span id="view-syndic">Mr LE MERLE Christophe7 rue André Leroux06 17 25 02 66</span></div>
+            <div class="info-item"><label>AG Nomination</label><span id="view-ag">17 décembre 2025</span></div>
+            <div class="info-item"><label>Fin Mandat</label><span id="view-mandat">31 décembre 2026</span></div>
+            <div class="info-item"><label>Conseil Syndical</label><span id="view-conseil">Mme Tropamer Véronique<br>Mme Béliard Véronique<br>M. Sibrac Vincent</span></div>
+        </div>
+    </div>
+
+    <div class="carnet-section">
+        <div class="carnet-header">
+            <h3><i class="fas fa-euro-sign"></i> Budget &amp; Finances</h3>
+        </div>
+        <div class="info-grid">
+            <div class="info-item"><label>Avance Trésorerie</label><span id="view-tresorerie">1 555.50€ / trimestre</span></div>
+            <div class="info-item"><label>Fonds de Travaux</label><span id="view-fonds">13 487.27€ (Loi ALUR)</span></div>
+        </div>
+    </div>
+
+    <div class="carnet-section">
+        <div class="carnet-header">
+            <h3><i class="fas fa-wrench"></i> Données Techniques</h3>
+        </div>
+        <div class="info-grid">
+            <div class="info-item"><label>Construction</label><span id="view-construction">Avant 1900 (Pierre / Brique / Bois)</span></div>
+            <div class="info-item"><label>Surface Développée</label><span id="view-surface">679 m²<br>(RDC: 331m², 1er: 321m², 2e: 22m²)</span></div>
+            <div class="info-item"><label>Toiture</label><span id="view-roof">Tuile Marseille et Romane</span></div>
+            <div class="info-item"><label>Façade / Murs</label><span id="view-facade">Pierre et Enduit</span></div>
+            <div class="info-item"><label>Code Peinture</label><span id="view-paint">Tollens T 2004-2 (Bleue)</span></div>
+            <div class="info-item"><label>Chauffage</label><span id="view-heat">Individuel (Chauffage + Eau Chaude)</span></div>
+            <div class="info-item"><label>Eau Chaude</label><span id="view-water">Individuelle</span></div>
+        </div>
+    </div>
+
+    <div class="carnet-section">
+        <div class="carnet-header">
+            <h3><i class="fas fa-file-medical-alt"></i> Diagnostics</h3>
+        </div>
+        <div class="info-grid">
+            <div class="info-item"><label>Amiante</label><span id="view-diag-amiante">Négatif (sauf conduit combles) - 16/09/2009</span></div>
+            <div class="info-item"><label>Plomb</label><span id="view-diag-plomb">RAS - 16/09/2009</span></div>
+            <div class="info-item"><label>Termites</label><span id="view-diag-termites">Contrôlé - 16/09/2009</span></div>
+        </div>
+    </div>
+
+    <div class="carnet-section">
+        <h3><i class="fas fa-history"></i> Historique des Travaux</h3>
+        <div style="margin-bottom:10px;">
+            <button class="btn btn-add" onclick="openModal('work')"><i class="fas fa-plus"></i> Ajouter Travaux</button>
+        </div>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Année</th>
+                        <th>Nature des travaux</th>
+                        <th>Entreprise</th>
+                        <th>Coût</th>
+                        <th class="no-print">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-works"><tr>
+                <td data-label="Année"><strong>2025</strong></td>
+                <td data-label="Nature">Réfection totale du portillon cour</td>
+                <td data-label="Entreprise">Fait par REPT</td>
+                <td data-label="Coût">0€</td>
+                <td class="no-print">
+                    <div class="action-group">
+                        <button class="btn btn-icon btn-edit" onclick="modalWork(0)"><i class="fas fa-pen"></i></button>
+                        <button class="btn btn-icon btn-del" onclick="delWork(0)"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr><tr>
+                <td data-label="Année"><strong>2024</strong></td>
+                <td data-label="Nature">Toiture (60 tuiles + faitage)</td>
+                <td data-label="Entreprise">Boudassou Stéphane (07 77 82 47 83)</td>
+                <td data-label="Coût">1556.50€</td>
+                <td class="no-print">
+                    <div class="action-group">
+                        <button class="btn btn-icon btn-edit" onclick="modalWork(1)"><i class="fas fa-pen"></i></button>
+                        <button class="btn btn-icon btn-del" onclick="delWork(1)"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr><tr>
+                <td data-label="Année"><strong>2024</strong></td>
+                <td data-label="Nature">Changement partie de l'appartement Listrac (Balcon)</td>
+                <td data-label="Entreprise">Réalisé par Mr Sibrac</td>
+                <td data-label="Coût">0€</td>
+                <td class="no-print">
+                    <div class="action-group">
+                        <button class="btn btn-icon btn-edit" onclick="modalWork(2)"><i class="fas fa-pen"></i></button>
+                        <button class="btn btn-icon btn-del" onclick="delWork(2)"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr><tr>
+                <td data-label="Année"><strong>2024</strong></td>
+                <td data-label="Nature">Peinture hall Cellier</td>
+                <td data-label="Entreprise">Réalisé par Mr Sibrac</td>
+                <td data-label="Coût">0€</td>
+                <td class="no-print">
+                    <div class="action-group">
+                        <button class="btn btn-icon btn-edit" onclick="modalWork(3)"><i class="fas fa-pen"></i></button>
+                        <button class="btn btn-icon btn-del" onclick="delWork(3)"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr><tr>
+                <td data-label="Année"><strong>2022</strong></td>
+                <td data-label="Nature">Peinture Porte d'entrée</td>
+                <td data-label="Entreprise">Une Pointe de Couleurs (Pianalto Lydia)</td>
+                <td data-label="Coût">237.00€</td>
+                <td class="no-print">
+                    <div class="action-group">
+                        <button class="btn btn-icon btn-edit" onclick="modalWork(4)"><i class="fas fa-pen"></i></button>
+                        <button class="btn btn-icon btn-del" onclick="delWork(4)"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr><tr>
+                <td data-label="Année"><strong>2021</strong></td>
+                <td data-label="Nature">Fibre optique</td>
+                <td data-label="Entreprise">Gironde très haut débit</td>
+                <td data-label="Coût">0€</td>
+                <td class="no-print">
+                    <div class="action-group">
+                        <button class="btn btn-icon btn-edit" onclick="modalWork(5)"><i class="fas fa-pen"></i></button>
+                        <button class="btn btn-icon btn-del" onclick="delWork(5)"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr><tr>
+                <td data-label="Année"><strong>2020</strong></td>
+                <td data-label="Nature">Porte d'entrée</td>
+                <td data-label="Entreprise">Cahuzac Jean-Pierre</td>
+                <td data-label="Coût">3313.20€</td>
+                <td class="no-print">
+                    <div class="action-group">
+                        <button class="btn btn-icon btn-edit" onclick="modalWork(6)"><i class="fas fa-pen"></i></button>
+                        <button class="btn btn-icon btn-del" onclick="delWork(6)"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr><tr>
+                <td data-label="Année"><strong>2018</strong></td>
+                <td data-label="Nature">Réparation portillon</td>
+                <td data-label="Entreprise">Sarl David Videau</td>
+                <td data-label="Coût">165.00€</td>
+                <td class="no-print">
+                    <div class="action-group">
+                        <button class="btn btn-icon btn-edit" onclick="modalWork(7)"><i class="fas fa-pen"></i></button>
+                        <button class="btn btn-icon btn-del" onclick="delWork(7)"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr><tr>
+                <td data-label="Année"><strong>2017</strong></td>
+                <td data-label="Nature">Tempête (volet)</td>
+                <td data-label="Entreprise">Cyril Lira</td>
+                <td data-label="Coût">929.50€</td>
+                <td class="no-print">
+                    <div class="action-group">
+                        <button class="btn btn-icon btn-edit" onclick="modalWork(8)"><i class="fas fa-pen"></i></button>
+                        <button class="btn btn-icon btn-del" onclick="delWork(8)"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr><tr>
+                <td data-label="Année"><strong>2016</strong></td>
+                <td data-label="Nature">Dégâts des eaux</td>
+                <td data-label="Entreprise">Sarl Videau / Raspail Adrien</td>
+                <td data-label="Coût">2900€</td>
+                <td class="no-print">
+                    <div class="action-group">
+                        <button class="btn btn-icon btn-edit" onclick="modalWork(9)"><i class="fas fa-pen"></i></button>
+                        <button class="btn btn-icon btn-del" onclick="delWork(9)"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr><tr>
+                <td data-label="Année"><strong>2015</strong></td>
+                <td data-label="Nature">Peinture boiseries (Communs + Coloc)</td>
+                <td data-label="Entreprise">Birot Frères Sarl</td>
+                <td data-label="Coût">5262.69€</td>
+                <td class="no-print">
+                    <div class="action-group">
+                        <button class="btn btn-icon btn-edit" onclick="modalWork(10)"><i class="fas fa-pen"></i></button>
+                        <button class="btn btn-icon btn-del" onclick="delWork(10)"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr><tr>
+                <td data-label="Année"><strong>2014</strong></td>
+                <td data-label="Nature">Peinture façade arrière impasse</td>
+                <td data-label="Entreprise">Eurl La Caisse à Out's (M. Raspail)</td>
+                <td data-label="Coût">7709.90€</td>
+                <td class="no-print">
+                    <div class="action-group">
+                        <button class="btn btn-icon btn-edit" onclick="modalWork(11)"><i class="fas fa-pen"></i></button>
+                        <button class="btn btn-icon btn-del" onclick="delWork(11)"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr><tr>
+                <td data-label="Année"><strong>2014</strong></td>
+                <td data-label="Nature">Incendie</td>
+                <td data-label="Entreprise">Diverses</td>
+                <td data-label="Coût">Assurance</td>
+                <td class="no-print">
+                    <div class="action-group">
+                        <button class="btn btn-icon btn-edit" onclick="modalWork(12)"><i class="fas fa-pen"></i></button>
+                        <button class="btn btn-icon btn-del" onclick="delWork(12)"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr><tr>
+                <td data-label="Année"><strong>2013</strong></td>
+                <td data-label="Nature">Mise en retrait portail (Compteurs EDF)</td>
+                <td data-label="Entreprise">...</td>
+                <td data-label="Coût">?</td>
+                <td class="no-print">
+                    <div class="action-group">
+                        <button class="btn btn-icon btn-edit" onclick="modalWork(13)"><i class="fas fa-pen"></i></button>
+                        <button class="btn btn-icon btn-del" onclick="delWork(13)"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr><tr>
+                <td data-label="Année"><strong>2013</strong></td>
+                <td data-label="Nature">Dégâts des eaux</td>
+                <td data-label="Entreprise">Dubouilh</td>
+                <td data-label="Coût">966.76€</td>
+                <td class="no-print">
+                    <div class="action-group">
+                        <button class="btn btn-icon btn-edit" onclick="modalWork(14)"><i class="fas fa-pen"></i></button>
+                        <button class="btn btn-icon btn-del" onclick="delWork(14)"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr><tr>
+                <td data-label="Année"><strong>2013</strong></td>
+                <td data-label="Nature">Ravalement de façade</td>
+                <td data-label="Entreprise">Fourniaud &amp; Fils</td>
+                <td data-label="Coût">14058.98€</td>
+                <td class="no-print">
+                    <div class="action-group">
+                        <button class="btn btn-icon btn-edit" onclick="modalWork(15)"><i class="fas fa-pen"></i></button>
+                        <button class="btn btn-icon btn-del" onclick="delWork(15)"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr><tr>
+                <td data-label="Année"><strong>2011</strong></td>
+                <td data-label="Nature">Remplacement pierres érodées</td>
+                <td data-label="Entreprise">Castet</td>
+                <td data-label="Coût">2400.13€</td>
+                <td class="no-print">
+                    <div class="action-group">
+                        <button class="btn btn-icon btn-edit" onclick="modalWork(16)"><i class="fas fa-pen"></i></button>
+                        <button class="btn btn-icon btn-del" onclick="delWork(16)"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr><tr>
+                <td data-label="Année"><strong>2005</strong></td>
+                <td data-label="Nature">Toiture (Tuiles et Zinc)</td>
+                <td data-label="Entreprise">Gallocher Pierre</td>
+                <td data-label="Coût">22851.59€</td>
+                <td class="no-print">
+                    <div class="action-group">
+                        <button class="btn btn-icon btn-edit" onclick="modalWork(17)"><i class="fas fa-pen"></i></button>
+                        <button class="btn btn-icon btn-del" onclick="delWork(17)"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="tab-repart" class="tab-content">
+    <div style="margin-bottom:15px; display:flex; justify-content:space-between; align-items:center;">
+        <button class="btn btn-add" onclick="openModal('proprio')"><i class="fas fa-plus"></i> Nouveau</button>
+        <button class="btn btn-print" onclick="printTable('table-repart-content')"><i class="fas fa-print"></i> PDF</button>
+    </div>
+    <div class="table-responsive" id="table-repart-content">
+        <table>
+            <thead>
+                <tr>
+                    <th>Propriétaire</th>
+                    <th>Détail Lots</th>
+                    <th>Tant.</th>
+                    <th>Gestion</th>
+                    <th>Ménage</th>
+                    <th>Infos</th>
+                    <th class="no-print">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="tbody-repart"><tr>
+                <td data-label="Propriétaire"><strong>BELLIARD Véronique</strong></td>
+                <td data-label="Lot">ST ESTEPHE (Lot 12: 58) + Apt (Lot 13: 44)</td>
+                <td data-label="Tantièmes"><strong>102</strong></td>
+                <td data-label="Gestion">12.47%</td>
+                <td data-label="Ménage"><span style="color:#c0392b; font-style:italic">Exonéré</span></td>
+                <td data-label="Infos"><small>Gd Balcon<br>Pt Balcon</small></td>
+                <td class="no-print">
+                    <div class="action-group">
+                        <button class="btn btn-icon btn-pdf" onclick="printOne('proprio', 0)"><i class="fas fa-file-pdf"></i></button>
+                        <button class="btn btn-icon btn-edit" onclick="modalProprio(0)"><i class="fas fa-pen"></i></button>
+                        <button class="btn btn-icon btn-del" onclick="delProprio(0)"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr><tr>
+                <td data-label="Propriétaire"><strong>CARSOULE</strong></td>
+                <td data-label="Lot">SAUTERNE (Lot 1)</td>
+                <td data-label="Tantièmes"><strong>74</strong></td>
+                <td data-label="Gestion">9.05%</td>
+                <td data-label="Ménage">10.59%</td>
+                <td data-label="Infos"><small>Cellier: Lot 9 (4)</small></td>
+                <td class="no-print">
+                    <div class="action-group">
+                        <button class="btn btn-icon btn-pdf" onclick="printOne('proprio', 1)"><i class="fas fa-file-pdf"></i></button>
+                        <button class="btn btn-icon btn-edit" onclick="modalProprio(1)"><i class="fas fa-pen"></i></button>
+                        <button class="btn btn-icon btn-del" onclick="delProprio(1)"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr><tr>
+                <td data-label="Propriétaire"><strong>CARSOULE</strong></td>
+                <td data-label="Lot">PESSAC LEOGNAN (Lot 21)</td>
+                <td data-label="Tantièmes"><strong>43</strong></td>
+                <td data-label="Gestion">5.26%</td>
+                <td data-label="Ménage">6.15%</td>
+                <td data-label="Infos"><small></small></td>
+                <td class="no-print">
+                    <div class="action-group">
+                        <button class="btn btn-icon btn-pdf" onclick="printOne('proprio', 2)"><i class="fas fa-file-pdf"></i></button>
+                        <button class="btn btn-icon btn-edit" onclick="modalProprio(2)"><i class="fas fa-pen"></i></button>
+                        <button class="btn btn-icon btn-del" onclick="delProprio(2)"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr><tr>
+                <td data-label="Propriétaire"><strong>CAUPENE Corinne</strong></td>
+                <td data-label="Lot">LIBRAIRIE (Lot 10: 137) + Apt (Lot 11: 62)</td>
+                <td data-label="Tantièmes"><strong>199</strong></td>
+                <td data-label="Gestion">24.33%</td>
+                <td data-label="Ménage"><span style="color:#c0392b; font-style:italic">Exonéré</span></td>
+                <td data-label="Infos"><small>Pt Balcon</small></td>
+                <td class="no-print">
+                    <div class="action-group">
+                        <button class="btn btn-icon btn-pdf" onclick="printOne('proprio', 3)"><i class="fas fa-file-pdf"></i></button>
+                        <button class="btn btn-icon btn-edit" onclick="modalProprio(3)"><i class="fas fa-pen"></i></button>
+                        <button class="btn btn-icon btn-del" onclick="delProprio(3)"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr><tr>
+                <td data-label="Propriétaire"><strong>GABRIEL Thomas</strong></td>
+                <td data-label="Lot">ST CROIX DU MONT (Lot 14)</td>
+                <td data-label="Tantièmes"><strong>62</strong></td>
+                <td data-label="Gestion">7.58%</td>
+                <td data-label="Ménage">8.87%</td>
+                <td data-label="Infos"><small>Cellier: Lot 5 (3)</small></td>
+                <td class="no-print">
+                    <div class="action-group">
+                        <button class="btn btn-icon btn-pdf" onclick="printOne('proprio', 4)"><i class="fas fa-file-pdf"></i></button>
+                        <button class="btn btn-icon btn-edit" onclick="modalProprio(4)"><i class="fas fa-pen"></i></button>
+                        <button class="btn btn-icon btn-del" onclick="delProprio(4)"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr><tr>
+                <td data-label="Propriétaire"><strong>IDEALAMBARD SAS</strong></td>
+                <td data-label="Lot">POMEROL (Lot 19)</td>
+                <td data-label="Tantièmes"><strong>125</strong></td>
+                <td data-label="Gestion">15.28%</td>
+                <td data-label="Ménage">17.88%</td>
+                <td data-label="Infos"><small>Cellier: Lot 3 (4)<br>Pt Balcon</small></td>
+                <td class="no-print">
+                    <div class="action-group">
+                        <button class="btn btn-icon btn-pdf" onclick="printOne('proprio', 5)"><i class="fas fa-file-pdf"></i></button>
+                        <button class="btn btn-icon btn-edit" onclick="modalProprio(5)"><i class="fas fa-pen"></i></button>
+                        <button class="btn btn-icon btn-del" onclick="delProprio(5)"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr><tr>
+                <td data-label="Propriétaire"><strong>LE MERLE Christophe</strong></td>
+                <td data-label="Lot">MOULIS (Lot 18)</td>
+                <td data-label="Tantièmes"><strong>96</strong></td>
+                <td data-label="Gestion"><span style="color:#c0392b; font-style:italic">Exonéré</span></td>
+                <td data-label="Ménage">13.73%</td>
+                <td data-label="Infos"><small>Cellier: Lot 8 (3)<br>Gd Balcon</small></td>
+                <td class="no-print">
+                    <div class="action-group">
+                        <button class="btn btn-icon btn-pdf" onclick="printOne('proprio', 6)"><i class="fas fa-file-pdf"></i></button>
+                        <button class="btn btn-icon btn-edit" onclick="modalProprio(6)"><i class="fas fa-pen"></i></button>
+                        <button class="btn btn-icon btn-del" onclick="delProprio(6)"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr><tr>
+                <td data-label="Propriétaire"><strong>PALMARO</strong></td>
+                <td data-label="Lot">MARGAUX (Lot 15)</td>
+                <td data-label="Tantièmes"><strong>41</strong></td>
+                <td data-label="Gestion">5.01%</td>
+                <td data-label="Ménage">5.87%</td>
+                <td data-label="Infos"><small>Cellier: Lot 6 (3)<br>Gd Balcon</small></td>
+                <td class="no-print">
+                    <div class="action-group">
+                        <button class="btn btn-icon btn-pdf" onclick="printOne('proprio', 7)"><i class="fas fa-file-pdf"></i></button>
+                        <button class="btn btn-icon btn-edit" onclick="modalProprio(7)"><i class="fas fa-pen"></i></button>
+                        <button class="btn btn-icon btn-del" onclick="delProprio(7)"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr><tr>
+                <td data-label="Propriétaire"><strong>PIRAS Eric</strong></td>
+                <td data-label="Lot">PAUILLAC (Lot 20)</td>
+                <td data-label="Tantièmes"><strong>69</strong></td>
+                <td data-label="Gestion">8.44%</td>
+                <td data-label="Ménage">9.87%</td>
+                <td data-label="Infos"><small>Cellier: Lot 4 (3)</small></td>
+                <td class="no-print">
+                    <div class="action-group">
+                        <button class="btn btn-icon btn-pdf" onclick="printOne('proprio', 8)"><i class="fas fa-file-pdf"></i></button>
+                        <button class="btn btn-icon btn-edit" onclick="modalProprio(8)"><i class="fas fa-pen"></i></button>
+                        <button class="btn btn-icon btn-del" onclick="delProprio(8)"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr><tr>
+                <td data-label="Propriétaire"><strong>SALAHUN Yves</strong></td>
+                <td data-label="Lot">ST EMILION (Lot 16)</td>
+                <td data-label="Tantièmes"><strong>37</strong></td>
+                <td data-label="Gestion">4.52%</td>
+                <td data-label="Ménage">5.29%</td>
+                <td data-label="Infos"><small>Gd Balcon</small></td>
+                <td class="no-print">
+                    <div class="action-group">
+                        <button class="btn btn-icon btn-pdf" onclick="printOne('proprio', 9)"><i class="fas fa-file-pdf"></i></button>
+                        <button class="btn btn-icon btn-edit" onclick="modalProprio(9)"><i class="fas fa-pen"></i></button>
+                        <button class="btn btn-icon btn-del" onclick="delProprio(9)"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr><tr>
+                <td data-label="Propriétaire"><strong>SCI le CLOT Sibrac</strong></td>
+                <td data-label="Lot">LISTRAC (Lot 17)</td>
+                <td data-label="Tantièmes"><strong>86</strong></td>
+                <td data-label="Gestion"><span style="color:#c0392b; font-style:italic">Exonéré</span></td>
+                <td data-label="Ménage">12.30%</td>
+                <td data-label="Infos"><small>Cellier: Lot 7 (2)<br>Gd Balcon</small></td>
+                <td class="no-print">
+                    <div class="action-group">
+                        <button class="btn btn-icon btn-pdf" onclick="printOne('proprio', 10)"><i class="fas fa-file-pdf"></i></button>
+                        <button class="btn btn-icon btn-edit" onclick="modalProprio(10)"><i class="fas fa-pen"></i></button>
+                        <button class="btn btn-icon btn-del" onclick="delProprio(10)"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr><tr>
+                <td data-label="Propriétaire"><strong>TROPAMER Véronique</strong></td>
+                <td data-label="Lot">ENTRE 2 MERS (Lot 2)</td>
+                <td data-label="Tantièmes"><strong>66</strong></td>
+                <td data-label="Gestion">8.07%</td>
+                <td data-label="Ménage">9.44%</td>
+                <td data-label="Infos"><small></small></td>
+                <td class="no-print">
+                    <div class="action-group">
+                        <button class="btn btn-icon btn-pdf" onclick="printOne('proprio', 11)"><i class="fas fa-file-pdf"></i></button>
+                        <button class="btn btn-icon btn-edit" onclick="modalProprio(11)"><i class="fas fa-pen"></i></button>
+                        <button class="btn btn-icon btn-del" onclick="delProprio(11)"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr></tbody>
+            <tfoot class="no-print">
+                <tr style="background:#ecf0f1; font-weight:bold; color:var(--primary);">
+                    <td colspan="2" data-label="Total">TOTAL</td>
+                    <td id="total-tantiemes" data-label="Tantièmes">1000</td>
+                    <td id="total-gestion" data-label="Gestion">100%</td>
+                    <td id="total-menage" data-label="Ménage">100%</td>
+                    <td colspan="2"></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+
+<div id="tab-annuaire" class="tab-content">
+    <div style="text-align:right; margin-bottom:10px;">
+        <button class="btn btn-print" onclick="printTable('table-annuaire-content')"><i class="fas fa-print"></i> Imprimer</button>
+    </div>
+    <div class="table-responsive" id="table-annuaire-content">
+        <table>
+            <thead>
+                <tr>
+                    <th>Nom</th>
+                    <th>Contacts (Tél / Email)</th>
+                    <th>Adresse</th>
+                </tr>
+            </thead>
+            <tbody id="tbody-annuaire"><tr>
+                <td data-label="Nom"><strong>BELLIARD Véronique</strong></td>
+                <td data-label="Contacts"><div class="multi-line"><a href="tel:06 70 95 70 11">06 70 95 70 11</a></div><div class="multi-line"><a href="mailto:veroniquebelliard@neuf.fr">veroniquebelliard@neuf.fr</a></div></td>
+                <td data-label="Adresse">7 Rue André LEROUX 33780 SOULAC</td>
+            </tr><tr>
+                <td data-label="Nom"><strong>CARSOULE</strong></td>
+                <td data-label="Contacts"><div class="multi-line"><a href="tel:06 64 84 79 60">06 64 84 79 60</a></div><div class="multi-line"><a href="mailto:fcarsoule@yahoo.fr">fcarsoule@yahoo.fr</a><a href="mailto:olivier.carsoule@gmail.com">olivier.carsoule@gmail.com</a></div></td>
+                <td data-label="Adresse">295 rue du faubourg saint Antoine 75011 PARIS</td>
+            </tr><tr>
+                <td data-label="Nom"><strong>CARSOULE</strong></td>
+                <td data-label="Contacts"></td>
+                <td data-label="Adresse"></td>
+            </tr><tr>
+                <td data-label="Nom"><strong>CAUPENE Corinne</strong></td>
+                <td data-label="Contacts"><div class="multi-line"><a href="tel:06 76 15 58 29">06 76 15 58 29</a></div><div class="multi-line"><a href="mailto:librairiecorinne@orange.fr">librairiecorinne@orange.fr</a></div></td>
+                <td data-label="Adresse">17 Avenue Georges POMPIDOU 33780 SOULAC</td>
+            </tr><tr>
+                <td data-label="Nom"><strong>GABRIEL Thomas</strong></td>
+                <td data-label="Contacts"><div class="multi-line"><a href="tel:06 89 15 89 95">06 89 15 89 95</a></div><div class="multi-line"><a href="mailto:tho.gabriel@gmail.com">tho.gabriel@gmail.com</a><a href="mailto:juliedessales@gmail.com">juliedessales@gmail.com</a></div></td>
+                <td data-label="Adresse">42 Rue A LEROI 33400 Talence</td>
+            </tr><tr>
+                <td data-label="Nom"><strong>IDEALAMBARD SAS</strong></td>
+                <td data-label="Contacts"><div class="multi-line"><a href="tel:06 80 03 34 53">06 80 03 34 53</a></div><div class="multi-line"><a href="mailto:ideal.33@wanadoo.fr">ideal.33@wanadoo.fr</a></div></td>
+                <td data-label="Adresse">2 rue du Maréchal Leclerc 33780 Soulac</td>
+            </tr><tr>
+                <td data-label="Nom"><strong>LE MERLE Christophe</strong></td>
+                <td data-label="Contacts"><div class="multi-line"><a href="tel:06 12 55 26 21">06 12 55 26 21</a></div><div class="multi-line"><a href="mailto:clemerle.lormont@gmail.com">clemerle.lormont@gmail.com</a></div></td>
+                <td data-label="Adresse">15 rue andré Leroux 33780 Soulac-Sur-Mer</td>
+            </tr><tr>
+                <td data-label="Nom"><strong>PALMARO</strong></td>
+                <td data-label="Contacts"><div class="multi-line"><a href="tel:06 45 63 72 89">06 45 63 72 89</a><a href="tel:06 62 43 17 02">06 62 43 17 02</a></div><div class="multi-line"><a href="mailto:bpalmaro@free.fr">bpalmaro@free.fr</a></div></td>
+                <td data-label="Adresse">42 rue du général Chanzy 33400 Talence</td>
+            </tr><tr>
+                <td data-label="Nom"><strong>PIRAS Eric</strong></td>
+                <td data-label="Contacts"><div class="multi-line"><a href="tel:06 18 03 33 05">06 18 03 33 05</a></div><div class="multi-line"><a href="mailto:piras.eric@orange.fr">piras.eric@orange.fr</a></div></td>
+                <td data-label="Adresse">13 rue andré Leroux 33780 Soulac-Sur-Mer</td>
+            </tr><tr>
+                <td data-label="Nom"><strong>SALAHUN Yves</strong></td>
+                <td data-label="Contacts"><div class="multi-line"><a href="tel:06 71 60 54 25">06 71 60 54 25</a></div><div class="multi-line"><a href="mailto:yves.salahun@orange.fr">yves.salahun@orange.fr</a></div></td>
+                <td data-label="Adresse">12 chemin de la renardière montlegun 11000 CARCASSONE</td>
+            </tr><tr>
+                <td data-label="Nom"><strong>SCI le CLOT Sibrac</strong></td>
+                <td data-label="Contacts"><div class="multi-line"><a href="tel:06 82 44 50 88">06 82 44 50 88</a></div><div class="multi-line"><a href="mailto:sibrac_vincent@orange.fr">sibrac_vincent@orange.fr</a></div></td>
+                <td data-label="Adresse">19 chemin de Lescapon 33340 Queyrac</td>
+            </tr><tr>
+                <td data-label="Nom"><strong>TROPAMER Véronique</strong></td>
+                <td data-label="Contacts"><div class="multi-line"><a href="tel:06 22 08 60 20">06 22 08 60 20</a></div><div class="multi-line"><a href="mailto:veronique.tropamer@orange.fr">veronique.tropamer@orange.fr</a></div></td>
+                <td data-label="Adresse">9 rue andré Leroux 33780 Soulac-Sur-Mer</td>
+            </tr></tbody>
+        </table>
+    </div>
+</div>
+
+<div id="tab-prest" class="tab-content">
+    <div style="margin-bottom:15px; display:flex; justify-content:space-between;">
+        <button class="btn btn-add" onclick="openModal('prest')"><i class="fas fa-plus"></i> Nouveau</button>
+        <button class="btn btn-print" onclick="printTable('table-prest-content')"><i class="fas fa-print"></i> PDF</button>
+    </div>
+    <div class="table-responsive" id="table-prest-content">
+        <table>
+            <thead>
+                <tr>
+                    <th>Nom</th>
+                    <th>Contrat</th>
+                    <th>Interlocuteur</th>
+                    <th>Contacts</th>
+                    <th>Adresse</th>
+                    <th>Codes</th>
+                    <th class="no-print">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="tbody-prest"><tr>
+                <td data-label="Nom"><strong>ACC SUD OUEST</strong></td>
+                <td data-label="Contrat">33254</td>
+                <td data-label="Interlocuteur"><strong></strong></td>
+                <td data-label="Contacts"><div class="multi-line"><a href="tel:Standard: 05 57 22 87 36">Standard: 05 57 22 87 36</a><a href="tel:Alain FOURES: 05 57 22 42 10">Alain FOURES: 05 57 22 42 10</a><a href="tel:Pascal LECOT: 05 57 22 42 12">Pascal LECOT: 05 57 22 42 12</a></div><div class="multi-line"><a href="mailto:contact@accsudouest.org">contact@accsudouest.org</a><a href="mailto:admin@accsudouest.org">admin@accsudouest.org</a></div></td>
+                <td data-label="Adresse"><small>Immeuble Le France Lot A 204<br>73 Avenue du Château d'Eau<br>33700 MÉRIGNAC</small></td>
+                <td data-label="Codes"><div style="font-size:0.9em">ID: 33254</div><div style="font-size:0.9em">MDP: 33254</div></td>
+                <td class="no-print">
+                    <div class="action-group">
+                        <button class="btn btn-icon btn-pdf" onclick="printOne('prest', 0)"><i class="fas fa-file-pdf"></i></button>
+                        <button class="btn btn-icon btn-edit" onclick="modalPrest(0)"><i class="fas fa-pen"></i></button>
+                        <button class="btn btn-icon btn-del" onclick="delPrest(0)"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr><tr>
+                <td data-label="Nom"><strong>AXA</strong></td>
+                <td data-label="Contrat">0000021799969904</td>
+                <td data-label="Interlocuteur"><strong>Balke Serge</strong></td>
+                <td data-label="Contacts"><div class="multi-line"><a href="tel:05 56 09 47 55">05 56 09 47 55</a></div><div class="multi-line"><a href="mailto:agence.balke@axa.fr">agence.balke@axa.fr</a></div></td>
+                <td data-label="Adresse"><small>11 Cours du Dr Jacques Noël<br>33590 Saint-Vivien-de-Médoc</small></td>
+                <td data-label="Codes"><div style="font-size:0.9em">ID: coprolsp@gmail.com</div><div style="font-size:0.9em">MDP: 3Rivieres.</div></td>
+                <td class="no-print">
+                    <div class="action-group">
+                        <button class="btn btn-icon btn-pdf" onclick="printOne('prest', 1)"><i class="fas fa-file-pdf"></i></button>
+                        <button class="btn btn-icon btn-edit" onclick="modalPrest(1)"><i class="fas fa-pen"></i></button>
+                        <button class="btn btn-icon btn-del" onclick="delPrest(1)"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr><tr>
+                <td data-label="Nom"><strong>CIC</strong></td>
+                <td data-label="Contrat">923515107917</td>
+                <td data-label="Interlocuteur"><strong></strong></td>
+                <td data-label="Contacts"><div class="multi-line"><a href="tel:05 56 05 41 11">05 56 05 41 11</a><a href="tel:05 56 05 40 50">05 56 05 40 50</a></div><div class="multi-line"><a href="mailto:19317@cic.fr">19317@cic.fr</a></div></td>
+                <td data-label="Adresse"><small>Agence d'Eysines / Bruges<br>76 Avenue du Médoc, 33320 Eysines</small></td>
+                <td data-label="Codes"><div style="font-size:0.9em">ID: 923515107917</div><div style="font-size:0.9em">MDP: 3Rivieres.</div></td>
+                <td class="no-print">
+                    <div class="action-group">
+                        <button class="btn btn-icon btn-pdf" onclick="printOne('prest', 2)"><i class="fas fa-file-pdf"></i></button>
+                        <button class="btn btn-icon btn-edit" onclick="modalPrest(2)"><i class="fas fa-pen"></i></button>
+                        <button class="btn btn-icon btn-del" onclick="delPrest(2)"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr><tr>
+                <td data-label="Nom"><strong>EAU (Mairie)</strong></td>
+                <td data-label="Contrat">51405001201</td>
+                <td data-label="Interlocuteur"><strong>Svc Eau: N. Dupuis</strong></td>
+                <td data-label="Contacts"><div class="multi-line"><a href="tel:05 56 09 85 77 (Svc Eau)">05 56 09 85 77 (Svc Eau)</a><a href="tel:05 56 73 29 29 (Std)">05 56 73 29 29 (Std)</a></div><div class="multi-line"><a href="mailto:n.dupuis@mairie-soulac.fr">n.dupuis@mairie-soulac.fr</a></div></td>
+                <td data-label="Adresse"><small>2 Rue Hôtel de Ville<br>BP 25, 33780 Soulac-Sur-Mer</small></td>
+                <td data-label="Codes"><div style="font-size:0.9em">ID: </div><div style="font-size:0.9em">MDP: </div></td>
+                <td class="no-print">
+                    <div class="action-group">
+                        <button class="btn btn-icon btn-pdf" onclick="printOne('prest', 3)"><i class="fas fa-file-pdf"></i></button>
+                        <button class="btn btn-icon btn-edit" onclick="modalPrest(3)"><i class="fas fa-pen"></i></button>
+                        <button class="btn btn-icon btn-del" onclick="delPrest(3)"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr><tr>
+                <td data-label="Nom"><strong>EDF</strong></td>
+                <td data-label="Contrat">6007691382</td>
+                <td data-label="Interlocuteur"><strong>Service Client</strong></td>
+                <td data-label="Contacts"><div class="multi-line"><a href="mailto:coprolsp@gmail.com">coprolsp@gmail.com</a></div></td>
+                <td data-label="Adresse"><small></small></td>
+                <td data-label="Codes"><div style="font-size:0.9em">ID: coprolsp@gmail.com</div><div style="font-size:0.9em">MDP: 3Rivieres.</div></td>
+                <td class="no-print">
+                    <div class="action-group">
+                        <button class="btn btn-icon btn-pdf" onclick="printOne('prest', 4)"><i class="fas fa-file-pdf"></i></button>
+                        <button class="btn btn-icon btn-edit" onclick="modalPrest(4)"><i class="fas fa-pen"></i></button>
+                        <button class="btn btn-icon btn-del" onclick="delPrest(4)"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr><tr>
+                <td data-label="Nom"><strong>EUROFEU</strong></td>
+                <td data-label="Contrat">C691885</td>
+                <td data-label="Interlocuteur"><strong></strong></td>
+                <td data-label="Contacts"><div class="multi-line"><a href="tel:0820 90 15 15">0820 90 15 15</a></div></td>
+                <td data-label="Adresse"><small>AGENCE DE BORDEAUX<br>991 RUE G. EIFFEL<br>33260 LA TESTE DE BUCH</small></td>
+                <td data-label="Codes"><div style="font-size:0.9em">ID: </div><div style="font-size:0.9em">MDP: </div></td>
+                <td class="no-print">
+                    <div class="action-group">
+                        <button class="btn btn-icon btn-pdf" onclick="printOne('prest', 5)"><i class="fas fa-file-pdf"></i></button>
+                        <button class="btn btn-icon btn-edit" onclick="modalPrest(5)"><i class="fas fa-pen"></i></button>
+                        <button class="btn btn-icon btn-del" onclick="delPrest(5)"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr><tr>
+                <td data-label="Nom"><strong>MARINE CLEAN</strong></td>
+                <td data-label="Contrat"></td>
+                <td data-label="Interlocuteur"><strong></strong></td>
+                <td data-label="Contacts"><div class="multi-line"><a href="tel:06 46 51 70 46">06 46 51 70 46</a></div><div class="multi-line"><a href="mailto:marineclean.ent@gmail.com">marineclean.ent@gmail.com</a></div></td>
+                <td data-label="Adresse"><small>23 avenue de la pointe de grave<br>33123 Le Verdon sur Mer</small></td>
+                <td data-label="Codes"><div style="font-size:0.9em">ID: </div><div style="font-size:0.9em">MDP: </div></td>
+                <td class="no-print">
+                    <div class="action-group">
+                        <button class="btn btn-icon btn-pdf" onclick="printOne('prest', 6)"><i class="fas fa-file-pdf"></i></button>
+                        <button class="btn btn-icon btn-edit" onclick="modalPrest(6)"><i class="fas fa-pen"></i></button>
+                        <button class="btn btn-icon btn-del" onclick="delPrest(6)"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr></tbody>
+        </table>
+    </div>
+</div>
+
+<div id="tab-plan" class="tab-content">
+    <div style="text-align:right; margin-bottom:10px; display:flex; justify-content:space-between;">
+        <div>
+            <button class="btn btn-img" onclick="document.getElementById('plan-input').click()"><i class="fas fa-image"></i> Changer l'image du plan</button>
+            <input type="file" id="plan-input" style="display:none" onchange="uploadPlan(event)" accept="image/*">
+        </div>
+        <button class="btn btn-print" onclick="printPlan()"><i class="fas fa-print"></i> Imprimer</button>
+    </div>
+    <div class="plan-container" id="plan-container"><div class="plan-grid"><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-filled">CARSOULE</div><div class="plan-cell cell-filled">LOT 1</div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-filled">TROPAMER</div><div class="plan-cell cell-filled">LOT 2</div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-filled">PIRAS</div><div class="plan-cell cell-filled">LOT 20</div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-filled">GABRIEL</div><div class="plan-cell cell-filled">LOT 14</div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-filled">PALMARO</div><div class="plan-cell cell-filled">LOT 15</div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-filled">SAUTERNE</div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-filled">ENTRE 2 MERS</div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-filled">PAUILLAC</div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-filled">ST CROIX</div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-filled">MARGAUX</div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-filled">LOT 16</div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-filled">SALAHUN</div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-filled">ST EMILION</div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-filled">LOT 19</div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-filled">IDEALAMBARD</div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-filled">POMEROL</div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-filled">BELLIARD</div><div class="plan-cell cell-filled">LOT 13</div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-filled">CAUPENNE</div><div class="plan-cell cell-filled">LOT 11</div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-filled">LE MERLE</div><div class="plan-cell cell-filled">LOT 18</div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-filled">LOT 17</div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-filled">ST ESTEPHE</div><div class="plan-cell cell-filled">LOT 12</div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-filled">LIBRAIRIE</div><div class="plan-cell cell-filled">LOT 10</div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-filled">MOULIS</div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-filled">LISTRAC</div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-filled">SCI LE CLOT</div><div class="plan-cell cell-empty"></div><div class="plan-cell cell-empty"></div></div></div>
+</div>
+
+<div id="modal-general" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
+            <h2 style="margin:0">Modifier Infos Carnet</h2>
+            <span onclick="closeModal('general')" style="font-size:24px; cursor:pointer;">×</span>
+        </div>
+        
+        <div class="divider">I. IDENTIFICATION</div>
+        <div class="form-group"><label>Adresse Immeuble :</label><input type="text" id="g-address"></div>
+        <div class="form-group"><label>Lots (Détail) :</label><input type="text" id="g-lots"></div>
+        <div class="form-group"><label>Règlement Copro (Date/Ref) :</label><input type="text" id="g-reglement"></div>
+        <div class="form-group"><label>Modifications :</label><input type="text" id="g-modifs"></div>
+
+        <div class="divider">II. ADMINISTRATION</div>
+        <div class="form-group"><label>Syndic Bénévole (Nom + Tel) :</label><input type="text" id="g-syndic"></div>
+        <div class="form-group"><label>AG Nomination :</label><input type="text" id="g-ag"></div>
+        <div class="form-group"><label>Fin Mandat :</label><input type="text" id="g-mandat"></div>
+        <div class="form-group"><label>Conseil Syndical (Liste) :</label><textarea id="g-conseil"></textarea></div>
+
+        <div class="divider">III. FINANCES</div>
+        <div class="form-group"><label>Avance Trésorerie :</label><input type="text" id="g-tresorerie"></div>
+        <div class="form-group"><label>Fonds de Travaux :</label><input type="text" id="g-fonds"></div>
+
+        <div class="divider">IV. TECHNIQUE &amp; DIAGNOSTICS</div>
+        <div class="form-group"><label>Année Construction :</label><input type="text" id="g-construction"></div>
+        <div class="form-group"><label>Surface (Total + Détail) :</label><textarea id="g-surface"></textarea></div>
+        <div class="form-group"><label>Toiture :</label><input type="text" id="g-roof"></div>
+        <div class="form-group"><label>Code Peinture :</label><input type="text" id="g-paint"></div>
+        <div class="form-group"><label>Chauffage :</label><input type="text" id="g-heat"></div>
+        <div class="form-group"><label>Diagnostics (Résumé Amiante/Plomb...) :</label><textarea id="g-diag"></textarea></div>
+        
+        <button class="btn btn-add" style="width:100%; justify-content:center; padding:12px;" onclick="saveGeneral()">Enregistrer</button>
+    </div>
+</div>
+
+<div id="modal-proprio" class="modal">
+    <div class="modal-content">
+        <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
+            <h2 id="modal-title-proprio" style="margin:0">Propriétaire</h2>
+            <span onclick="closeModal('proprio')" style="font-size:24px; cursor:pointer;">×</span>
+        </div>
+        <input type="hidden" id="edit-index-proprio">
+        <div class="form-group"><label>Nom :</label><input type="text" id="p-nom"></div>
+        <div class="form-group"><label>Détail Lot :</label><input type="text" id="p-lot"></div>
+        <div class="form-group"><label>Total Tantièmes :</label><input type="number" id="p-tantiemes"></div>
+        <div class="form-group"><label>Cellier :</label><input type="text" id="p-cellier"></div>
+        <div class="form-group">
+            <label>Balcons :</label>
+            <div style="display:flex; gap:10px;">
+                <label style="font-weight:normal"><input type="checkbox" id="p-gd-balcon"> Grand</label>
+                <label style="font-weight:normal"><input type="checkbox" id="p-pt-balcon"> Petit</label>
+            </div>
+        </div>
+        <div class="form-group"><label>Téléphones :</label><textarea id="p-tel" placeholder="Un numéro par ligne"></textarea></div>
+        <div class="form-group"><label>Emails :</label><textarea id="p-email" placeholder="Un email par ligne"></textarea></div>
+        <div class="form-group"><label>Adresse Postale :</label><textarea id="p-adresse"></textarea></div>
+        <button class="btn btn-add" style="width:100%; justify-content:center; padding:12px;" onclick="saveProprio()">Enregistrer</button>
+    </div>
+</div>
+
+<div id="modal-prest" class="modal">
+    <div class="modal-content">
+        <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
+            <h2 id="modal-title-prest" style="margin:0">Prestataire</h2>
+            <span onclick="closeModal('prest')" style="font-size:24px; cursor:pointer;">×</span>
+        </div>
+        <input type="hidden" id="edit-index-prest">
+        <div class="form-group"><label>Nom Société :</label><input type="text" id="pr-nom"></div>
+        <div class="form-group"><label>Nom Contact / Interlocuteur :</label><input type="text" id="pr-contact"></div>
+        <div class="form-group"><label>Contrat / Référence :</label><input type="text" id="pr-contrat"></div>
+        <div class="form-group"><label>Téléphones :</label><textarea id="pr-tel" placeholder="Un numéro par ligne"></textarea></div>
+        <div class="form-group"><label>Emails :</label><textarea id="pr-email" placeholder="Un email par ligne"></textarea></div>
+        <div class="form-group"><label>Adresse :</label><textarea id="pr-adresse"></textarea></div>
+        <div class="form-group"><label>Identifiant :</label><input type="text" id="pr-id"></div>
+        <div class="form-group"><label>Mot de passe :</label><input type="text" id="pr-mdp"></div>
+        <button class="btn btn-add" style="width:100%; justify-content:center; padding:12px;" onclick="savePrest()">Enregistrer</button>
+    </div>
+</div>
+
+<div id="modal-work" class="modal">
+    <div class="modal-content">
+        <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
+            <h2 id="modal-title-work" style="margin:0">Travaux</h2>
+            <span onclick="closeModal('work')" style="font-size:24px; cursor:pointer;">×</span>
+        </div>
+        <input type="hidden" id="edit-index-work">
+        <div class="form-group"><label>Année :</label><input type="number" id="w-year"></div>
+        <div class="form-group"><label>Description :</label><textarea id="w-desc"></textarea></div>
+        <div class="form-group"><label>Entreprise :</label><input type="text" id="w-company"></div>
+        <div class="form-group"><label>Coût :</label><input type="text" id="w-cost"></div>
+        <button class="btn btn-add" style="width:100%; justify-content:center; padding:12px;" onclick="saveWork()">Enregistrer</button>
+    </div>
+</div>
+
+<script>
+    // --- DONNEES GENERALES (Modifiables) ---
+    const initialGeneral = {"address":"7-9 rue André Leroux, 33780 Soulac-sur-Mer","syndic":"Mr LE MERLE Christophe7 rue André Leroux06 17 25 02 66","ag":"17 décembre 2025","mandat":"31 décembre 2026","lots":"21 (14 Principaux, 7 Celliers)","reglement":"29 septembre 2009 - Notaire: S.C.P Michel MARTIN (Ref: 52-531)","modifs":"Aucune","conseil":"Mme Tropamer Véronique\nMme Béliard Véronique\nM. Sibrac Vincent","tresorerie":"1 555.50€ / trimestre","fonds":"13 487.27€ (Loi ALUR)","construction":"Avant 1900 (Pierre / Brique / Bois)","surface":"679 m²\n(RDC: 331m², 1er: 321m², 2e: 22m²)","roof":"Tuile Marseille et Romane","facade":"Pierre et Enduit","paint":"Tollens T 2004-2 (Bleue)","heat":"Individuel (Chauffage + Eau Chaude)","water":"Individuelle","diag_amiante":"Négatif (sauf conduit combles) - 16/09/2009","diag_plomb":"RAS - 16/09/2009","diag_termites":"Contrôlé - 16/09/2009"};
+
+    const initialOwners = [{"nom":"BELLIARD Véronique","lot":"ST ESTEPHE (Lot 12: 58) + Apt (Lot 13: 44)","adresse":"7 Rue André LEROUX 33780 SOULAC","email":"veroniquebelliard@neuf.fr","tel":"06 70 95 70 11","tant":102,"cellier":"","gd_balcon":true,"pt_balcon":true,"partG":12.469437652811736,"partM":0},{"nom":"CARSOULE","lot":"SAUTERNE (Lot 1)","adresse":"295 rue du faubourg saint Antoine 75011 PARIS","email":"fcarsoule@yahoo.fr\nolivier.carsoule@gmail.com","tel":"06 64 84 79 60","tant":74,"cellier":"Lot 9 (4)","gd_balcon":false,"pt_balcon":false,"partG":9.04645476772616,"partM":10.586552217453505},{"nom":"CARSOULE","lot":"PESSAC LEOGNAN (Lot 21)","adresse":"","email":"","tel":"","tant":43,"cellier":"","gd_balcon":false,"pt_balcon":false,"partG":5.256723716381418,"partM":6.151645207439199},{"nom":"CAUPENE Corinne","lot":"LIBRAIRIE (Lot 10: 137) + Apt (Lot 11: 62)","adresse":"17 Avenue Georges POMPIDOU 33780 SOULAC","email":"librairiecorinne@orange.fr","tel":"06 76 15 58 29","tant":199,"cellier":"","gd_balcon":false,"pt_balcon":true,"partG":24.327628361858192,"partM":0},{"nom":"GABRIEL Thomas","lot":"ST CROIX DU MONT (Lot 14)","adresse":"42 Rue A LEROI 33400 Talence","email":"tho.gabriel@gmail.com\njuliedessales@gmail.com","tel":"06 89 15 89 95","tant":62,"cellier":"Lot 5 (3)","gd_balcon":false,"pt_balcon":false,"partG":7.579462102689487,"partM":8.869814020028613},{"nom":"IDEALAMBARD SAS","lot":"POMEROL (Lot 19)","adresse":"2 rue du Maréchal Leclerc 33780 Soulac","email":"ideal.33@wanadoo.fr","tel":"06 80 03 34 53","tant":125,"cellier":"Lot 3 (4)","gd_balcon":false,"pt_balcon":true,"partG":15.28117359413203,"partM":17.8826895565093},{"nom":"LE MERLE Christophe","lot":"MOULIS (Lot 18)","adresse":"15 rue andré Leroux 33780 Soulac-Sur-Mer","email":"clemerle.lormont@gmail.com","tel":"06 12 55 26 21","tant":96,"cellier":"Lot 8 (3)","gd_balcon":true,"pt_balcon":false,"partG":0,"partM":13.733905579399142},{"nom":"PALMARO","lot":"MARGAUX (Lot 15)","adresse":"42 rue du général Chanzy 33400 Talence","email":"bpalmaro@free.fr","tel":"06 45 63 72 89\n06 62 43 17 02","tant":41,"cellier":"Lot 6 (3)","gd_balcon":true,"pt_balcon":false,"partG":5.012224938875306,"partM":5.865522174535051},{"nom":"PIRAS Eric","lot":"PAUILLAC (Lot 20)","adresse":"13 rue andré Leroux 33780 Soulac-Sur-Mer","email":"piras.eric@orange.fr","tel":"06 18 03 33 05","tant":69,"cellier":"Lot 4 (3)","gd_balcon":false,"pt_balcon":false,"partG":8.43520782396088,"partM":9.871244635193133},{"nom":"SALAHUN Yves","lot":"ST EMILION (Lot 16)","adresse":"12 chemin de la renardière montlegun 11000 CARCASSONE","email":"yves.salahun@orange.fr","tel":"06 71 60 54 25","tant":37,"cellier":"","gd_balcon":true,"pt_balcon":false,"partG":4.52322738386308,"partM":5.293276108726753},{"nom":"SCI le CLOT Sibrac","lot":"LISTRAC (Lot 17)","adresse":"19 chemin de Lescapon 33340 Queyrac","email":"sibrac_vincent@orange.fr","tel":"06 82 44 50 88","tant":86,"cellier":"Lot 7 (2)","gd_balcon":true,"pt_balcon":false,"partG":0,"partM":12.303290414878399},{"nom":"TROPAMER Véronique","lot":"ENTRE 2 MERS (Lot 2)","adresse":"9 rue andré Leroux 33780 Soulac-Sur-Mer","email":"veronique.tropamer@orange.fr","tel":"06 22 08 60 20","tant":66,"cellier":"","gd_balcon":false,"pt_balcon":false,"partG":8.06845965770171,"partM":9.44206008583691}];
+
+    const initialProviders = [{"nom":"ACC SUD OUEST","contact":"","contrat":"33254","tel":"Standard: 05 57 22 87 36\nAlain FOURES: 05 57 22 42 10\nPascal LECOT: 05 57 22 42 12","email":"contact@accsudouest.org\nadmin@accsudouest.org","adresse":"Immeuble Le France Lot A 204\n73 Avenue du Château d'Eau\n33700 MÉRIGNAC","id":"33254","mdp":"33254"},{"nom":"AXA","contact":"Balke Serge","contrat":"0000021799969904","tel":"05 56 09 47 55","email":"agence.balke@axa.fr","adresse":"11 Cours du Dr Jacques Noël\n33590 Saint-Vivien-de-Médoc","id":"coprolsp@gmail.com","mdp":"3Rivieres."},{"nom":"CIC","contact":"","contrat":"923515107917","tel":"05 56 05 41 11\n05 56 05 40 50","email":"19317@cic.fr","adresse":"Agence d'Eysines / Bruges\n76 Avenue du Médoc, 33320 Eysines","id":"923515107917","mdp":"3Rivieres."},{"nom":"EAU (Mairie)","contact":"Svc Eau: N. Dupuis","contrat":"51405001201","tel":"05 56 09 85 77 (Svc Eau)\n05 56 73 29 29 (Std)","email":"n.dupuis@mairie-soulac.fr","adresse":"2 Rue Hôtel de Ville\nBP 25, 33780 Soulac-Sur-Mer","id":"","mdp":""},{"nom":"EDF","contact":"Service Client","contrat":"6007691382","tel":"","email":"coprolsp@gmail.com","adresse":"","id":"coprolsp@gmail.com","mdp":"3Rivieres."},{"nom":"EUROFEU","contact":"","contrat":"C691885","tel":"0820 90 15 15","email":"","adresse":"AGENCE DE BORDEAUX\n991 RUE G. EIFFEL\n33260 LA TESTE DE BUCH","id":"","mdp":""},{"nom":"MARINE CLEAN","contact":"","contrat":"","tel":"06 46 51 70 46","email":"marineclean.ent@gmail.com","adresse":"23 avenue de la pointe de grave\n33123 Le Verdon sur Mer","id":"","mdp":""}];
+
+    const initialWorks = [{"year":2025,"desc":"Réfection totale du portillon cour","company":"Fait par REPT","cost":"0€"},{"year":2024,"desc":"Toiture (60 tuiles + faitage)","company":"Boudassou Stéphane (07 77 82 47 83)","cost":"1556.50€"},{"year":2024,"desc":"Changement partie de l'appartement Listrac (Balcon)","company":"Réalisé par Mr Sibrac","cost":"0€"},{"year":2024,"desc":"Peinture hall Cellier","company":"Réalisé par Mr Sibrac","cost":"0€"},{"year":2022,"desc":"Peinture Porte d'entrée","company":"Une Pointe de Couleurs (Pianalto Lydia)","cost":"237.00€"},{"year":2021,"desc":"Fibre optique","company":"Gironde très haut débit","cost":"0€"},{"year":2020,"desc":"Porte d'entrée","company":"Cahuzac Jean-Pierre","cost":"3313.20€"},{"year":2018,"desc":"Réparation portillon","company":"Sarl David Videau","cost":"165.00€"},{"year":2017,"desc":"Tempête (volet)","company":"Cyril Lira","cost":"929.50€"},{"year":2016,"desc":"Dégâts des eaux","company":"Sarl Videau / Raspail Adrien","cost":"2900€"},{"year":2015,"desc":"Peinture boiseries (Communs + Coloc)","company":"Birot Frères Sarl","cost":"5262.69€"},{"year":2014,"desc":"Peinture façade arrière impasse","company":"Eurl La Caisse à Out's (M. Raspail)","cost":"7709.90€"},{"year":2014,"desc":"Incendie","company":"Diverses","cost":"Assurance"},{"year":2013,"desc":"Mise en retrait portail (Compteurs EDF)","company":"...","cost":"?"},{"year":2013,"desc":"Dégâts des eaux","company":"Dubouilh","cost":"966.76€"},{"year":2013,"desc":"Ravalement de façade","company":"Fourniaud & Fils","cost":"14058.98€"},{"year":2011,"desc":"Remplacement pierres érodées","company":"Castet","cost":"2400.13€"},{"year":2005,"desc":"Toiture (Tuiles et Zinc)","company":"Gallocher Pierre","cost":"22851.59€"}];
+
+    const planDataGrid = [
+        "","","","","CARSOULE","LOT 1","","","TROPAMER","LOT 2","","","PIRAS","LOT 20","","GABRIEL","LOT 14","","PALMARO","LOT 15","",
+        "","","","","SAUTERNE","","","","ENTRE 2 MERS","","","","PAUILLAC","","","ST CROIX","","","MARGAUX","","",
+        "","","","","","","","","","","","","","","","","","","","","",
+        "","","","","","","","","","","","","","","","","","","","","LOT 16",
+        "","","","","","","","","","","","","","","","","","","","","SALAHUN",
+        "","","","","","","","","","","","","","","","","","","","","ST EMILION",
+        "","","","","","","","","","","LOT 19","","","","","","","","","","",
+        "","","","","","","","","","","IDEALAMBARD","","","","","","","","","","",
+        "","","","","","","","","","","POMEROL","","","","","","","","","","",
+        "","","","","","","","","","","","","","","","","","","","","",
+        "","","","","BELLIARD","LOT 13","","","CAUPENNE","LOT 11","","","","","LE MERLE","LOT 18","","","LOT 17","",
+        "","","","","ST ESTEPHE","LOT 12","","","LIBRAIRIE","LOT 10","","","","","MOULIS","","","","LISTRAC","",
+        "","","","","","","","","","","","","","","","","","","SCI LE CLOT","",""
+    ];
+
+    let generalInfo = {}, owners = [], providers = [], works = [], currentPlanImage = null;
+
+    // --- LOGIQUE ---
+
+    function loadData() {
+        const sG = localStorage.getItem('copro_general_v19');
+        const sO = localStorage.getItem('copro_owners_v19');
+        const sP = localStorage.getItem('copro_providers_v19');
+        const sW = localStorage.getItem('copro_works_v19');
+        const sImg = localStorage.getItem('copro_plan_img_v19');
+        
+        generalInfo = sG ? JSON.parse(sG) : JSON.parse(JSON.stringify(initialGeneral));
+        owners = sO ? JSON.parse(sO) : JSON.parse(JSON.stringify(initialOwners));
+        providers = sP ? JSON.parse(sP) : JSON.parse(JSON.stringify(initialProviders));
+        works = sW ? JSON.parse(sW) : JSON.parse(JSON.stringify(initialWorks));
+        currentPlanImage = sImg;
+        
+        sortData();
+        renderAll();
+    }
+
+    function saveData() {
+        sortData();
+        localStorage.setItem('copro_general_v19', JSON.stringify(generalInfo));
+        localStorage.setItem('copro_owners_v19', JSON.stringify(owners));
+        localStorage.setItem('copro_providers_v19', JSON.stringify(providers));
+        localStorage.setItem('copro_works_v19', JSON.stringify(works));
+        if(currentPlanImage) localStorage.setItem('copro_plan_img_v19', currentPlanImage);
+        renderAll();
+    }
+
+    // FONCTION SPECIALE : SAUVEGARDE AUTONOME
+    function saveAutonomous() {
+        let htmlContent = document.documentElement.outerHTML;
+        
+        const jsonGeneral = JSON.stringify(generalInfo);
+        const jsonOwners = JSON.stringify(owners);
+        const jsonProviders = JSON.stringify(providers);
+        const jsonWorks = JSON.stringify(works);
+        const jsonImage = currentPlanImage ? `"${currentPlanImage}"` : "null";
+
+        htmlContent = htmlContent.replace(/const initialGeneral = \{.*?\};/s, `const initialGeneral = ${jsonGeneral};`);
+        htmlContent = htmlContent.replace(/const initialOwners = \[.*?\];/s, `const initialOwners = ${jsonOwners};`);
+        htmlContent = htmlContent.replace(/const initialProviders = \[.*?\];/s, `const initialProviders = ${jsonProviders};`);
+        htmlContent = htmlContent.replace(/const initialWorks = \[.*?\];/s, `const initialWorks = ${jsonWorks};`);
+        htmlContent = htmlContent.replace(/let currentPlanImage = null;/, `let currentPlanImage = ${jsonImage};`);
+
+        const blob = new Blob([htmlContent], {type: 'text/html'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'Gestion_Copro_Complet.html';
+        a.click();
+        
+        alert("Fichier 'Gestion_Copro_Complet.html' créé !\nIl contient toutes vos données et l'image.");
+    }
+
+    function sortData() {
+        owners.sort((a, b) => a.nom.localeCompare(b.nom, 'fr', {sensitivity: 'base'}));
+        providers.sort((a, b) => a.nom.localeCompare(b.nom, 'fr', {sensitivity: 'base'}));
+        works.sort((a, b) => b.year - a.year);
+    }
+
+    function uploadPlan(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            currentPlanImage = e.target.result;
+            saveData();
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function downloadJSON() {
+        const data = { general: generalInfo, owners, providers, works, planImage: currentPlanImage };
+        const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'copro_data.json';
+        a.click();
+    }
+
+    function loadJSON(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = JSON.parse(e.target.result);
+                if (data.owners && data.providers) {
+                    if(data.general) generalInfo = data.general;
+                    owners = data.owners;
+                    providers = data.providers;
+                    works = data.works || [];
+                    if(data.planImage) currentPlanImage = data.planImage;
+                    saveData();
+                    alert("Données importées !");
+                }
+            } catch(err) { alert("Erreur fichier"); }
+        };
+        reader.readAsText(file);
+    }
+
+    function calculateShares() {
+        const exclGestion = ["LE MERLE", "SCI LE CLOT", "SCI le Clot"];
+        const exclMenage = ["CAUPENE", "BELLIARD", "CAUPENNE"];
+        let totalTant = 0, baseGestion = 0, baseMenage = 0;
+
+        owners.forEach(o => {
+            let t = parseFloat(o.tant) || 0;
+            totalTant += t;
+            if (!exclGestion.some(exc => o.nom.toUpperCase().includes(exc))) baseGestion += t;
+            if (!exclMenage.some(exc => o.nom.toUpperCase().includes(exc))) baseMenage += t;
+        });
+
+        owners.forEach(o => {
+            let t = parseFloat(o.tant) || 0;
+            o.partG = exclGestion.some(exc => o.nom.toUpperCase().includes(exc)) ? 0 : (t / baseGestion * 100);
+            o.partM = exclMenage.some(exc => o.nom.toUpperCase().includes(exc)) ? 0 : (t / baseMenage * 100);
+        });
+        return totalTant;
+    }
+
+    // --- RENDER HELPERS ---
+    
+    function formatMulti(txt, type) {
+        if(!txt) return '';
+        return `<div class="multi-line">` + txt.split(/[,;\n]+/).map(l => {
+            l=l.trim(); if(!l)return'';
+            return type==='tel' ? `<a href="tel:${l}">${l}</a>` : `<a href="mailto:${l}">${l}</a>`;
+        }).join('') + `</div>`;
+    }
+    function formatAddress(txt) { return txt ? txt.replace(/\n/g, '<br>') : ''; }
+
+    // --- RENDER ---
+
+    function renderAll() {
+        const totalT = calculateShares();
+        renderGeneral();
+        renderRepart(totalT);
+        renderPrest();
+        renderAnnuaire();
+        renderPlan();
+        renderWorks();
+    }
+
+    function renderGeneral() {
+        document.getElementById('view-address').innerText = generalInfo.address;
+        document.getElementById('view-syndic').innerText = generalInfo.syndic;
+        document.getElementById('view-mandat').innerText = generalInfo.mandat;
+        document.getElementById('view-ag').innerText = generalInfo.ag;
+        document.getElementById('view-conseil').innerText = generalInfo.conseil;
+        document.getElementById('view-lots').innerText = generalInfo.lots;
+        
+        document.getElementById('view-reglement').innerText = generalInfo.reglement;
+        document.getElementById('view-modifs').innerText = generalInfo.modifs;
+        document.getElementById('view-tresorerie').innerText = generalInfo.tresorerie;
+        document.getElementById('view-fonds').innerText = generalInfo.fonds;
+        
+        document.getElementById('view-construction').innerText = generalInfo.construction;
+        document.getElementById('view-surface').innerText = generalInfo.surface;
+        document.getElementById('view-roof').innerText = generalInfo.roof;
+        document.getElementById('view-facade').innerText = generalInfo.facade || "Non spécifié";
+        document.getElementById('view-paint').innerText = generalInfo.paint;
+        document.getElementById('view-heat').innerText = generalInfo.heat;
+        document.getElementById('view-water').innerText = generalInfo.water;
+        
+        document.getElementById('view-diag-amiante').innerText = generalInfo.diag_amiante;
+        document.getElementById('view-diag-plomb').innerText = generalInfo.diag_plomb;
+        document.getElementById('view-diag-termites').innerText = generalInfo.diag_termites;
+    }
+
+    function renderWorks() {
+        const tbody = document.getElementById('tbody-works');
+        tbody.innerHTML = '';
+        works.forEach((w, i) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td data-label="Année"><strong>${w.year}</strong></td>
+                <td data-label="Nature">${w.desc}</td>
+                <td data-label="Entreprise">${w.company}</td>
+                <td data-label="Coût">${w.cost}</td>
+                <td class="no-print">
+                    <div class="action-group">
+                        <button class="btn btn-icon btn-edit" onclick="modalWork(${i})"><i class="fas fa-pen"></i></button>
+                        <button class="btn btn-icon btn-del" onclick="delWork(${i})"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function renderRepart(total) {
+        const tbody = document.getElementById('tbody-repart');
+        tbody.innerHTML = '';
+        owners.forEach((o, i) => {
+            const tr = document.createElement('tr');
+            const gStr = o.partG > 0 ? o.partG.toFixed(2) + '%' : '<span style="color:#c0392b; font-style:italic">Exonéré</span>';
+            const mStr = o.partM > 0 ? o.partM.toFixed(2) + '%' : '<span style="color:#c0392b; font-style:italic">Exonéré</span>';
+            let infos = [];
+            if(o.cellier) infos.push(`Cellier: ${o.cellier}`);
+            if(o.gd_balcon) infos.push("Gd Balcon");
+            if(o.pt_balcon) infos.push("Pt Balcon");
+
+            tr.innerHTML = `
+                <td data-label="Propriétaire"><strong>${o.nom}</strong></td>
+                <td data-label="Lot">${o.lot}</td>
+                <td data-label="Tantièmes"><strong>${o.tant}</strong></td>
+                <td data-label="Gestion">${gStr}</td>
+                <td data-label="Ménage">${mStr}</td>
+                <td data-label="Infos"><small>${infos.join('<br>')}</small></td>
+                <td class="no-print">
+                    <div class="action-group">
+                        <button class="btn btn-icon btn-pdf" onclick="printOne('proprio', ${i})"><i class="fas fa-file-pdf"></i></button>
+                        <button class="btn btn-icon btn-edit" onclick="modalProprio(${i})"><i class="fas fa-pen"></i></button>
+                        <button class="btn btn-icon btn-del" onclick="delProprio(${i})"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+        document.getElementById('total-tantiemes').innerText = total;
+    }
+
+    function renderPrest() {
+        const tbody = document.getElementById('tbody-prest');
+        tbody.innerHTML = '';
+        providers.forEach((p, i) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td data-label="Nom"><strong>${p.nom}</strong></td>
+                <td data-label="Contrat">${p.contrat}</td>
+                <td data-label="Interlocuteur"><strong>${p.contact || ''}</strong></td>
+                <td data-label="Contacts">${formatMulti(p.tel, 'tel')}${formatMulti(p.email, 'email')}</td>
+                <td data-label="Adresse"><small>${formatAddress(p.adresse)}</small></td>
+                <td data-label="Codes"><div style="font-size:0.9em">ID: ${p.id}</div><div style="font-size:0.9em">MDP: ${p.mdp}</div></td>
+                <td class="no-print">
+                    <div class="action-group">
+                        <button class="btn btn-icon btn-pdf" onclick="printOne('prest', ${i})"><i class="fas fa-file-pdf"></i></button>
+                        <button class="btn btn-icon btn-edit" onclick="modalPrest(${i})"><i class="fas fa-pen"></i></button>
+                        <button class="btn btn-icon btn-del" onclick="delPrest(${i})"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function renderAnnuaire() {
+        const tbody = document.getElementById('tbody-annuaire');
+        tbody.innerHTML = '';
+        owners.forEach(o => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td data-label="Nom"><strong>${o.nom}</strong></td>
+                <td data-label="Contacts">${formatMulti(o.tel, 'tel')}${formatMulti(o.email, 'email')}</td>
+                <td data-label="Adresse">${formatAddress(o.adresse)}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function renderPlan() {
+        const container = document.getElementById('plan-container');
+        container.innerHTML = '';
+        
+        if (currentPlanImage) {
+            const img = document.createElement('img');
+            img.src = currentPlanImage;
+            img.className = 'plan-image';
+            container.appendChild(img);
+        } else {
+            const grid = document.createElement('div');
+            grid.className = 'plan-grid';
+            planDataGrid.forEach(c => {
+                const div = document.createElement('div');
+                div.className = c.trim() ? 'plan-cell cell-filled' : 'plan-cell cell-empty';
+                div.innerText = c;
+                grid.appendChild(div);
+            });
+            container.appendChild(grid);
+        }
+    }
+    
+    function printPlan() {
+        if(currentPlanImage) {
+            document.getElementById('print-area').innerHTML = `<img src="${currentPlanImage}" id="print-plan-img">`;
+            window.print();
+        } else {
+            alert("Veuillez d'abord charger une image de plan.");
+        }
+    }
+
+    // --- ACTIONS & MODALS ---
+
+    function openModal(id) { 
+        if(id==='proprio') modalProprio(-1); 
+        if(id==='prest') modalPrest(-1); 
+        if(id==='work') modalWork(-1);
+        if(id==='general') modalGeneral();
+    }
+    function closeModal(id) { document.getElementById('modal-'+id).style.display = 'none'; }
+
+    // GENERAL
+    function modalGeneral() {
+        document.getElementById('modal-general').style.display = 'block';
+        document.getElementById('g-address').value = generalInfo.address;
+        document.getElementById('g-syndic').value = generalInfo.syndic;
+        document.getElementById('g-ag').value = generalInfo.ag;
+        document.getElementById('g-mandat').value = generalInfo.mandat;
+        document.getElementById('g-conseil').value = generalInfo.conseil;
+        document.getElementById('g-lots').value = generalInfo.lots;
+        
+        document.getElementById('g-reglement').value = generalInfo.reglement;
+        document.getElementById('g-modifs').value = generalInfo.modifs;
+        document.getElementById('g-tresorerie').value = generalInfo.tresorerie;
+        document.getElementById('g-fonds').value = generalInfo.fonds;
+        
+        document.getElementById('g-construction').value = generalInfo.construction;
+        document.getElementById('g-surface').value = generalInfo.surface;
+        document.getElementById('g-roof').value = generalInfo.roof;
+        document.getElementById('g-paint').value = generalInfo.paint;
+        document.getElementById('g-heat').value = generalInfo.heat;
+        
+        document.getElementById('g-diag').value = `Amiante: ${generalInfo.diag_amiante}\nPlomb: ${generalInfo.diag_plomb}\nTermites: ${generalInfo.diag_termites}`;
+    }
+
+    function saveGeneral() {
+        generalInfo.address = document.getElementById('g-address').value;
+        generalInfo.syndic = document.getElementById('g-syndic').value;
+        generalInfo.ag = document.getElementById('g-ag').value;
+        generalInfo.mandat = document.getElementById('g-mandat').value;
+        generalInfo.conseil = document.getElementById('g-conseil').value;
+        generalInfo.lots = document.getElementById('g-lots').value;
+        
+        generalInfo.reglement = document.getElementById('g-reglement').value;
+        generalInfo.modifs = document.getElementById('g-modifs').value;
+        generalInfo.tresorerie = document.getElementById('g-tresorerie').value;
+        generalInfo.fonds = document.getElementById('g-fonds').value;
+        
+        generalInfo.construction = document.getElementById('g-construction').value;
+        generalInfo.surface = document.getElementById('g-surface').value;
+        generalInfo.roof = document.getElementById('g-roof').value;
+        generalInfo.paint = document.getElementById('g-paint').value;
+        generalInfo.heat = document.getElementById('g-heat').value;
+        saveData();
+        closeModal('general');
+    }
+
+    function modalProprio(idx) {
+        document.getElementById('modal-proprio').style.display = 'block';
+        document.getElementById('edit-index-proprio').value = idx;
+        const o = (idx === -1) ? {nom:'', lot:'', tant:'', cellier:'', gd_balcon:false, pt_balcon:false, tel:'', email:'', adresse:''} : owners[idx];
+        document.getElementById('p-nom').value = o.nom;
+        document.getElementById('p-lot').value = o.lot;
+        document.getElementById('p-tantiemes').value = o.tant;
+        document.getElementById('p-cellier').value = o.cellier;
+        document.getElementById('p-gd-balcon').checked = o.gd_balcon;
+        document.getElementById('p-pt-balcon').checked = o.pt_balcon;
+        document.getElementById('p-tel').value = o.tel;
+        document.getElementById('p-email').value = o.email;
+        document.getElementById('p-adresse').value = o.adresse;
+    }
+
+    function saveProprio() {
+        const idx = parseInt(document.getElementById('edit-index-proprio').value);
+        const obj = {
+            nom: document.getElementById('p-nom').value,
+            lot: document.getElementById('p-lot').value,
+            tant: parseFloat(document.getElementById('p-tantiemes').value) || 0,
+            cellier: document.getElementById('p-cellier').value,
+            gd_balcon: document.getElementById('p-gd-balcon').checked,
+            pt_balcon: document.getElementById('p-pt-balcon').checked,
+            tel: document.getElementById('p-tel').value,
+            email: document.getElementById('p-email').value,
+            adresse: document.getElementById('p-adresse').value,
+            partG: 0, partM: 0
+        };
+        if(idx === -1) owners.push(obj); else owners[idx] = obj;
+        saveData(); closeModal('proprio');
+    }
+
+    function modalPrest(idx) {
+        document.getElementById('modal-prest').style.display = 'block';
+        document.getElementById('edit-index-prest').value = idx;
+        const p = (idx === -1) ? {nom:'', contact:'', contrat:'', tel:'', email:'', adresse:'', id:'', mdp:''} : providers[idx];
+        document.getElementById('pr-nom').value = p.nom;
+        document.getElementById('pr-contact').value = p.contact || '';
+        document.getElementById('pr-contrat').value = p.contrat;
+        document.getElementById('pr-tel').value = p.tel;
+        document.getElementById('pr-email').value = p.email;
+        document.getElementById('pr-adresse').value = p.adresse;
+        document.getElementById('pr-id').value = p.id;
+        document.getElementById('pr-mdp').value = p.mdp;
+    }
+
+    function savePrest() {
+        const idx = parseInt(document.getElementById('edit-index-prest').value);
+        const obj = {
+            nom: document.getElementById('pr-nom').value,
+            contact: document.getElementById('pr-contact').value,
+            contrat: document.getElementById('pr-contrat').value,
+            tel: document.getElementById('pr-tel').value,
+            email: document.getElementById('pr-email').value,
+            adresse: document.getElementById('pr-adresse').value,
+            id: document.getElementById('pr-id').value,
+            mdp: document.getElementById('pr-mdp').value
+        };
+        if(idx === -1) providers.push(obj); else providers[idx] = obj;
+        saveData(); closeModal('prest');
+    }
+
+    function modalWork(idx) {
+        document.getElementById('modal-work').style.display = 'block';
+        document.getElementById('edit-index-work').value = idx;
+        const w = (idx === -1) ? {year: new Date().getFullYear(), desc:'', company:'', cost:''} : works[idx];
+        document.getElementById('w-year').value = w.year;
+        document.getElementById('w-desc').value = w.desc;
+        document.getElementById('w-company').value = w.company;
+        document.getElementById('w-cost').value = w.cost;
+    }
+
+    function saveWork() {
+        const idx = parseInt(document.getElementById('edit-index-work').value);
+        const obj = {
+            year: parseInt(document.getElementById('w-year').value),
+            desc: document.getElementById('w-desc').value,
+            company: document.getElementById('w-company').value,
+            cost: document.getElementById('w-cost').value
+        };
+        if(idx === -1) works.push(obj); else works[idx] = obj;
+        saveData(); closeModal('work');
+    }
+
+    function delProprio(i) { if(confirm("Supprimer ?")) { owners.splice(i,1); saveData(); } }
+    function delPrest(i) { if(confirm("Supprimer ?")) { providers.splice(i,1); saveData(); } }
+    function delWork(i) { if(confirm("Supprimer ?")) { works.splice(i,1); saveData(); } }
+    
+    function switchTab(id) {
+        document.querySelectorAll('.tab-content').forEach(d => d.classList.remove('active'));
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        event.currentTarget.classList.add('active');
+    }
+
+    function printTable(id) {
+        const el = document.getElementById(id);
+        el.classList.add('printable-table');
+        window.print();
+        el.classList.remove('printable-table');
+    }
+
+    function printOne(type, idx) {
+        const area = document.getElementById('print-area');
+        const d = new Date().toLocaleDateString();
+        let html = `<div class="pdf-header"><h2>Fiche ${type}</h2><p>Copropriété Les Pyrénées</p><small>${d}</small></div>`;
+        if (type === 'proprio') {
+            const o = owners[idx];
+            html += `<div class="pdf-box"><p><span class="pdf-label">Nom :</span> ${o.nom}</p><p><span class="pdf-label">Lot :</span> ${o.lot}</p><p><span class="pdf-label">Tantièmes :</span> ${o.tant}</p></div>`;
+            html += `<div class="pdf-box"><h3>Coordonnées</h3><p>Adresse : ${formatAddress(o.adresse)}</p></div>`;
+            if(o.tel) html += `<div class="pdf-box"><h3>Téléphones</h3>${formatMulti(o.tel, 'tel')}</div>`;
+            if(o.email) html += `<div class="pdf-box"><h3>Emails</h3>${formatMulti(o.email, 'email')}</div>`;
+            html += `<div class="pdf-box"><h3>Répartition</h3><p>Gestion : ${o.partG > 0 ? o.partG.toFixed(2)+'%' : 'Exonéré'}</p><p>Ménage : ${o.partM > 0 ? o.partM.toFixed(2)+'%' : 'Exonéré'}</p></div>`;
+        } else {
+            const p = providers[idx];
+            html += `<div class="pdf-box"><p><span class="pdf-label">Société :</span> ${p.nom}</p><p><span class="pdf-label">Contrat :</span> ${p.contrat}</p></div>`;
+            if(p.contact) html += `<div class="pdf-box"><p><span class="pdf-label">Interlocuteur :</span> ${p.contact}</p></div>`;
+            html += `<div class="pdf-box"><h3>Coordonnées</h3><p>Adresse : ${formatAddress(p.adresse)}</p></div>`;
+            if(p.tel) html += `<div class="pdf-box"><h3>Téléphones</h3>${formatMulti(p.tel, 'tel')}</div>`;
+            if(p.email) html += `<div class="pdf-box"><h3>Emails</h3>${formatMulti(p.email, 'email')}</div>`;
+            html += `<div class="pdf-box"><h3>Accès</h3><p>ID : ${p.id}</p><p>MDP : ${p.mdp}</p></div>`;
+        }
+        area.innerHTML = html;
+        window.print();
+    }
+
+    function printCarnet() {
+        const area = document.getElementById('print-area');
+        const d = new Date().toLocaleDateString();
+        let html = `
+            <div class="pdf-header">
+                <h1>CARNET D'ENTRETIEN</h1>
+                <h2>Copropriété Les Pyrénées - 33780 Soulac-sur-Mer</h2>
+                <small>Edité le ${d}</small>
+            </div>
+            
+            <div class="pdf-section">
+                <div class="pdf-section-title">I. IDENTIFICATION</div>
+                <div class="pdf-grid">
+                    <div class="pdf-item"><span class="pdf-label">Adresse :</span> <span class="pdf-val">${generalInfo.address}</span></div>
+                    <div class="pdf-item"><span class="pdf-label">Syndic :</span> <span class="pdf-val">${generalInfo.syndic}</span></div>
+                    <div class="pdf-item"><span class="pdf-label">Règlement :</span> <span class="pdf-val">${generalInfo.reglement}</span></div>
+                    <div class="pdf-item"><span class="pdf-label">Composition :</span> <span class="pdf-val">${generalInfo.lots}</span></div>
+                </div>
+            </div>
+
+            <div class="pdf-section">
+                <div class="pdf-section-title">II. ADMINISTRATION & FINANCES</div>
+                <div class="pdf-grid">
+                    <div class="pdf-item"><span class="pdf-label">AG Nomination :</span> <span class="pdf-val">${generalInfo.ag}</span></div>
+                    <div class="pdf-item"><span class="pdf-label">Mandat :</span> <span class="pdf-val">${generalInfo.mandat}</span></div>
+                    <div class="pdf-item"><span class="pdf-label">Trésorerie :</span> <span class="pdf-val">${generalInfo.tresorerie}</span></div>
+                    <div class="pdf-item"><span class="pdf-label">Fonds Travaux :</span> <span class="pdf-val">${generalInfo.fonds}</span></div>
+                </div>
+                <p><strong>Conseil Syndical :</strong><br>${generalInfo.conseil.replace(/\n/g, '<br>')}</p>
+            </div>
+
+            <div class="pdf-section">
+                <div class="pdf-section-title">III. DONNÉES TECHNIQUES</div>
+                <div class="pdf-grid">
+                    <div class="pdf-item"><span class="pdf-label">Construction :</span> <span class="pdf-val">${generalInfo.construction}</span></div>
+                    <div class="pdf-item"><span class="pdf-label">Toiture :</span> <span class="pdf-val">${generalInfo.roof}</span></div>
+                    <div class="pdf-item"><span class="pdf-label">Chauffage :</span> <span class="pdf-val">${generalInfo.heat}</span></div>
+                    <div class="pdf-item"><span class="pdf-label">Compteurs :</span> <span class="pdf-val">Eau (Cour), Linky (Indiv/Commun)</span></div>
+                </div>
+            </div>
+
+            <div class="pdf-section">
+                <div class="pdf-section-title">IV. CONTRATS EN COURS</div>
+                <ul class="pdf-list">${providers.map(p => `
+                    <li>
+                        <strong>${p.nom}</strong> - Contrat: ${p.contrat}<br>
+                        ${p.contact ? `Interlocuteur: ${p.contact}<br>` : ''}
+                        <em>${p.adresse.replace(/\n/g, ', ')}</em><br>
+                        ${p.tel ? `Tel: ${p.tel.replace(/\n/g, ' / ')}` : ''}
+                        ${p.email ? ` - Email: ${p.email.replace(/\n/g, ' / ')}` : ''}
+                    </li>`).join('')}
+                </ul>
+            </div>
+
+            <div class="pdf-section">
+                <div class="pdf-section-title">V. DIAGNOSTICS</div>
+                <p><strong>Amiante (2009) :</strong> ${generalInfo.diag_amiante}</p>
+                <p><strong>Plomb (2009) :</strong> ${generalInfo.diag_plomb}</p>
+                <p><strong>Termites (2009) :</strong> ${generalInfo.diag_termites}</p>
+            </div>
+
+            <div class="pdf-section">
+                <div class="pdf-section-title">VI. HISTORIQUE DES TRAVAUX IMPORTANTS</div>
+                <table style="width:100%; border-collapse:collapse; font-size:11px;">
+                    <tr style="background:#eee;">
+                        <th style="border:1px solid #ccc; padding:5px; width:10%;">Année</th>
+                        <th style="border:1px solid #ccc; padding:5px; width:40%;">Nature</th>
+                        <th style="border:1px solid #ccc; padding:5px; width:35%;">Entreprise</th>
+                        <th style="border:1px solid #ccc; padding:5px; width:15%;">Coût</th>
+                    </tr>
+                    ${works.map(w => `
+                        <tr>
+                            <td style="border:1px solid #ccc; padding:5px;">${w.year}</td>
+                            <td style="border:1px solid #ccc; padding:5px;">${w.desc}</td>
+                            <td style="border:1px solid #ccc; padding:5px;">${w.company}</td>
+                            <td style="border:1px solid #ccc; padding:5px;">${w.cost}</td>
+                        </tr>
+                    `).join('')}
+                </table>
+            </div>
+        `;
+        area.innerHTML = html;
+        window.print();
+    }
+
+    loadData();
+</script>
+
+</body></html>
