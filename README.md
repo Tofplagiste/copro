@@ -21,7 +21,7 @@ Cette suite contient 4 applications accessibles depuis un Hub central :
 
 ### Prérequis
 - **Node.js** installé via NVM (normalement déjà fait si vous avez NVM)
-- **Visual Studio Code** (ou tout autre éditeur)
+- **Antigravity** (ou tout autre éditeur)
 
 ### Étapes
 
@@ -29,27 +29,34 @@ Cette suite contient 4 applications accessibles depuis un Hub central :
 - Dans VS Code : Menu `Terminal` → `Nouveau terminal`
 - Ou : PowerShell / Invite de commandes Windows
 
-#### 2. Se placer dans le dossier du projet
+#### 2. Récupérer le code (Cloner)
+Si vous n'avez pas encore le projet sur votre machine (à faire une seule fois) :
 ```bash
-cd C:\Chemin\copro-app
+git clone https://github.com/Tofplagiste/copro.git
 ```
 
-#### 3. Installer les dépendances (une seule fois)
+#### 3. Se placer dans le dossier du projet
+```bash
+cd copro
+```
+*(Si vous avez cloner le projet, le dossier s'appelle `copro`. Sinon adaptez le chemin)*
+
+#### 4. Installer les dépendances (une seule fois)
 ```bash
 npm install
 ```
 > ⏳ Cette commande télécharge toutes les librairies nécessaires. Peut prendre 1-2 minutes.
 
-#### 4. Lancer l'application
+#### 5. Lancer l'application
 ```bash
 npm run dev
 ```
 > 🟢 Affiche une URL comme `http://localhost:5173/`
 
-#### 5. Ouvrir dans le navigateur
+#### 6. Ouvrir dans le navigateur
 Cliquez sur le lien affiché ou ouvrez manuellement : http://localhost:5173/
 
-#### 6. Arrêter l'application
+#### 7. Arrêter l'application
 Dans le terminal : appuyez sur `Ctrl + C`
 
 ---
@@ -83,9 +90,9 @@ git push
 
 ---
 
-### Méthode 2 : Via l'interface VS Code
+### Méthode 2 : Via l'interface Antigravity
 
-VS Code intègre Git avec une interface visuelle.
+Antigravity intègre Git avec une interface visuelle.
 
 #### a) Ouvrir le panneau Git
 Cliquez sur l'icône **Source Control** dans la barre latérale gauche (icône avec 3 branches).
