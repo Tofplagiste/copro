@@ -12,6 +12,43 @@ export default function CarnetInfoTab() {
     const [travailModal, setTravailModal] = useState({ open: false, data: null });
     const [deleteConfirm, setDeleteConfirm] = useState({ open: false, id: null });
 
+    // Form state for editing sections
+    const [editFormData, setEditFormData] = useState({});
+
+    const openEditModal = (editKey) => {
+        // Initialize form data based on the section being edited
+        let initialData = {};
+        switch (editKey) {
+            case 'general':
+                initialData = { ...state.general };
+                break;
+            case 'admin':
+                initialData = { ...state.admin };
+                break;
+            case 'finances':
+                initialData = { ...state.finances };
+                break;
+            case 'technique':
+                initialData = { ...state.technique };
+                break;
+            case 'diagnostics':
+                initialData = { ...state.diagnostics };
+                break;
+        }
+        setEditFormData(initialData);
+        setEditingSection(editKey);
+    };
+
+    const handleSaveSection = () => {
+        if (!editingSection) return;
+
+        const newState = { ...state };
+        newState[editingSection] = editFormData;
+        updateState(newState);
+        setEditingSection(null);
+        setEditFormData({});
+    };
+
     const SectionCard = ({ icon: Icon, title, children, editKey }) => (
         <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-slate-50 to-white border-b">
@@ -21,8 +58,9 @@ export default function CarnetInfoTab() {
                 </div>
                 {editKey && (
                     <button
-                        onClick={() => setEditingSection(editKey)}
+                        onClick={() => openEditModal(editKey)}
                         className="text-blue-600 hover:bg-blue-50 p-1.5 rounded transition-colors"
+                        title="Modifier"
                     >
                         <Edit size={16} />
                     </button>
@@ -55,6 +93,235 @@ export default function CarnetInfoTab() {
             addTravaux(data);
         }
         setTravailModal({ open: false, data: null });
+    };
+
+    // Render edit form based on section
+    const renderEditForm = () => {
+        switch (editingSection) {
+            case 'general':
+                return (
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-semibold text-slate-600 mb-1">Adresse Immeuble</label>
+                            <input
+                                value={editFormData.address || ''}
+                                onChange={(e) => setEditFormData({ ...editFormData, address: e.target.value })}
+                                className="w-full px-3 py-2 border rounded-lg"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-semibold text-slate-600 mb-1">Lots</label>
+                            <input
+                                value={editFormData.lots || ''}
+                                onChange={(e) => setEditFormData({ ...editFormData, lots: e.target.value })}
+                                className="w-full px-3 py-2 border rounded-lg"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-semibold text-slate-600 mb-1">Règlement Copro</label>
+                            <input
+                                value={editFormData.reglement || ''}
+                                onChange={(e) => setEditFormData({ ...editFormData, reglement: e.target.value })}
+                                className="w-full px-3 py-2 border rounded-lg"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-semibold text-slate-600 mb-1">Modifications</label>
+                            <textarea
+                                value={editFormData.modifications || ''}
+                                onChange={(e) => setEditFormData({ ...editFormData, modifications: e.target.value })}
+                                className="w-full px-3 py-2 border rounded-lg"
+                                rows={3}
+                            />
+                        </div>
+                    </div>
+                );
+            case 'admin':
+                return (
+                    <div className="space-y-4">
+                        <div className="border rounded-lg p-3 bg-slate-50">
+                            <h4 className="font-bold text-sm text-slate-700 mb-3">Syndic Bénévole</h4>
+                            <div className="space-y-2">
+                                <input
+                                    placeholder="Nom"
+                                    value={editFormData.syndic?.name || ''}
+                                    onChange={(e) => setEditFormData({
+                                        ...editFormData,
+                                        syndic: { ...editFormData.syndic, name: e.target.value }
+                                    })}
+                                    className="w-full px-3 py-2 border rounded-lg"
+                                />
+                                <input
+                                    placeholder="Adresse"
+                                    value={editFormData.syndic?.address || ''}
+                                    onChange={(e) => setEditFormData({
+                                        ...editFormData,
+                                        syndic: { ...editFormData.syndic, address: e.target.value }
+                                    })}
+                                    className="w-full px-3 py-2 border rounded-lg"
+                                />
+                                <input
+                                    placeholder="Téléphone"
+                                    value={editFormData.syndic?.phone || ''}
+                                    onChange={(e) => setEditFormData({
+                                        ...editFormData,
+                                        syndic: { ...editFormData.syndic, phone: e.target.value }
+                                    })}
+                                    className="w-full px-3 py-2 border rounded-lg"
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-semibold text-slate-600 mb-1">AG Nomination</label>
+                            <input
+                                type="date"
+                                value={editFormData.agNomination || ''}
+                                onChange={(e) => setEditFormData({ ...editFormData, agNomination: e.target.value })}
+                                className="w-full px-3 py-2 border rounded-lg"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-semibold text-slate-600 mb-1">Fin Mandat</label>
+                            <input
+                                type="date"
+                                value={editFormData.finMandat || ''}
+                                onChange={(e) => setEditFormData({ ...editFormData, finMandat: e.target.value })}
+                                className="w-full px-3 py-2 border rounded-lg"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-semibold text-slate-600 mb-1">Conseil Syndical (un nom par ligne)</label>
+                            <textarea
+                                value={(editFormData.conseilSyndical || []).join('\n')}
+                                onChange={(e) => setEditFormData({
+                                    ...editFormData,
+                                    conseilSyndical: e.target.value.split('\n').filter(Boolean)
+                                })}
+                                className="w-full px-3 py-2 border rounded-lg"
+                                rows={4}
+                            />
+                        </div>
+                    </div>
+                );
+            case 'finances':
+                return (
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-semibold text-slate-600 mb-1">Avance Trésorerie</label>
+                            <input
+                                value={editFormData.avanceTresorerie || ''}
+                                onChange={(e) => setEditFormData({ ...editFormData, avanceTresorerie: e.target.value })}
+                                className="w-full px-3 py-2 border rounded-lg"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-semibold text-slate-600 mb-1">Fonds de Travaux</label>
+                            <input
+                                value={editFormData.fondsTravaux || ''}
+                                onChange={(e) => setEditFormData({ ...editFormData, fondsTravaux: e.target.value })}
+                                className="w-full px-3 py-2 border rounded-lg"
+                            />
+                        </div>
+                    </div>
+                );
+            case 'technique':
+                return (
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-600 mb-1">Construction</label>
+                                <input
+                                    value={editFormData.construction || ''}
+                                    onChange={(e) => setEditFormData({ ...editFormData, construction: e.target.value })}
+                                    className="w-full px-3 py-2 border rounded-lg"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-600 mb-1">Surface Développée</label>
+                                <input
+                                    value={editFormData.surface || ''}
+                                    onChange={(e) => setEditFormData({ ...editFormData, surface: e.target.value })}
+                                    className="w-full px-3 py-2 border rounded-lg"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-600 mb-1">Toiture</label>
+                                <input
+                                    value={editFormData.toiture || ''}
+                                    onChange={(e) => setEditFormData({ ...editFormData, toiture: e.target.value })}
+                                    className="w-full px-3 py-2 border rounded-lg"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-600 mb-1">Façade / Murs</label>
+                                <input
+                                    value={editFormData.facade || ''}
+                                    onChange={(e) => setEditFormData({ ...editFormData, facade: e.target.value })}
+                                    className="w-full px-3 py-2 border rounded-lg"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-600 mb-1">Code Peinture</label>
+                                <input
+                                    value={editFormData.codePeinture || ''}
+                                    onChange={(e) => setEditFormData({ ...editFormData, codePeinture: e.target.value })}
+                                    className="w-full px-3 py-2 border rounded-lg"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-600 mb-1">Chauffage</label>
+                                <input
+                                    value={editFormData.chauffage || ''}
+                                    onChange={(e) => setEditFormData({ ...editFormData, chauffage: e.target.value })}
+                                    className="w-full px-3 py-2 border rounded-lg"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                );
+            case 'diagnostics':
+                return (
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-semibold text-slate-600 mb-1">Amiante</label>
+                            <input
+                                value={editFormData.amiante || ''}
+                                onChange={(e) => setEditFormData({ ...editFormData, amiante: e.target.value })}
+                                className="w-full px-3 py-2 border rounded-lg"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-semibold text-slate-600 mb-1">Plomb</label>
+                            <input
+                                value={editFormData.plomb || ''}
+                                onChange={(e) => setEditFormData({ ...editFormData, plomb: e.target.value })}
+                                className="w-full px-3 py-2 border rounded-lg"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-semibold text-slate-600 mb-1">Termites</label>
+                            <input
+                                value={editFormData.termites || ''}
+                                onChange={(e) => setEditFormData({ ...editFormData, termites: e.target.value })}
+                                className="w-full px-3 py-2 border rounded-lg"
+                            />
+                        </div>
+                    </div>
+                );
+            default:
+                return null;
+        }
+    };
+
+    const getSectionTitle = () => {
+        switch (editingSection) {
+            case 'general': return 'Modifier Informations Générales';
+            case 'admin': return 'Modifier Administration';
+            case 'finances': return 'Modifier Budget & Finances';
+            case 'technique': return 'Modifier Données Techniques';
+            case 'diagnostics': return 'Modifier Diagnostics';
+            default: return 'Modifier';
+        }
     };
 
     return (
@@ -168,6 +435,31 @@ export default function CarnetInfoTab() {
                 </div>
             </div>
 
+            {/* Modal Edition Section */}
+            <Modal
+                isOpen={!!editingSection}
+                onClose={() => { setEditingSection(null); setEditFormData({}); }}
+                title={getSectionTitle()}
+            >
+                <div className="space-y-4">
+                    {renderEditForm()}
+                    <div className="flex justify-end gap-2 pt-4 border-t">
+                        <button
+                            onClick={() => { setEditingSection(null); setEditFormData({}); }}
+                            className="px-4 py-2 border rounded-lg hover:bg-slate-50"
+                        >
+                            Annuler
+                        </button>
+                        <button
+                            onClick={handleSaveSection}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 font-semibold"
+                        >
+                            Enregistrer
+                        </button>
+                    </div>
+                </div>
+            </Modal>
+
             {/* Modal Travail */}
             <Modal
                 isOpen={travailModal.open}
@@ -242,3 +534,4 @@ export default function CarnetInfoTab() {
         </div>
     );
 }
+

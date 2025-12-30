@@ -192,6 +192,22 @@ export default function VoteApp({ onBackToHub }) {
         return copros.filter(c => c.id !== excludeId && c.presence === 'present');
     };
 
+    // Count procurations per mandataire
+    const procurationCounts = useMemo(() => {
+        const counts = {};
+        copros.forEach(c => {
+            if (c.presence === 'procuration' && c.procurationDonneeA) {
+                counts[c.procurationDonneeA] = (counts[c.procurationDonneeA] || 0) + 1;
+            }
+        });
+        return counts;
+    }, [copros]);
+
+    // Check if mandataire can accept more procurations (max 3)
+    const canAcceptProcuration = (mandataireId) => {
+        return (procurationCounts[mandataireId] || 0) < 3;
+    };
+
     // Export PDF procès-verbal
     const exportPDF = () => {
         const doc = new jsPDF();
@@ -355,12 +371,26 @@ export default function VoteApp({ onBackToHub }) {
                                             className="w-full px-2 py-1.5 border-2 border-amber-400 rounded text-sm bg-amber-50"
                                         >
                                             <option value="">-- Choisir mandataire --</option>
-                                            {getMandataires(copro.id).map(m => (
-                                                <option key={m.id} value={m.id}>{m.nom}</option>
-                                            ))}
+                                            {getMandataires(copro.id).map(m => {
+                                                const count = procurationCounts[m.id] || 0;
+                                                const isMaxed = count >= 3;
+                                                const isCurrentlySelected = copro.procurationDonneeA === m.id;
+                                                return (
+                                                    <option
+                                                        key={m.id}
+                                                        value={m.id}
+                                                        disabled={isMaxed && !isCurrentlySelected}
+                                                    >
+                                                        {m.nom} ({count}/3){isMaxed && !isCurrentlySelected ? ' ⛔' : ''}
+                                                    </option>
+                                                );
+                                            })}
                                         </select>
                                         {!copro.procurationDonneeA && getMandataires(copro.id).length === 0 && (
                                             <p className="text-xs text-red-500 mt-1">Aucun présent pour mandataire</p>
+                                        )}
+                                        {!copro.procurationDonneeA && getMandataires(copro.id).every(m => (procurationCounts[m.id] || 0) >= 3) && getMandataires(copro.id).length > 0 && (
+                                            <p className="text-xs text-red-500 mt-1">Tous les présents ont atteint 3 procurations</p>
                                         )}
                                     </div>
                                 )}
