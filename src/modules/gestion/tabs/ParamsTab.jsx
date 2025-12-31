@@ -1,12 +1,11 @@
 /**
  * ParamsTab - Onglet Paramètres
- * Inclut sauvegarde/chargement JSON et génération PDF centralisée
+ * Inclut sauvegarde/chargement JSON
  */
 import { useRef } from 'react';
-import { Settings, Users, Mail, Download, Upload, Save, FileJson } from 'lucide-react';
+import { Settings, Users, Upload, Save, FileJson } from 'lucide-react';
 import { useCopro } from '../../../context/CoproContext';
 import { useToast } from '../../../components/ToastProvider';
-import { generateOwnerSheetPDF, savePDF } from '../../../utils/pdfExport';
 import BankAccountsPanel from '../components/params/BankAccountsPanel';
 import ClosingPanel from '../components/params/ClosingPanel';
 import PostesComptablesPanel from '../components/params/PostesComptablesPanel';
@@ -70,25 +69,10 @@ export default function ParamsTab() {
         event.target.value = '';
     };
 
-    // =====================================================
-    // GÉNÉRATION PDF (centralisée)
-    // =====================================================
-
-    const handleDownload = (owner) => {
-        const doc = generateOwnerSheetPDF(owner);
-        savePDF(doc, `Fiche_${owner.name.replace(/\s+/g, '_')}.pdf`);
-    };
-
-    const handleMailing = (owner) => {
-        const subject = encodeURIComponent("Information Copropriété Les Pyrénées");
-        const body = encodeURIComponent(`Bonjour ${owner.name},\n\nVoici les informations concernant votre lot...\n\nCordialement,\nLe Syndic Bénévole`);
-        window.open(`mailto:${owner.email}?subject=${subject}&body=${body}`);
-    };
-
     return (
         <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 bg-gradient-to-br from-slate-50 to-slate-100 min-h-full">
-            {/* Header */}
-            <div className="flex items-center justify-between">
+            {/* Header - Centré */}
+            <div className="flex items-center justify-center">
                 <div className="flex items-center gap-2 sm:gap-3">
                     <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-slate-600 to-slate-800 rounded-xl flex items-center justify-center shadow-lg shrink-0">
                         <Settings className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
@@ -154,7 +138,6 @@ export default function ParamsTab() {
                                 <th className="text-center px-4 py-3.5">Tantièmes</th>
                                 <th className="text-center px-4 py-3.5">Exonérations</th>
                                 <th className="text-left px-4 py-3.5">Email</th>
-                                <th className="text-center px-4 py-3.5 w-28">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
@@ -193,24 +176,6 @@ export default function ParamsTab() {
                                         <a href={`mailto:${owner.email}`} className="hover:text-blue-600 transition-colors">
                                             {owner.email}
                                         </a>
-                                    </td>
-                                    <td className="px-4 py-3.5 text-center">
-                                        <div className="flex items-center justify-center gap-2">
-                                            <button
-                                                onClick={() => handleMailing(owner)}
-                                                className="w-8 h-8 flex items-center justify-center text-amber-500 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 hover:border-amber-300 transition-all"
-                                                title="Envoyer un mail"
-                                            >
-                                                <Mail size={15} />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDownload(owner)}
-                                                className="w-8 h-8 flex items-center justify-center text-red-500 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 hover:border-red-300 transition-all"
-                                                title="Télécharger fiche PDF"
-                                            >
-                                                <Download size={15} />
-                                            </button>
-                                        </div>
                                     </td>
                                 </tr>
                             ))}

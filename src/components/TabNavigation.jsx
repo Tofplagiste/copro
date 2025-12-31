@@ -15,7 +15,7 @@ const ICON_MAP = {
 export default function TabNavigation({ tabs, activeTab, onTabChange }) {
     return (
         <nav className="bg-white px-2 sm:px-5 py-0 shadow-sm sticky top-[60px] sm:top-[76px] z-40 overflow-x-auto whitespace-nowrap border-b border-gray-100">
-            <div className="max-w-screen-2xl mx-auto flex">
+            <div className="max-w-screen-2xl mx-auto flex justify-center">
                 {tabs.map((tab) => {
                     const IconComponent = ICON_MAP[tab.icon];
                     const isActive = activeTab === tab.id;

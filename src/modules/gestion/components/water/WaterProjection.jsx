@@ -1,78 +1,53 @@
-
 /**
  * WaterProjection - Bilan annuel et projection N+1
+ * Utilise le hook useWater pour la logique métier (Phase 4)
  */
 import { useCopro } from '../../../../context/CoproContext';
+import { useWater } from '../../hooks/useWater';
 import { useToast } from '../../../../components/ToastProvider';
 import { fmtMoney } from '../../../../utils/formatters';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
 
 export default function WaterProjection() {
-    const { state, updateState } = useCopro();
+    const { state } = useCopro();
     const toast = useToast();
-    const water = state.water;
+    const {
+        water,
+        owners,
+        validTantiemes,
+        getAnnualConsumption,
+        getProjectedBudget,
+        updateWaterParam,
+        updateProjection
+    } = useWater();
 
     // Paramètres de projection
     const projPrice = water.projPrice || 5.08;
     const projSub = water.projSub || 92.21;
 
-    const handleParamChange = (field, value) => {
-        updateState({
-            water: {
-                ...water,
-                [field]: parseFloat(value) || 0
-            }
-        });
-    };
-
-    const handleProjectionChange = (ownerId, value) => {
-        const projections = { ...water.projections, [ownerId]: parseFloat(value) || 0 };
-        updateState({ water: { ...water, projections } });
-    };
-
-    // Calcul tantièmes valides
-    const validTantiemes = state.owners
-        .filter(o => !o.isCommon && o.hasMeter)
-        .reduce((sum, o) => sum + (o.tantiemes || 0), 0);
-
     // Préparation des données
-    const rows = state.owners
-        .filter(o => !o.isCommon && o.hasMeter)
-        .map(owner => {
-            // Consommation par trimestre
-            const quarters = ['T1', 'T2', 'T3', 'T4'].map(q => {
-                const r = water.readings[q]?.[owner.id] || { old: 0, new: 0 };
-                return Math.max(0, (r.new || 0) - (r.old || 0));
-            });
+    const rows = owners.map(owner => {
+        const annual = getAnnualConsumption(owner.id);
+        const projM3 = water.projections?.[owner.id] !== undefined
+            ? water.projections[owner.id]
+            : annual.total;
+        const budgetN1 = getProjectedBudget(owner);
 
-            const totalN = quarters.reduce((s, v) => s + v, 0);
-
-            // Projection N+1
-            const projM3 = water.projections?.[owner.id] !== undefined
-                ? water.projections[owner.id]
-                : totalN;
-
-            // Budget estimé N+1
-            const subPart = validTantiemes > 0 ? projSub * (owner.tantiemes / validTantiemes) : 0;
-            const consoPart = projM3 * projPrice;
-            const budgetN1 = subPart + consoPart;
-
-            return { owner, quarters, totalN, projM3, budgetN1 };
-        });
+        return { owner, quarters: annual.quarters, totalN: annual.total, projM3, budgetN1 };
+    });
 
     // Exporter PDF
     const handleExportPDF = () => {
         const doc = new jsPDF('landscape');
         doc.text("Bilan & Projection Eau", 14, 15);
-        autoTable(doc, {
-            // REMOVED html: '#table-water-proj' to avoid scraping Lot info from DOM
+        doc.autoTable({
             startY: 20,
             theme: 'grid',
             styles: { fontSize: 10 },
             headStyles: { fillColor: [44, 62, 80], textColor: 255 },
             body: rows.map(r => [
-                r.owner.name, // Only the name, as requested (no lot)
+                r.owner.name,
                 ...r.quarters.map(q => q.toFixed(3)),
                 r.totalN.toFixed(3),
                 r.projM3.toFixed(3),
@@ -89,7 +64,6 @@ export default function WaterProjection() {
     // Copier Tableau (Excel Style)
     const handleCopyTable = async () => {
         try {
-            // Build HTML string with inline styles for Excel
             let html = `
                 <table border="1" style="border-collapse: collapse; width: 100%; font-family: Arial, sans-serif;">
                     <thead>
@@ -160,7 +134,7 @@ export default function WaterProjection() {
                 </div>
             </div>
 
-            {/* Paramètres de projection - Improved UI with overflow-hidden and cleaner look */}
+            {/* Paramètres de projection */}
             <div className="bg-white rounded-xl shadow-sm border mb-4 overflow-hidden">
                 <div className="bg-gray-50 px-4 py-2 border-b font-bold text-gray-700">
                     Paramètres de Projection (Budget Futur)
@@ -172,7 +146,7 @@ export default function WaterProjection() {
                             <input
                                 type="number"
                                 value={projPrice}
-                                onChange={(e) => handleParamChange('projPrice', e.target.value)}
+                                onChange={(e) => updateWaterParam('projPrice', e.target.value)}
                                 className="block w-40 pl-3 pr-8 py-2 font-bold text-blue-600 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                                 step="0.01"
                             />
@@ -184,7 +158,7 @@ export default function WaterProjection() {
                             <input
                                 type="number"
                                 value={projSub}
-                                onChange={(e) => handleParamChange('projSub', e.target.value)}
+                                onChange={(e) => updateWaterParam('projSub', e.target.value)}
                                 className="block w-40 pl-3 pr-8 py-2 font-bold text-blue-600 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                                 step="0.01"
                             />
@@ -236,7 +210,7 @@ export default function WaterProjection() {
                                         <input
                                             type="number"
                                             value={projM3 || ''}
-                                            onChange={(e) => handleProjectionChange(owner.id, e.target.value)}
+                                            onChange={(e) => updateProjection(owner.id, e.target.value)}
                                             className="w-full px-2 py-1 text-right font-mono text-sm border-b border-gray-300 focus:border-amber-500 bg-transparent outline-none transition-colors"
                                             step="0.001"
                                         />

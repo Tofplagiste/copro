@@ -7,6 +7,7 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { TABS_CONFIG } from '../../data/initialState';
 import Header from '../../components/Header';
+import Footer from '../../components/Footer';
 import TabNavigation from '../../components/TabNavigation';
 
 // Feature tabs - Gestion Copro
@@ -41,7 +42,7 @@ export default function GestionApp() {
     const ActiveTabComponent = TAB_COMPONENTS[activeTab] || WaterTab;
 
     return (
-        <div className="min-h-screen bg-gray-100">
+        <div className="min-h-screen bg-gray-100 flex flex-col">
             {/* Sticky container for both headers */}
             <div className="sticky top-0 z-50">
                 {/* Header with Back to Hub button */}
@@ -65,9 +66,11 @@ export default function GestionApp() {
                 />
             </div>
 
-            <main className="animate-fadeIn">
+            <main className="animate-fadeIn flex-1">
                 <ActiveTabComponent />
             </main>
+
+            <Footer />
         </div>
     );
 }
