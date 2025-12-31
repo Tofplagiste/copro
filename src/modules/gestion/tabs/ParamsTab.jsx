@@ -1,45 +1,84 @@
 /**
  * ParamsTab - Onglet Paramètres
- * Layout entièrement réorganisé pour une meilleure ergonomie
+ * Inclut sauvegarde/chargement JSON et génération PDF centralisée
  */
-import { Settings, Users, Mail, Download, Building2, FileText, CreditCard } from 'lucide-react';
+import { useRef } from 'react';
+import { Settings, Users, Mail, Download, Upload, Save, FileJson } from 'lucide-react';
 import { useCopro } from '../../../context/CoproContext';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import { useToast } from '../../../components/ToastProvider';
+import { generateOwnerSheetPDF, savePDF } from '../../../utils/pdfExport';
 import BankAccountsPanel from '../components/params/BankAccountsPanel';
 import ClosingPanel from '../components/params/ClosingPanel';
 import PostesComptablesPanel from '../components/params/PostesComptablesPanel';
 
 export default function ParamsTab() {
-    const { state } = useCopro();
+    const { state, updateState } = useCopro();
+    const toast = useToast();
+    const fileInputRef = useRef(null);
     const owners = state.owners.filter(o => !o.isCommon);
 
-    // Fonction de génération PDF pour un copropriétaire
-    const handleDownload = (owner) => {
-        const doc = new jsPDF();
-        doc.setFontSize(18);
-        doc.text(`Fiche Copropriétaire : ${owner.name}`, 14, 20);
+    // =====================================================
+    // SAUVEGARDE / CHARGEMENT JSON
+    // =====================================================
 
-        doc.setFontSize(12);
-        doc.text(`Appartement : ${owner.apt}`, 14, 30);
-        doc.text(`Email : ${owner.email}`, 14, 38);
-        doc.text(`Lots : ${owner.lot}`, 14, 46);
-        doc.text(`Tantièmes : ${owner.tantiemes} / 1000`, 14, 54);
-
-        doc.autoTable({
-            startY: 65,
-            head: [['Propriété', 'Valeur']],
-            body: [
-                ['Exonération Syndic', owner.exoGest ? 'OUI' : 'NON'],
-                ['Exonération Ménage', owner.exoMen ? 'OUI' : 'NON'],
-                ['Compteur individuel', owner.hasMeter ? 'OUI' : 'NON'],
-            ],
-        });
-
-        doc.save(`Fiche_${owner.name.replace(/\s+/g, '_')}.pdf`);
+    /**
+     * Télécharge le state complet en JSON
+     */
+    const handleSaveData = () => {
+        try {
+            const dataStr = JSON.stringify(state, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `copro_backup_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            toast.success('Données sauvegardées avec succès !');
+        } catch (error) {
+            console.error('Erreur sauvegarde:', error);
+            toast.error('Erreur lors de la sauvegarde');
+        }
     };
 
-    // Fonction d'envoi de mail
+    /**
+     * Charge un fichier JSON et remplace le state
+     */
+    const handleLoadData = (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const loadedData = JSON.parse(e.target.result);
+                // Validation basique
+                if (!loadedData.owners || !loadedData.budget) {
+                    throw new Error('Format de fichier invalide');
+                }
+                updateState(loadedData);
+                toast.success('Données chargées avec succès !');
+            } catch (error) {
+                console.error('Erreur chargement:', error);
+                toast.error('Erreur: fichier invalide ou corrompu');
+            }
+        };
+        reader.readAsText(file);
+        // Reset input pour permettre de recharger le même fichier
+        event.target.value = '';
+    };
+
+    // =====================================================
+    // GÉNÉRATION PDF (centralisée)
+    // =====================================================
+
+    const handleDownload = (owner) => {
+        const doc = generateOwnerSheetPDF(owner);
+        savePDF(doc, `Fiche_${owner.name.replace(/\s+/g, '_')}.pdf`);
+    };
+
     const handleMailing = (owner) => {
         const subject = encodeURIComponent("Information Copropriété Les Pyrénées");
         const body = encodeURIComponent(`Bonjour ${owner.name},\n\nVoici les informations concernant votre lot...\n\nCordialement,\nLe Syndic Bénévole`);
@@ -61,7 +100,43 @@ export default function ParamsTab() {
                 </div>
             </div>
 
-            {/* Section: Copropriétaires - FULL WIDTH */}
+            {/* Section: Sauvegarde / Chargement - NOUVEAU */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                <div className="bg-gradient-to-r from-emerald-600 to-green-700 px-5 py-4 flex items-center gap-3">
+                    <FileJson size={20} className="text-white" />
+                    <h3 className="font-bold text-white">Sauvegarde des Données</h3>
+                </div>
+                <div className="p-5 flex flex-wrap gap-4 items-center">
+                    <button
+                        onClick={handleSaveData}
+                        className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-emerald-500 to-green-600 text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transition-all"
+                    >
+                        <Save size={18} />
+                        Sauvegarder mes données
+                    </button>
+
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".json"
+                        onChange={handleLoadData}
+                        className="hidden"
+                    />
+                    <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transition-all"
+                    >
+                        <Upload size={18} />
+                        Charger une sauvegarde
+                    </button>
+
+                    <p className="text-sm text-gray-500 flex-1">
+                        💡 La sauvegarde inclut tous vos propriétaires, budgets, relevés d'eau et paramètres.
+                    </p>
+                </div>
+            </div>
+
+            {/* Section: Copropriétaires */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                 <div className="bg-gradient-to-r from-slate-700 to-slate-800 px-5 py-4 flex items-center gap-3">
                     <Users size={20} className="text-white" />
@@ -146,13 +221,8 @@ export default function ParamsTab() {
 
             {/* Grid: Configuration panels - 3 colonnes */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {/* Panel Clôture */}
                 <ClosingPanel />
-
-                {/* Panel Comptes Bancaires */}
                 <BankAccountsPanel />
-
-                {/* Panel Postes Comptables */}
                 <PostesComptablesPanel />
             </div>
         </div>

@@ -1,81 +1,30 @@
 /**
  * WaterReadings - Table des relevés de compteurs
+ * Utilise le hook useWater pour la logique métier (Phase 4)
  */
 import { useCopro } from '../../../../context/CoproContext';
+import { useWater } from '../../hooks/useWater';
 import { fmtMoney } from '../../../../utils/formatters';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import { generateWaterReadingsPDF, savePDF } from '../../../../utils/pdfExport';
 
 export default function WaterReadings() {
-    const { state, updateState } = useCopro();
-    const water = state.water;
-    const q = water.activeQuarter;
+    const { state } = useCopro();
+    const {
+        water,
+        activeQuarter,
+        pricePerM3,
+        validTantiemes,
+        getWaterCost,
+        updateReading,
+        updateMeter
+    } = useWater();
 
-    // Calcul du prix au m³
-    const computePrice = () => {
-        if (water.priceMode === 'manual') return water.manualPrice || 0;
-        if (water.priceMode === 'annual') {
-            const conso = water.annualTotal - water.annualSub;
-            return water.annualVol > 0 ? conso / water.annualVol : 0;
-        }
-        return water.manualPrice || 4.5;
-    };
-    const pricePerM3 = computePrice();
+    const q = activeQuarter;
 
-    // Calcul tantièmes valides (propriétaires avec compteur)
-    const validTantiemes = state.owners
-        .filter(o => !o.isCommon && o.hasMeter)
-        .reduce((sum, o) => sum + (o.tantiemes || 0), 0);
-
-    // Mise à jour d'un relevé
-    const handleReadingChange = (ownerId, field, value) => {
-        const readings = { ...water.readings };
-        if (!readings[q]) readings[q] = {};
-        if (!readings[q][ownerId]) readings[q][ownerId] = { old: 0, new: 0 };
-        readings[q][ownerId][field] = parseFloat(value) || 0;
-        updateState({ water: { ...water, readings } });
-    };
-
-    // Mise à jour numéro compteur
-    const handleMeterChange = (ownerId, value) => {
-        const meters = { ...water.meters, [ownerId]: value };
-        updateState({ water: { ...water, meters } });
-    };
-
-    // Export PDF Fiche Relevés
+    // Export PDF Fiche Relevés (via pdfExport)
     const handleExportFicheReleves = () => {
-        const doc = new jsPDF();
-        doc.setFontSize(16);
-        doc.text("Relevé de Compteurs Eau", 105, 15, { align: 'center' });
-        doc.setFontSize(11);
-        doc.text(`Période : ${q} - ${new Date().getFullYear()}`, 105, 22, { align: 'center' });
-
-        const rows = [];
-        state.owners.forEach(o => {
-            if (!o.isCommon && o.hasMeter) {
-                const meterId = water.meters[o.id] || "";
-                const oldIndex = (water.readings[q] && water.readings[q][o.id]) ? water.readings[q][o.id].old : 0;
-                rows.push([o.name, `${o.apt} - ${o.lot}`, meterId, oldIndex.toString(), ""]);
-            }
-        });
-
-        autoTable(doc, {
-            startY: 30,
-            head: [['Propriétaire', 'Lot / Appt', 'N° Compteur', 'Ancien Index', 'Nouvel Index']],
-            body: rows,
-            theme: 'grid',
-            headStyles: { fillColor: [44, 62, 80] },
-            columnStyles: {
-                0: { cellWidth: 50 },
-                1: { cellWidth: 40 },
-                2: { cellWidth: 35 },
-                3: { cellWidth: 25, halign: 'center' },
-                4: { cellWidth: 35 }
-            },
-            styles: { minCellHeight: 12, valign: 'middle' }
-        });
-
-        doc.save(`Fiche_Releves_${q}.pdf`);
+        const doc = generateWaterReadingsPDF(state.owners, water, q);
+        savePDF(doc, `Fiche_Releves_${q}.pdf`);
     };
 
     // Calcul des totaux
@@ -87,19 +36,16 @@ export default function WaterReadings() {
         if (!water.readings[q][owner.id]) water.readings[q][owner.id] = { old: 0, new: 0 };
 
         const r = water.readings[q][owner.id];
-        let cFix = 0, cVar = 0, conso = 0;
+        const cost = getWaterCost(owner, q);
 
         if (owner.hasMeter) {
-            cFix = validTantiemes > 0 ? (water.subAmount || 0) * (owner.tantiemes / validTantiemes) : 0;
-            conso = Math.max(0, (r.new || 0) - (r.old || 0));
-            cVar = conso * pricePerM3;
-            totalVol += conso;
-            totalFix += cFix;
-            totalVar += cVar;
-            totalFinal += cFix + cVar;
+            totalVol += cost.conso;
+            totalFix += cost.fixedCost;
+            totalVar += cost.variableCost;
+            totalFinal += cost.total;
         }
 
-        return { owner, r, cFix, cVar, conso, total: cFix + cVar };
+        return { owner, r, ...cost };
     });
 
     return (
@@ -131,7 +77,7 @@ export default function WaterReadings() {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                        {rows.map(({ owner, r, cFix, cVar, conso, total }) => (
+                        {rows.map(({ owner, r, conso, fixedCost, variableCost, total }) => (
                             <tr key={owner.id} className={`hover:bg-gray-50 ${owner.isCommon ? 'bg-gray-100 font-bold' : ''}`}>
                                 <td className="px-4 py-3">
                                     <div className="font-semibold text-gray-800">{owner.name}</div>
@@ -143,7 +89,7 @@ export default function WaterReadings() {
                                             <input
                                                 type="text"
                                                 value={water.meters[owner.id] || ''}
-                                                onChange={(e) => handleMeterChange(owner.id, e.target.value)}
+                                                onChange={(e) => updateMeter(owner.id, e.target.value)}
                                                 className="w-full px-2 py-1 text-center border rounded focus:ring-2 focus:ring-blue-500"
                                             />
                                         </td>
@@ -151,7 +97,7 @@ export default function WaterReadings() {
                                             <input
                                                 type="number"
                                                 value={r.old || ''}
-                                                onChange={(e) => handleReadingChange(owner.id, 'old', e.target.value)}
+                                                onChange={(e) => updateReading(owner.id, q, 'old', e.target.value)}
                                                 className="w-full px-2 py-1 text-right font-mono bg-blue-50 border rounded focus:ring-2 focus:ring-blue-500"
                                                 step="0.001"
                                             />
@@ -160,14 +106,14 @@ export default function WaterReadings() {
                                             <input
                                                 type="number"
                                                 value={r.new || ''}
-                                                onChange={(e) => handleReadingChange(owner.id, 'new', e.target.value)}
+                                                onChange={(e) => updateReading(owner.id, q, 'new', e.target.value)}
                                                 className="w-full px-2 py-1 text-right font-mono bg-green-50 border rounded focus:ring-2 focus:ring-green-500"
                                                 step="0.001"
                                             />
                                         </td>
                                         <td className="px-3 py-2 text-center font-bold text-blue-600">{conso.toFixed(3)}</td>
-                                        <td className="px-3 py-2 text-center text-gray-500">{fmtMoney(cFix)}</td>
-                                        <td className="px-3 py-2 text-center text-gray-500">{fmtMoney(cVar)}</td>
+                                        <td className="px-3 py-2 text-center text-gray-500">{fmtMoney(fixedCost)}</td>
+                                        <td className="px-3 py-2 text-center text-gray-500">{fmtMoney(variableCost)}</td>
                                         <td className="px-3 py-2 text-center font-bold bg-gray-50 border-l">{fmtMoney(total)}</td>
                                     </>
                                 ) : (

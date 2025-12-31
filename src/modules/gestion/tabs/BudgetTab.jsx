@@ -236,7 +236,7 @@ export default function BudgetTab() {
             const wSubs = parseFloat(waterPrevi.subs?.[owner.id]) || 0;
             const wCharges = parseFloat(waterPrevi.charges?.[owner.id]) || 0;
             const wReguls = parseFloat(waterPrevi.reguls?.[owner.id]) || 0;
-            const annualWater = state.water?.annualTotal || 316.20;
+            const annualWater = waterPrevi.annualTotal || 316.20;
             const waterPeriod = wSubs + wCharges + wReguls;
 
             // ===== TABLEAU =====
