@@ -1,14 +1,15 @@
 /**
  * BudgetTab - Onglet Budget & Appels de Fonds
+ * Migré pour utiliser le hook useBudget (Phase 3)
  */
 import { useState } from 'react';
 import { FileText, Mail, Download, Table2, Settings, Copy } from 'lucide-react';
-import { useCopro } from '../../../context/CoproContext';
 import { useToast } from '../../../components/ToastProvider';
 import { fmtMoney } from '../../../utils/formatters';
 import MailingModal from '../components/budget/MailingModal';
 import GererPostesModal from '../components/budget/GererPostesModal';
 import RecapTableModal from '../components/budget/RecapTableModal';
+import { useBudget } from '../hooks/useBudget';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -38,51 +39,23 @@ const EXO_HINTS = {
 };
 
 export default function BudgetTab() {
-    const { state, updateState } = useCopro();
+    // Hook personnalisé pour le budget (Phase 3)
+    const {
+        budget,
+        budgetMode,
+        divisors,
+        owners,
+        waterPrevi,
+        getTotalByCategory,
+        computeOwnerCall,
+        updateBudgetItem,
+        changeBudgetMode,
+        addBudgetItem,
+        deleteBudgetItem
+    } = useBudget();
+
     const toast = useToast();
-    const [budgetMode, setBudgetMode] = useState(state.budgetMode || 'previ');
     const [selectedQuarter, setSelectedQuarter] = useState('T1');
-
-    const budget = state.budget;
-    const waterPrevi = state.waterPrevi || { subs: {}, charges: {}, reguls: {} };
-
-    // Calcul des totaux par catégorie
-    const getTotalByCategory = (cat) => {
-        return (budget[cat] || []).reduce((acc, item) => acc + (item[budgetMode] || 0), 0);
-    };
-
-    // Calcul des diviseurs de tantièmes
-    const getDivisors = () => {
-        let divGen = 0, divSpe = 0, divMen = 0, divTra = 0;
-        state.owners.forEach(o => {
-            if (!o.isCommon) {
-                divGen += o.tantiemes;
-                divTra += o.tantiemes;
-                if (!o.exoGest) divSpe += o.tantiemes;
-                if (!o.exoMen) divMen += o.tantiemes;
-            }
-        });
-        return { divGen, divSpe, divMen, divTra };
-    };
-
-    const divisors = getDivisors();
-
-    // Mise à jour d'un poste budgétaire
-    const handleBudgetUpdate = (category, index, field, value) => {
-        const newBudget = { ...budget };
-        newBudget[category] = [...budget[category]];
-        newBudget[category][index] = {
-            ...newBudget[category][index],
-            [field]: parseFloat(value) || 0
-        };
-        updateState({ budget: newBudget, budgetMode });
-    };
-
-    // Changement de mode budget
-    const handleModeChange = (mode) => {
-        setBudgetMode(mode);
-        updateState({ budgetMode: mode });
-    };
 
     // Rendu des cards de saisie
     const renderBudgetCard = (category) => {
@@ -123,7 +96,7 @@ export default function BudgetTab() {
                                         key={field}
                                         type="number"
                                         value={item[field] || 0}
-                                        onChange={(e) => handleBudgetUpdate(category, i, field, e.target.value)}
+                                        onChange={(e) => updateBudgetItem(category, i, field, e.target.value)}
                                         className={`
                       w-full px-1 py-0.5 text-right text-xs font-mono border rounded
                       ${field === budgetMode
@@ -141,37 +114,9 @@ export default function BudgetTab() {
         );
     };
 
-    // Calcul appel par propriétaire
-    const computeOwnerCall = (owner) => {
-        const sums = {
-            general: getTotalByCategory('general'),
-            special: getTotalByCategory('special'),
-            menage: getTotalByCategory('menage'),
-            travaux: getTotalByCategory('travaux')
-        };
-
-        const partGen = (sums.general / divisors.divGen) * owner.tantiemes * 0.25;
-        const partTra = (sums.travaux / divisors.divTra) * owner.tantiemes * 0.25;
-        const partSpe = (!owner.exoGest && divisors.divSpe > 0) ? (sums.special / divisors.divSpe) * owner.tantiemes * 0.25 : 0;
-        const partMen = (!owner.exoMen && divisors.divMen > 0) ? (sums.menage / divisors.divMen) * owner.tantiemes * 0.25 : 0;
-
-        const subTotal = partGen + partTra + partSpe + partMen;
-
-        // Eau depuis Prévisions
-        const wSubs = parseFloat(waterPrevi.subs?.[owner.id]) || 0;
-        const wCharges = parseFloat(waterPrevi.charges?.[owner.id]) || 0;
-        const wReguls = parseFloat(waterPrevi.reguls?.[owner.id]) || 0;
-        const wCost = wSubs + wCharges + wReguls;
-
-        const total = subTotal + wCost;
-
-        return { partGen, partSpe, partMen, partTra, subTotal, wCost, total };
-    };
-
     // Copier la colonne TOTAL
     const handleCopyTotalColumn = () => {
-        const text = state.owners
-            .filter(o => !o.isCommon)
+        const text = owners
             .map(o => {
                 const call = computeOwnerCall(o);
                 return call.total.toFixed(2);
@@ -191,23 +136,10 @@ export default function BudgetTab() {
         setIsMailingModalOpen(true);
     };
 
-    // Gestion Postes
+    // Gestion Postes (via hook)
     const [isManageModalOpen, setIsManageModalOpen] = useState(false);
     // Recap Table
     const [isRecapModalOpen, setIsRecapModalOpen] = useState(false);
-
-    const handleAddPoste = (category, name) => {
-        const newBudget = { ...budget };
-        if (!newBudget[category]) newBudget[category] = [];
-        newBudget[category].push({ name, reel: 0, previ: 0, previ_n1: 0 });
-        updateState({ budget: newBudget });
-    };
-
-    const handleDeletePoste = (category, index) => {
-        const newBudget = { ...budget };
-        newBudget[category].splice(index, 1);
-        updateState({ budget: newBudget });
-    };
 
     // Dates
     const [dateCompta, setDateCompta] = useState(new Date().toISOString().split('T')[0]);
@@ -217,7 +149,7 @@ export default function BudgetTab() {
     // Génération PDF Appel de Fonds - Format détaillé
     const handleGeneratePDF = (ownerId) => {
         try {
-            const owner = state.owners.find(o => o.id === ownerId);
+            const owner = owners.find(o => o.id === ownerId);
             if (!owner) {
                 toast.error('Propriétaire non trouvé');
                 return;
@@ -393,7 +325,7 @@ export default function BudgetTab() {
             <MailingModal
                 isOpen={isMailingModalOpen}
                 onClose={() => setIsMailingModalOpen(false)}
-                owners={state.owners.filter(o => !o.isCommon)}
+                owners={owners}
                 initialOwnerId={mailingOwnerId}
                 currentQuarter={selectedQuarter}
                 year={2026}
@@ -406,14 +338,14 @@ export default function BudgetTab() {
                 isOpen={isManageModalOpen}
                 onClose={() => setIsManageModalOpen(false)}
                 budget={budget}
-                onAdd={handleAddPoste}
-                onDelete={handleDeletePoste}
+                onAdd={addBudgetItem}
+                onDelete={deleteBudgetItem}
             />
 
             <RecapTableModal
                 isOpen={isRecapModalOpen}
                 onClose={() => setIsRecapModalOpen(false)}
-                owners={state.owners.filter(o => !o.isCommon)}
+                owners={owners}
                 budget={budget}
                 budgetMode={budgetMode}
                 divisors={divisors}
@@ -431,7 +363,7 @@ export default function BudgetTab() {
                             <span className="text-xs font-bold text-gray-500">Mode :</span>
                             <select
                                 value={budgetMode}
-                                onChange={(e) => handleModeChange(e.target.value)}
+                                onChange={(e) => changeBudgetMode(e.target.value)}
                                 className="px-2 sm:px-3 py-1.5 sm:py-2 border border-blue-500 rounded-lg font-bold text-blue-600 text-xs sm:text-sm"
                             >
                                 {BUDGET_MODES.map(m => (
@@ -557,7 +489,7 @@ export default function BudgetTab() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                            {state.owners.filter(o => !o.isCommon).map((owner, idx) => {
+                            {owners.map((owner, idx) => {
                                 const call = computeOwnerCall(owner);
                                 const isEven = idx % 2 === 0;
                                 return (
