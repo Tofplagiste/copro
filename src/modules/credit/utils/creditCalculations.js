@@ -81,3 +81,12 @@ export function calculerAmortissement(capital, dureeNombreMois, tauxNominal) {
 
     return tableau;
 }
+
+/**
+ * Formate un nombre en devise EUR
+ * @param {number} num - Montant à formater
+ * @returns {string} Montant formaté avec symbole €
+ */
+export function formatMoney(num) {
+    return num.toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' €';
+}
