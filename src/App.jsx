@@ -14,6 +14,9 @@ import LoginPage from './pages/auth/LoginPage';
 import SignupPage from './pages/auth/SignupPage';
 import PendingApprovalPage from './pages/auth/PendingApprovalPage';
 
+// Pages Admin
+import UserManagement from './pages/admin/UserManagement';
+
 // Pages
 import Dashboard from './pages/Dashboard';
 
@@ -77,6 +80,16 @@ export default function App() {
                 }
               />
 
+              {/* Routes Admin (requireAdmin) */}
+              <Route
+                path="/admin/users"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <UserManagement />
+                  </ProtectedRoute>
+                }
+              />
+
               {/* Route catch-all : redirige vers / (le ProtectedRoute gèrera) */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
@@ -86,3 +99,4 @@ export default function App() {
     </BrowserRouter>
   );
 }
+

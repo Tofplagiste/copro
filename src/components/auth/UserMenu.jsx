@@ -3,8 +3,9 @@
  * Affiche le nom et permet de se déconnecter
  */
 import { useState, useRef, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { User, LogOut, ChevronDown, Shield } from 'lucide-react';
+import { User, LogOut, ChevronDown, Shield, Users } from 'lucide-react';
 
 export default function UserMenu() {
     const { profile, isAdmin, isSyndic, signOut } = useAuth();
@@ -68,15 +69,24 @@ export default function UserMenu() {
                     {/* Menu Items */}
                     <div className="py-1">
                         <button
-                            onClick={() => {
-                                setIsOpen(false);
-                                // Future: navigate to profile page
-                            }}
+                            onClick={() => setIsOpen(false)}
                             className="w-full flex items-center gap-3 px-4 py-2 text-slate-300 hover:bg-slate-700 hover:text-white transition"
                         >
                             <User className="w-4 h-4" />
                             Mon profil
                         </button>
+
+                        {/* Admin Link */}
+                        {isAdmin && (
+                            <Link
+                                to="/admin/users"
+                                onClick={() => setIsOpen(false)}
+                                className="w-full flex items-center gap-3 px-4 py-2 text-amber-400 hover:bg-amber-500/10 transition"
+                            >
+                                <Users className="w-4 h-4" />
+                                Gestion utilisateurs
+                            </Link>
+                        )}
 
                         <button
                             onClick={() => {
@@ -94,3 +104,4 @@ export default function UserMenu() {
         </div>
     );
 }
+
