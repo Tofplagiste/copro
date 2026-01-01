@@ -9,14 +9,15 @@
 export const ARTICLES = {
     '24': { label: 'Majorité simple', seuil: 0.5, description: 'Plus de 50% des voix exprimées' },
     '25': { label: 'Majorité absolue', seuil: 0.5, description: 'Plus de 50% de tous les tantièmes' },
-    '26': { label: 'Double majorité', seuil: 2 / 3, description: 'Plus de 2/3 de tous les tantièmes' }
+    '26': { label: 'Double majorité', seuil: 2 / 3, description: 'Plus de 2/3 de tous les tantièmes' },
+    'unanimite': { label: 'Unanimité', seuil: 1.0, description: '100% des tantièmes' }
 };
 
 /**
  * Calcule le résultat d'un vote pour un point
  * @param {Object} params - Paramètres du vote
  * @param {Object} params.pointVotes - Votes pour ce point { coproId: 'pour'|'contre'|'abstention' }
- * @param {string} params.article - Article de loi ('24', '25', '26')
+ * @param {string} params.article - Article de loi ('24', '25', '26', 'unanimite')
  * @param {Array} params.copros - Liste des copropriétaires { id, tantiemes }
  * @param {number} params.totalTantiemes - Total des tantièmes (défaut: 1000)
  * @returns {{ pour: number, contre: number, abstention: number, adopte: boolean, hasVotes: boolean }}
@@ -45,6 +46,9 @@ export function calculerResultatVote({ pointVotes, article, copros, totalTantiem
     } else if (article === '26') {
         // Double majorité: plus de 2/3 de tous les tantièmes
         adopte = pour > (totalTantiemes * (2 / 3));
+    } else if (article === 'unanimite') {
+        // Unanimité: 100% des tantièmes
+        adopte = pour === totalTantiemes;
     }
 
     const totalVotes = pour + contre + abstention;

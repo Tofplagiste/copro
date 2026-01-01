@@ -42,10 +42,6 @@ export default function VoteHeader({ date, setDate, onExportPdf, totalTantiemes,
                             onChange={e => setDate(e.target.value)}
                             className="px-3 py-1.5 rounded-lg bg-white/20 text-white border border-white/30 text-sm"
                         />
-                        <button className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-white rounded-lg text-sm font-semibold flex items-center gap-2">
-                            <Download size={16} />
-                            Sauvegarder
-                        </button>
                         <button onClick={onExportPdf} className="px-4 py-2 bg-purple-500 hover:bg-purple-400 text-white rounded-lg text-sm font-semibold flex items-center gap-2">
                             <FileText size={16} />
                             PDF

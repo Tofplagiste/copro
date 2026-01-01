@@ -42,7 +42,8 @@ export const POINTS_INITIAL = [
 export const ARTICLES = {
     '24': { nom: 'Majorité simple', description: 'Majorité des tantièmes des votants', seuil: 0.5 },
     '25': { nom: 'Majorité absolue', description: 'Majorité de tous les tantièmes', seuil: 0.5 },
-    '26': { nom: 'Double majorité', description: '2/3 des tantièmes de tous', seuil: 0.667 }
+    '26': { nom: 'Double majorité', description: '2/3 des tantièmes de tous', seuil: 0.667 },
+    'unanimite': { nom: 'Unanimité', description: 'Tous les tantièmes doivent voter Pour', seuil: 1.0 }
 };
 
 /**

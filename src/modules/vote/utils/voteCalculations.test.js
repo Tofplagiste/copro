@@ -124,6 +124,28 @@ describe('voteCalculations', () => {
             expect(result.adopte).toBe(true);
         });
 
+        it('article unanimite: adopté si 100% Pour', () => {
+            const pointVotes = { 1: 'pour', 2: 'pour', 3: 'pour' };
+            const result = calculerResultatVote({
+                pointVotes,
+                article: 'unanimite',
+                copros: mockCopros.slice(0, 3), // Total 450
+                totalTantiemes: 450
+            });
+            expect(result.adopte).toBe(true);
+        });
+
+        it('article unanimite: rejeté si un contre ou abstention', () => {
+            const pointVotes = { 1: 'pour', 2: 'pour', 3: 'contre' };
+            const result = calculerResultatVote({
+                pointVotes,
+                article: 'unanimite',
+                copros: mockCopros.slice(0, 3),
+                totalTantiemes: 450
+            });
+            expect(result.adopte).toBe(false);
+        });
+
         it('hasVotes est false si aucun vote', () => {
             const result = calculerResultatVote({
                 pointVotes: {},

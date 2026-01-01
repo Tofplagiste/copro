@@ -30,10 +30,6 @@ export default function CreditHeader({ onExportPdf }) {
                     </div>
                 </div>
                 <div className="flex gap-2">
-                    <button className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-sm font-semibold flex items-center gap-2">
-                        <Download size={16} />
-                        Sauvegarder
-                    </button>
                     <button onClick={onExportPdf} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-semibold flex items-center gap-2">
                         <FileText size={16} />
                         PDF

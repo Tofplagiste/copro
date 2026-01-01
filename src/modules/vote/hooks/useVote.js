@@ -14,6 +14,13 @@ export function useVote() {
     const [copros, setCopros] = useState(COPROS_INITIAL);
     const [points, setPoints] = useState(POINTS_INITIAL);
     const [votes, setVotes] = useState({}); // { pointId: { coproId: 'pour'|'contre'|'abstention' } }
+
+    /** Met à jour l'article d'un point de vote */
+    const updatePointArticle = (pointId, article) => {
+        setPoints(prev => prev.map(p =>
+            p.id === pointId ? { ...p, article } : p
+        ));
+    };
     const [resetConfirm, setResetConfirm] = useState(false);
 
     /** Stats de présence calculées */
@@ -131,10 +138,16 @@ export function useVote() {
 
         if (article === '24') {
             adopte = exprimes > 0 && pour > (exprimes / 2);
-        } else if (article === '25' || article === '26') {
+        } else if (article === '25') {
             baseCalc = TOTAL_TANTIEMES;
-            const seuil = articleInfo.seuil * TOTAL_TANTIEMES;
-            adopte = pour > seuil;
+            adopte = pour > (TOTAL_TANTIEMES * 0.5);
+        } else if (article === '26') {
+            baseCalc = TOTAL_TANTIEMES;
+            adopte = pour > (TOTAL_TANTIEMES * (2 / 3));
+        } else if (article === 'unanimite') {
+            // Unanimité : tous les tantièmes votants doivent voter Pour
+            baseCalc = TOTAL_TANTIEMES;
+            adopte = pour === TOTAL_TANTIEMES && contre === 0;
         }
 
         const totalVotes = pour + contre + abstention;
@@ -176,6 +189,7 @@ export function useVote() {
         setAllVotes,
         resetPointVotes,
         resetAllVotes,
+        updatePointArticle,
         getPointResult,
         getVotants,
         getMandataires,

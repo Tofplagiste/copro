@@ -22,7 +22,8 @@ export default function VotePointCard({
     result,
     onUpdateVote,
     onSetAllVotes,
-    onResetVotes
+    onResetVotes,
+    onUpdateArticle
 }) {
     const articleInfo = ARTICLES[point.article];
 
@@ -31,9 +32,24 @@ export default function VotePointCard({
             <div className="flex items-start justify-between mb-4">
                 <div>
                     <h3 className="text-lg font-bold text-slate-800">{point.id}. {point.titre}</h3>
-                    <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded">
-                        Art. {point.article} - {articleInfo.nom}
-                    </span>
+                    <div className="flex items-center gap-2 mt-1">
+                        <label className="text-sm font-medium text-slate-600">Article:</label>
+                        <select
+                            value={point.article}
+                            onChange={(e) => onUpdateArticle(point.id, e.target.value)}
+                            className="text-sm border-slate-300 rounded shadow-sm focus:border-indigo-500 focus:ring-indigo-500 py-1 pl-2 pr-8"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {Object.entries(ARTICLES).map(([key, info]) => (
+                                <option key={key} value={key}>
+                                    {key === 'unanimite' ? 'Unanimité' : `Art ${key} - ${info.nom}`}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="text-xs text-slate-500 mt-1 italic">
+                        {articleInfo.description}
+                    </div>
                 </div>
 
                 {result.hasVotes && <VoteResultBadge adopte={result.adopte} />}

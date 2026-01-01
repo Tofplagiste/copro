@@ -63,6 +63,7 @@ export default function VoteApp() {
                     updateVote={vote.updateVote}
                     setAllVotes={vote.setAllVotes}
                     resetPointVotes={vote.resetPointVotes}
+                    updatePointArticle={vote.updatePointArticle}
                 />
             </div>
 

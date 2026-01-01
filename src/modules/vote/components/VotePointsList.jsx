@@ -13,6 +13,7 @@ import VotePointCard from './VotePointCard';
  * @param {Function} props.updateVote - Callback pour voter
  * @param {Function} props.setAllVotes - Callback pour voter tous
  * @param {Function} props.resetPointVotes - Callback pour reset
+ * @param {Function} props.updatePointArticle - Callback pour changer l'article
  */
 export default function VotePointsList({
     points,
@@ -21,7 +22,8 @@ export default function VotePointsList({
     getPointResult,
     updateVote,
     setAllVotes,
-    resetPointVotes
+    resetPointVotes,
+    updatePointArticle
 }) {
     const votants = getVotants();
 
@@ -37,6 +39,7 @@ export default function VotePointsList({
                     onUpdateVote={updateVote}
                     onSetAllVotes={setAllVotes}
                     onResetVotes={resetPointVotes}
+                    onUpdateArticle={updatePointArticle}
                 />
             ))}
         </div>
