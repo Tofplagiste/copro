@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { UserPlus, Mail, Lock, User, Home, AlertCircle, Loader2, CheckCircle } from 'lucide-react';
+import { UserPlus, Mail, Lock, User, Home, AlertCircle, Loader2 } from 'lucide-react';
 
 export default function SignupPage() {
     const navigate = useNavigate();
@@ -18,7 +18,6 @@ export default function SignupPage() {
         lotNumber: ''
     });
     const [error, setError] = useState('');
-    const [success, setSuccess] = useState(false);
 
     const handleChange = (e) => {
         setFormData(prev => ({
@@ -53,42 +52,12 @@ export default function SignupPage() {
         });
 
         if (result.success) {
-            setSuccess(true);
-            // Redirect after delay
-            setTimeout(() => {
-                navigate('/auth/pending');
-            }, 3000);
+            // Redirection directe vers pending (pas d'écran intermédiaire)
+            navigate('/auth/pending', { replace: true });
         } else {
             setError(result.error || 'Erreur lors de l\'inscription');
         }
     };
-
-    // Success state
-    if (success) {
-        return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
-                <div className="w-full max-w-md">
-                    <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 shadow-2xl border border-white/10 text-center">
-                        <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full shadow-lg mb-6">
-                            <CheckCircle className="w-10 h-10 text-white" />
-                        </div>
-                        <h1 className="text-2xl font-bold text-white mb-4">Compte créé !</h1>
-
-                        <div className="bg-amber-500/20 border border-amber-500/30 rounded-lg p-4">
-                            <p className="text-amber-200 text-sm">
-                                <strong>Validation requise :</strong> Un administrateur doit valider votre inscription
-                                avant que vous puissiez accéder à l'application.
-                            </p>
-                        </div>
-
-                        <p className="text-slate-400 text-sm mt-6">
-                            Redirection automatique...
-                        </p>
-                    </div>
-                </div>
-            </div>
-        );
-    }
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
