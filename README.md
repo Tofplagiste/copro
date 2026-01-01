@@ -97,28 +97,28 @@ Antigravity intègre Git avec une interface visuelle.
 #### a) Ouvrir le panneau Git
 Cliquez sur l'icône **Source Control** dans la barre latérale gauche (icône avec 3 branches).
 
-![alt text](image.png)
+![alt text](readme/image.png)
 
 #### b) Voir les modifications
 Les fichiers modifiés apparaissent dans la liste "Changes".
 
-![alt text](image-1.png)
+![alt text](readme/image-1.png)
 
 #### c) Préparer les fichiers (stage)
 Cliquez sur le `+` à côté de chaque fichier, ou sur le `+` global pour tout ajouter. (il faut survoler le "Changes" ou le fichier pour voir le +)
 
-![alt text](image-2.png)
+![alt text](readme/image-2.png)
 
 #### d) Écrire un message et valider
 1. Dans le champ texte en haut, écrivez votre message de commit
 2. Cliquez sur le bouton ✓ **Commit**
 
-![alt text](image-4.png)
+![alt text](readme/image-4.png)
 
 #### e) Envoyer sur GitHub
 Cliquez sur le bouton **Sync Changes** ou **Push** (flèche vers le haut).
 
-![alt text](image-5.png)
+![alt text](readme/image-5.png)
 ---
 
 ## 🔄 Récupérer les modifications depuis GitHub
