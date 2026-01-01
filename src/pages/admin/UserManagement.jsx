@@ -36,7 +36,7 @@ export default function UserManagement() {
 
             const { data: ownersData, error: ownersError } = await supabase
                 .from('owners')
-                .select('id, name, email, tantiemes, profile_id')
+                .select('id, name, email, tantiemes, profile_id, apt')
                 .order('name');
 
             if (ownersError) throw ownersError;
@@ -162,8 +162,8 @@ export default function UserManagement() {
             <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
                     <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-medium text-lg ${user.role === 'admin'
-                            ? 'bg-gradient-to-br from-amber-500 to-orange-600'
-                            : 'bg-gradient-to-br from-blue-500 to-indigo-600'
+                        ? 'bg-gradient-to-br from-amber-500 to-orange-600'
+                        : 'bg-gradient-to-br from-blue-500 to-indigo-600'
                         }`}>
                         {user.role === 'admin' ? <Crown className="w-6 h-6" /> : (user.full_name || user.email || '?')[0].toUpperCase()}
                     </div>
@@ -230,8 +230,8 @@ export default function UserManagement() {
                         onClick={() => toggleAdmin(user.id, user.role)}
                         disabled={actionLoading === user.id}
                         className={`flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border ${user.role === 'admin'
-                                ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                                : 'bg-slate-500/10 text-slate-400 border-slate-500/20'
+                            ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                            : 'bg-slate-500/10 text-slate-400 border-slate-500/20'
                             }`}
                     >
                         <Crown className="w-4 h-4" /> {user.role === 'admin' ? 'Retirer' : 'Admin'}
@@ -242,8 +242,8 @@ export default function UserManagement() {
                     onClick={() => toggleApproval(user.id, user.is_approved)}
                     disabled={actionLoading === user.id}
                     className={`flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border ${user.is_approved
-                            ? 'bg-red-500/10 text-red-400 border-red-500/20'
-                            : 'bg-green-500/10 text-green-400 border-green-500/20'
+                        ? 'bg-red-500/10 text-red-400 border-red-500/20'
+                        : 'bg-green-500/10 text-green-400 border-green-500/20'
                         }`}
                 >
                     {actionLoading === user.id ? (
@@ -371,14 +371,14 @@ export default function UserManagement() {
                                                         onChange={(e) => linkToOwner(user.id, e.target.value)}
                                                     >
                                                         <option value="">-- Aucun --</option>
-                                                        {user.linkedOwner && <option value={user.linkedOwner.id}>{user.linkedOwner.name}</option>}
-                                                        {availableOwners.map(o => <option key={o.id} value={o.id}>{o.name} ({o.tantiemes}t)</option>)}
+                                                        {user.linkedOwner && <option value={user.linkedOwner.id}>{user.linkedOwner.apt}</option>}
+                                                        {availableOwners.map(o => <option key={o.id} value={o.id}>{o.apt} ({o.tantiemes}t)</option>)}
                                                     </select>
                                                     <button onClick={() => setLinkingUser(null)} className="text-slate-400 hover:text-white">✕</button>
                                                 </div>
                                             ) : user.linkedOwner ? (
                                                 <div className="flex items-center gap-2 text-emerald-400 text-sm">
-                                                    <Home className="w-4 h-4" /> {user.linkedOwner.name}
+                                                    <Home className="w-4 h-4" /> {user.linkedOwner.apt}
                                                 </div>
                                             ) : (
                                                 <span className="text-slate-500 italic text-sm">Non lié</span>

@@ -21,8 +21,11 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 /**
- * Supabase client instance
- * @type {import('@supabase/supabase-js').SupabaseClient}
+ * @typedef {import('./database.types').Database} Database
+ */
+
+/**
+ * @type {import('@supabase/supabase-js').SupabaseClient<Database>}
  */
 export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '', {
     auth: {
