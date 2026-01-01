@@ -1,121 +1,16 @@
 /**
- * Utilitaires d'export PDF pour l'application Copro
- * Utilise jspdf et jspdf-autotable
+ * pdfGestion.js - PDF spécifiques au module Gestion
+ * 
+ * Contient les fonctions de génération PDF pour :
+ * - Appels de fonds propriétaires
+ * - Fiches relevés eau
+ * - Fiches copropriétaires
  */
 import { jsPDF } from 'jspdf';
-import { autoTable } from 'jspdf-autotable';
-
-/**
- * Crée un nouveau document PDF
- * @param {'portrait' | 'landscape'} orientation
- * @returns {jsPDF}
- */
-export function createPDF(orientation = 'portrait') {
-    return new jsPDF(orientation);
-}
-
-/**
- * Ajoute un en-tête standardisé au document
- * @param {jsPDF} doc
- * @param {string} title
- * @param {string} subtitle
- * @param {number} startY
- * @returns {number} Position Y après l'en-tête
- */
-export function addHeader(doc, title, subtitle = '', startY = 15) {
-    doc.setFontSize(18);
-    doc.setFont('helvetica', 'bold');
-    doc.text(title, 14, startY);
-
-    let y = startY + 8;
-
-    if (subtitle) {
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        doc.text(subtitle, 14, y);
-        y += 6;
-    }
-
-    return y;
-}
-
-/**
- * Ajoute un tableau au document
- * @param {jsPDF} doc
- * @param {string[]} headers
- * @param {Array<Array<string|number>>} rows
- * @param {Object} options
- * @returns {number} Position Y finale
- */
-export function addTable(doc, headers, rows, options = {}) {
-    const defaultOptions = {
-        startY: options.startY || doc.lastAutoTable?.finalY + 10 || 30,
-        headStyles: {
-            fillColor: [51, 65, 85], // slate-700
-            textColor: 255,
-            fontStyle: 'bold',
-            fontSize: 9
-        },
-        bodyStyles: {
-            fontSize: 8
-        },
-        alternateRowStyles: {
-            fillColor: [248, 250, 252] // slate-50
-        },
-        margin: { left: 14, right: 14 },
-        ...options
-    };
-
-    autoTable(doc, {
-        head: [headers],
-        body: rows,
-        ...defaultOptions
-    });
-
-    return doc.lastAutoTable.finalY;
-}
-
-/**
- * Ajoute une ligne de texte simple
- * @param {jsPDF} doc
- * @param {string} text
- * @param {number} y
- * @param {Object} options
- * @returns {number} Nouvelle position Y
- */
-export function addText(doc, text, y, options = {}) {
-    const { fontSize = 10, fontStyle = 'normal', color = [0, 0, 0] } = options;
-    doc.setFontSize(fontSize);
-    doc.setFont('helvetica', fontStyle);
-    doc.setTextColor(...color);
-    doc.text(text, 14, y);
-    return y + (fontSize * 0.5);
-}
-
-/**
- * Formate un nombre en euros
- * @param {number} value
- * @returns {string}
- */
-export function fmtEuro(value) {
-    return new Intl.NumberFormat('fr-FR', {
-        style: 'currency',
-        currency: 'EUR',
-        minimumFractionDigits: 2
-    }).format(value || 0);
-}
-
-/**
- * Sauvegarde et télécharge le PDF
- * @param {jsPDF} doc
- * @param {string} filename
- */
-export function savePDF(doc, filename) {
-    doc.save(filename.endsWith('.pdf') ? filename : `${filename}.pdf`);
-}
+import { autoTable, fmtEuro, savePDF } from '../../../utils/pdfBase';
 
 // =============================================================================
-// FONCTIONS SPÉCIALISÉES POUR COPRO
+// APPEL DE FONDS
 // =============================================================================
 
 /**
@@ -126,7 +21,7 @@ export function savePDF(doc, filename) {
  * @returns {jsPDF} Document PDF généré
  */
 export function generateOwnerCallPDF(owner, details, options = {}) {
-    const { quarter = 'T1', year = new Date().getFullYear(), divisors = {}, budgetMode = 'previ' } = options;
+    const { quarter = 'T1', year = new Date().getFullYear() } = options;
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
 
@@ -159,7 +54,6 @@ export function generateOwnerCallPDF(owner, details, options = {}) {
 
     // ===== TABLEAU =====
     const tableData = [];
-    const quarterRatio = 0.25;
 
     // Section Charges Générales
     if (details.general && details.general.items.length > 0) {
@@ -264,6 +158,10 @@ export function generateOwnerCallPDF(owner, details, options = {}) {
     return doc;
 }
 
+// =============================================================================
+// RELEVÉS EAU
+// =============================================================================
+
 /**
  * Génère un PDF de fiche relevés eau.
  * @param {Array} owners - Liste des propriétaires avec compteur
@@ -305,6 +203,10 @@ export function generateWaterReadingsPDF(owners, water, quarter) {
     return doc;
 }
 
+// =============================================================================
+// FICHE COPROPRIÉTAIRE
+// =============================================================================
+
 /**
  * Génère un PDF de fiche copropriétaire.
  * @param {Object} owner - Propriétaire complet
@@ -333,3 +235,6 @@ export function generateOwnerSheetPDF(owner) {
 
     return doc;
 }
+
+// Re-export savePDF pour faciliter l'usage
+export { savePDF };

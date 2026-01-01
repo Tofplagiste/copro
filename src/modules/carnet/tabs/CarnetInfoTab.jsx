@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { Info, Users, Euro, Wrench, FileCheck, History, Plus, Edit, Trash2, X, Check, Shield, PiggyBank, PenTool, ClipboardList, Timer, Save, FileText, Download } from 'lucide-react';
 import { useCarnet } from '../../../context/CarnetContext';
 import Modal, { ConfirmModal } from '../../../components/Modal';
-import { setupPDF, addHeader, addSectionIdx, addFooter, checkPageBreak } from '../../../utils/pdfUtils';
+import { setupPDF, addHeader, addSectionIdx, addFooter, checkPageBreak } from '../../../utils/pdfBase';
 import { autoTable } from 'jspdf-autotable';
 
 export default function CarnetInfoTab() {

@@ -3,7 +3,7 @@
  * Export du carnet d'entretien complet
  */
 import { autoTable } from 'jspdf-autotable';
-import { setupPDF, addHeader, addSectionIdx, addFooter, checkPageBreak } from '../../../utils/pdfUtils';
+import { setupPDF, addHeader, addSectionIdx, addFooter, checkPageBreak } from '../../../utils/pdfBase';
 
 /**
  * Exporte le carnet d'entretien en PDF

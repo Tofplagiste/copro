@@ -5,7 +5,7 @@
 import { useCopro } from '../../../../context/CoproContext';
 import { useWater } from '../../hooks/useWater';
 import { fmtMoney } from '../../../../utils/formatters';
-import { generateWaterReadingsPDF, savePDF } from '../../../../utils/pdfExport';
+import { generateWaterReadingsPDF, savePDF } from '../../utils/pdfGestion';
 
 export default function WaterReadings() {
     const { state } = useCopro();

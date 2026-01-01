@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { Plus, Edit, Trash2, FileText, Download, User } from 'lucide-react';
 import { useCarnet } from '../../../context/CarnetContext';
 import Modal, { ConfirmModal } from '../../../components/Modal';
-import { setupPDF, addHeader, addFooter } from '../../../utils/pdfUtils';
+import { setupPDF, addHeader, addFooter } from '../../../utils/pdfBase';
 import { autoTable } from 'jspdf-autotable';
 
 export default function RepartitionTab() {

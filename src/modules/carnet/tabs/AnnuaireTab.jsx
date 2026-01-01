@@ -3,7 +3,7 @@
  */
 import { Phone, Mail, MapPin, Download } from 'lucide-react';
 import { useCarnet } from '../../../context/CarnetContext';
-import { setupPDF, addHeader, addFooter } from '../../../utils/pdfUtils';
+import { setupPDF, addHeader, addFooter } from '../../../utils/pdfBase';
 import { autoTable } from 'jspdf-autotable';
 
 export default function AnnuaireTab() {
