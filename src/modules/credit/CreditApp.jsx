@@ -6,7 +6,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Calculator, Download, FileText, Users, Settings, CreditCard, Percent, PiggyBank, Euro, TrendingUp } from 'lucide-react';
 import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
+import { autoTable } from 'jspdf-autotable';
 
 // Données copropriétaires
 const COPROPRIETAIRES = [
@@ -207,7 +207,7 @@ export default function CreditApp() {
             c.paiementComptant ? '-' : c.mensualite.toFixed(2) + ' €'
         ]);
 
-        doc.autoTable({
+        autoTable(doc, {
             startY: 55,
             head: [tableHeaders],
             body: tableRows,

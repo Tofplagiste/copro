@@ -3,7 +3,7 @@
  * Utilise jspdf et jspdf-autotable
  */
 import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
+import { autoTable } from 'jspdf-autotable';
 
 /**
  * Crée un nouveau document PDF
@@ -66,7 +66,7 @@ export function addTable(doc, headers, rows, options = {}) {
         ...options
     };
 
-    doc.autoTable({
+    autoTable(doc, {
         head: [headers],
         body: rows,
         ...defaultOptions
@@ -241,7 +241,7 @@ export function generateOwnerCallPDF(owner, details, options = {}) {
         { content: fmtEuro(grandTotal), styles: { halign: 'right', fontStyle: 'bold', textColor: [180, 0, 0] } }
     ]);
 
-    doc.autoTable({
+    autoTable(doc, {
         startY: 70,
         head: [['Poste', 'Base Annuelle', 'Montant Période']],
         body: tableData,
@@ -286,7 +286,7 @@ export function generateWaterReadingsPDF(owners, water, quarter) {
             return [o.name, `${o.apt} - ${o.lot}`, meterId, reading.old.toString(), ""];
         });
 
-    doc.autoTable({
+    autoTable(doc, {
         startY: 30,
         head: [['Propriétaire', 'Lot / Appt', 'N° Compteur', 'Ancien Index', 'Nouvel Index']],
         body: rows,
@@ -321,7 +321,7 @@ export function generateOwnerSheetPDF(owner) {
     doc.text(`Lots : ${owner.lot}`, 14, 46);
     doc.text(`Tantièmes : ${owner.tantiemes} / 1000`, 14, 54);
 
-    doc.autoTable({
+    autoTable(doc, {
         startY: 65,
         head: [['Propriété', 'Valeur']],
         body: [

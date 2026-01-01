@@ -8,6 +8,7 @@ import { ArrowLeft, Book, Calculator, Users, Briefcase, Map, Save, FileText } fr
 import { CarnetProvider, useCarnet } from '../../context/CarnetContext';
 import { CARNET_TABS } from '../../data/carnetState';
 import { setupPDF, addHeader, addSectionIdx, addFooter, checkPageBreak } from '../../utils/pdfUtils';
+import { autoTable } from 'jspdf-autotable';
 
 // Import sub-tabs
 import CarnetInfoTab from './tabs/CarnetInfoTab';
@@ -194,7 +195,7 @@ function CarnetContent() {
             ['2022', 'Peinture Porte d\'entrée', 'Une Pointe de Couleurs']
         ];
 
-        doc.autoTable({
+        autoTable(doc, {
             startY: y,
             head: [['Année', 'Nature', 'Entreprise']],
             body: tableBody,

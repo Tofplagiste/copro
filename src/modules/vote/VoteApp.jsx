@@ -7,7 +7,7 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, Users, Check, X, MessageSquare, UserX, Vote, FileText, Download, RotateCcw, Plus, Trash2 } from 'lucide-react';
 import Modal, { ConfirmModal } from '../../components/Modal';
 import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
+import { autoTable } from 'jspdf-autotable';
 
 // Copropriétaires pour le vote
 const COPROS_INITIAL = [
@@ -238,7 +238,7 @@ export default function VoteApp() {
             return [c.nom, c.tantiemes, statut];
         });
 
-        doc.autoTable({
+        autoTable(doc, {
             startY: 55,
             head: [['Copropriétaire', 'Tantièmes', 'Statut']],
             body: presenceRows,

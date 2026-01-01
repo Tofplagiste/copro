@@ -7,7 +7,8 @@ import { useWater } from '../../hooks/useWater';
 import { useToast } from '../../../../components/ToastProvider';
 import { fmtMoney } from '../../../../utils/formatters';
 import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
+import { autoTable } from 'jspdf-autotable';
+
 
 export default function WaterProjection() {
     const { state } = useCopro();
@@ -41,7 +42,7 @@ export default function WaterProjection() {
     const handleExportPDF = () => {
         const doc = new jsPDF('landscape');
         doc.text("Bilan & Projection Eau", 14, 15);
-        doc.autoTable({
+        autoTable(doc, {
             startY: 20,
             theme: 'grid',
             styles: { fontSize: 10 },
