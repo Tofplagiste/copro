@@ -4,7 +4,6 @@
  */
 import { useEffect } from 'react';
 import { X, Download } from 'lucide-react';
-import { fmtMoney } from '../../../../utils/formatters';
 import { useToast } from '../../../../components/ToastProvider';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -18,8 +17,7 @@ export default function RecapTableModal({
     quarter,
     year,
     budgetMode,
-    divisors,
-    getCategoryTotal
+    divisors
 }) {
     const toast = useToast();
 

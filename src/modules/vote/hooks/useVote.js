@@ -119,7 +119,6 @@ export function useVote() {
     const getPointResult = (pointId) => {
         const pointVotes = votes[pointId] || {};
         const article = points.find(p => p.id === pointId)?.article || '24';
-        const articleInfo = ARTICLES[article];
 
         let pour = 0, contre = 0, abstention = 0;
 

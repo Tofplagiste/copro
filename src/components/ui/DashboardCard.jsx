@@ -15,11 +15,11 @@ import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 
 export default function DashboardCard({
-    id,
     name,
     subtitle,
     description,
-    icon: Icon,
+    // eslint-disable-next-line no-unused-vars
+    icon: IconComponent,
     color,
     features,
     to,
@@ -54,7 +54,7 @@ export default function DashboardCard({
             <div className="relative p-8">
                 <div className="flex items-start justify-between mb-6">
                     <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                        <Icon size={32} className="text-white" />
+                        <IconComponent size={32} className="text-white" />
                     </div>
                     {!isReady && (
                         <span className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-white text-xs font-bold">

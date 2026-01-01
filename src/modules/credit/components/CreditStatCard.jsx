@@ -10,7 +10,8 @@
  * @param {string} props.value - Valeur à afficher
  * @param {'blue'|'green'|'purple'|'orange'|'red'|'cyan'|'pink'} props.color - Couleur du gradient
  */
-export default function CreditStatCard({ icon: Icon, label, value, color = 'blue' }) {
+// eslint-disable-next-line no-unused-vars
+export default function CreditStatCard({ icon: IconComponent, label, value, color = 'blue' }) {
     const colors = {
         blue: 'from-blue-500 to-blue-600',
         green: 'from-green-500 to-green-600',
@@ -24,7 +25,7 @@ export default function CreditStatCard({ icon: Icon, label, value, color = 'blue
     return (
         <div className={`bg-gradient-to-br ${colors[color]} rounded-xl p-5 text-white shadow-lg`}>
             <div className="flex items-center gap-2 mb-1 opacity-90">
-                <Icon size={16} />
+                <IconComponent size={16} />
                 <span className="text-xs font-medium">{label}</span>
             </div>
             <div className="text-2xl font-bold">{value}</div>

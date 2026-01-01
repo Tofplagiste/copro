@@ -2,6 +2,7 @@
  * Utilitaires de test pour les composants React
  * Fournit des wrappers avec les providers nécessaires
  */
+/* eslint-disable react-refresh/only-export-components */
 import { render } from '@testing-library/react';
 import { CoproProvider } from '../context/CoproContext';
 import { ToastProvider } from '../components/ToastProvider';

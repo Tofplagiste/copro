@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useState, useEffect, useCallback } from 'react';
 import { X, Send, Mail, Paperclip, FileText } from 'lucide-react';
 
@@ -16,7 +17,6 @@ export default function MailingModal({
     const [emailSubject, setEmailSubject] = useState('');
     const [emailBody, setEmailBody] = useState('');
     const [status, setStatus] = useState('');
-    const [displayAmount, setDisplayAmount] = useState('—');
     const [attachPdf, setAttachPdf] = useState(true); // Checkbox state
 
     // Find owner by ID (handle both string and number)
@@ -62,6 +62,26 @@ export default function MailingModal({
         });
     };
 
+    // Derived display amount
+    const getDisplayAmount = () => {
+        if (!selectedOwnerId || !owners?.length) return '—';
+        const owner = findOwner(selectedOwnerId);
+        if (!owner) return '—';
+
+        let totalAmount = 0;
+        if (computeOwnerCall) {
+            try {
+                const call = computeOwnerCall(owner);
+                totalAmount = call?.total || 0;
+            } catch (e) {
+                console.warn('Could not compute owner call:', e);
+            }
+        }
+        return formatMoney(totalAmount);
+    };
+
+    const displayAmount = getDisplayAmount();
+
     // Update email content when owner or dates change
     useEffect(() => {
         if (!selectedOwnerId || !owners?.length) return;
@@ -69,7 +89,6 @@ export default function MailingModal({
         const owner = findOwner(selectedOwnerId);
         if (!owner) return;
 
-        // Compute the actual call amount for this owner
         let totalAmount = 0;
         if (computeOwnerCall) {
             try {
@@ -82,8 +101,6 @@ export default function MailingModal({
 
         const formattedAmount = formatMoney(totalAmount);
         const formattedDueDate = formatDate(dueDate);
-
-        setDisplayAmount(formattedAmount);
 
         const subject = `Appel de fonds ${currentQuarter} ${year} - ${owner.name}`;
         const body = `Bonjour ${owner.name},

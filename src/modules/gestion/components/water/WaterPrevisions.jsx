@@ -23,9 +23,6 @@ export default function WaterPrevisions() {
         updateState({ waterPrevi: updated });
     };
 
-    // Calcul des totaux
-    let totalSub = 0, totalConso = 0, totalRegul = 0, totalTotal = 0;
-
     const rows = state.owners
         .filter(o => !o.isCommon)
         .map(owner => {
@@ -34,13 +31,13 @@ export default function WaterPrevisions() {
             const reg = parseFloat(waterPrevi.reguls?.[owner.id]) || 0;
             const tot = sub + chg + reg;
 
-            totalSub += sub;
-            totalConso += chg;
-            totalRegul += reg;
-            totalTotal += tot;
-
             return { owner, sub, chg, reg, tot };
         });
+
+    const totalSub = rows.reduce((acc, r) => acc + r.sub, 0);
+    const totalConso = rows.reduce((acc, r) => acc + r.chg, 0);
+    const totalRegul = rows.reduce((acc, r) => acc + r.reg, 0);
+    const totalTotal = rows.reduce((acc, r) => acc + r.tot, 0);
 
     // Copier le tableau vers Excel (format HTML stylisé)
     const handleCopyToExcel = async () => {

@@ -12,8 +12,6 @@ export default function WaterReadings() {
     const {
         water,
         activeQuarter,
-        pricePerM3,
-        validTantiemes,
         getWaterCost,
         updateReading,
         updateMeter
@@ -27,26 +25,20 @@ export default function WaterReadings() {
         savePDF(doc, `Fiche_Releves_${q}.pdf`);
     };
 
-    // Calcul des totaux
-    let totalVol = 0, totalFix = 0, totalVar = 0, totalFinal = 0;
-
     // Préparation des données
     const rows = state.owners.map(owner => {
-        if (!water.readings[q]) water.readings[q] = {};
-        if (!water.readings[q][owner.id]) water.readings[q][owner.id] = { old: 0, new: 0 };
-
-        const r = water.readings[q][owner.id];
+        // Read-only access with safeguards
+        const qReadings = water.readings[q] || {};
+        const r = qReadings[owner.id] || { old: 0, new: 0 };
         const cost = getWaterCost(owner, q);
-
-        if (owner.hasMeter) {
-            totalVol += cost.conso;
-            totalFix += cost.fixedCost;
-            totalVar += cost.variableCost;
-            totalFinal += cost.total;
-        }
 
         return { owner, r, ...cost };
     });
+
+    const totalVol = rows.reduce((acc, row) => acc + (row.owner.hasMeter ? row.conso : 0), 0);
+    const totalFix = rows.reduce((acc, row) => acc + (row.owner.hasMeter ? row.fixedCost : 0), 0);
+    const totalVar = rows.reduce((acc, row) => acc + (row.owner.hasMeter ? row.variableCost : 0), 0);
+    const totalFinal = rows.reduce((acc, row) => acc + (row.owner.hasMeter ? row.total : 0), 0);
 
     return (
         <div className="bg-white rounded-xl shadow-sm border overflow-hidden">

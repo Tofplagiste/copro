@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 /**
  * ToastProvider - Système de notifications toast
  * Remplace les alert() par des notifications élégantes

@@ -1,11 +1,12 @@
 
 import { useState, useEffect } from 'react';
-import { useCopro } from '../../../../context/CoproContext';
 import { getTodayISO } from '../../../../utils/formatters';
 
+// ... imports
+
 export default function VentilationModal({ isOpen, onClose, onSave, accounts }) {
-    const { state } = useCopro();
-    const categories = state.categories || [];
+    // state unused
+    // unused categories removed
 
     const [date, setDate] = useState(getTodayISO());
     const [account, setAccount] = useState(accounts[0]?.id || '');
@@ -19,6 +20,7 @@ export default function VentilationModal({ isOpen, onClose, onSave, accounts }) 
     useEffect(() => {
         if (isOpen) {
             // Reset form
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setDate(getTodayISO());
             setLabel('');
             setTotalAmount('');

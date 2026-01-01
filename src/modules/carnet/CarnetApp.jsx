@@ -6,9 +6,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Book, Calculator, Users, Briefcase, Map } from 'lucide-react';
-import { CarnetProvider, useCarnet } from '../../context/CarnetContext';
+import { CarnetProvider } from '../../context/CarnetContext';
 import { CARNET_TABS } from '../../data/carnetState';
-import { exportCarnetPdf } from './utils/pdfCarnet';
 
 // Import sub-tabs
 import CarnetInfoTab from './tabs/CarnetInfoTab';
@@ -19,7 +18,7 @@ import PrestatairesTab from './tabs/PrestatairesTab';
 const ICONS = { Book, Calculator, Users, Briefcase, Map };
 
 function CarnetContent() {
-    const { state } = useCarnet();
+    // state unused
     const [activeTab, setActiveTab] = useState(CARNET_TABS[0].id);
 
     const renderTab = () => {
@@ -32,8 +31,6 @@ function CarnetContent() {
             default: return <CarnetInfoTab />;
         }
     };
-
-    const handleExportPDF = () => exportCarnetPdf(state);
 
     return (
         <div className="min-h-screen bg-gray-50">

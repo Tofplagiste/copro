@@ -21,9 +21,6 @@ const SimplePieChart = ({ data, title, type = 'pie' }) => {
     // Calculate total value
     const total = data.reduce((sum, item) => sum + item.value, 0);
 
-    // Calculate cumulative percentages for SVG paths
-    let cumulativePercent = 0;
-
     // Helper to get coordinates for a slice
     const getCoordinatesForPercent = (percent) => {
         const x = Math.cos(2 * Math.PI * percent);
@@ -31,13 +28,13 @@ const SimplePieChart = ({ data, title, type = 'pie' }) => {
         return [x, y];
     };
 
-    const slices = data.map((item, index) => {
-        if (item.value === 0) return null;
+    // Calculate slices using reduce to manage cumulative percent
+    const slices = data.reduce((acc, item, index) => {
+        if (item.value === 0) return acc;
 
-        const startPercent = cumulativePercent;
+        const startPercent = acc.cumulativePercent;
         const slicePercent = item.value / total;
-        cumulativePercent += slicePercent;
-        const endPercent = cumulativePercent;
+        const endPercent = startPercent + slicePercent;
 
         const [startX, startY] = getCoordinatesForPercent(startPercent);
         const [endX, endY] = getCoordinatesForPercent(endPercent);
@@ -56,15 +53,18 @@ const SimplePieChart = ({ data, title, type = 'pie' }) => {
             `L 0 0`,
         ].join(' ');
 
-        return {
+        acc.items.push({
             pathData,
             color,
             label: item.label,
             value: item.value,
             percent: slicePercent,
             index
-        };
-    }).filter(Boolean);
+        });
+
+        acc.cumulativePercent = endPercent;
+        return acc;
+    }, { items: [], cumulativePercent: 0 }).items;
 
     // If type is doughnut, we mask the center
     const isDoughnut = type === 'doughnut';
