@@ -17,10 +17,10 @@ export default function PendingApprovalPage() {
     // Redirect automatiquement si approuvé
     useEffect(() => {
         if (isApproved) {
-            setCheckResult('approved');
-            setTimeout(() => {
+            const timer = setTimeout(() => {
                 navigate('/', { replace: true });
             }, 1000);
+            return () => clearTimeout(timer);
         }
     }, [isApproved, navigate]);
 
@@ -65,7 +65,7 @@ export default function PendingApprovalPage() {
                 </div>
 
                 {/* Check Result Feedback */}
-                {checkResult === 'approved' && (
+                {(checkResult === 'approved' || isApproved) && (
                     <div className="flex items-center justify-center gap-2 text-green-400 mb-4 animate-pulse">
                         <CheckCircle className="w-5 h-5" />
                         <span>Compte validé ! Redirection...</span>

@@ -64,7 +64,7 @@ export default function CreditApp() {
         if (credit.simulation) {
             setRenameTitle(credit.simulation.title);
         }
-    }, [credit.simulation]);
+    }, [credit.simulation?.title, credit.simulation?.id]);
 
     // Focus input when inline editing
     useEffect(() => {

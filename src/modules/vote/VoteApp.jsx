@@ -66,7 +66,7 @@ export default function VoteApp() {
         if (vote.session) {
             setRenameTitle(vote.session.title);
         }
-    }, [vote.session]);
+    }, [vote.session?.title, vote.session?.id]);
 
     // Focus input when inline editing
     useEffect(() => {
