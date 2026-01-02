@@ -2,30 +2,51 @@
  * ParamsTab - Onglet Paramètres
  * Inclut sauvegarde/chargement JSON
  */
-import { useRef } from 'react';
+import { useRef, useMemo } from 'react';
 import { Settings, Users, Upload, Save, FileJson } from 'lucide-react';
-import { useCopro } from '../../../context/CoproContext';
+import { useGestionData } from '../context/GestionSupabaseContext';
 import { useToast } from '../../../components/ToastProvider';
 import BankAccountsPanel from '../components/params/BankAccountsPanel';
 import ClosingPanel from '../components/params/ClosingPanel';
 import PostesComptablesPanel from '../components/params/PostesComptablesPanel';
 
 export default function ParamsTab() {
-    const { state, updateState } = useCopro();
+    const { owners: rawOwners, lots } = useGestionData();
     const toast = useToast();
     const fileInputRef = useRef(null);
-    const owners = state.owners.filter(o => !o.isCommon);
+
+    // Map owners with lot display from lot_ids
+    const owners = useMemo(() => {
+        if (!rawOwners) return [];
+        return rawOwners
+            .filter(o => !o.isCommon && o.name !== 'COMMUN (Général)')
+            .map(o => {
+                const ownerLots = (o.lot_ids || [])
+                    .map(lid => (lots || []).find(l => l.id === lid))
+                    .filter(Boolean);
+                const totalTantiemes = ownerLots.reduce((sum, l) => sum + (l.tantiemes || 0), 0);
+                const lotDisplay = ownerLots.map(l => `Lot ${l.numero}`).join(', ') || '-';
+                return {
+                    ...o,
+                    lot: lotDisplay,
+                    tantiemes: totalTantiemes,
+                    exoGest: o.exo_gest,
+                    exoMen: o.exo_men
+                };
+            });
+    }, [rawOwners, lots]);
 
     // =====================================================
     // SAUVEGARDE / CHARGEMENT JSON
     // =====================================================
 
     /**
-     * Télécharge le state complet en JSON
+     * Télécharge les données en JSON (export seulement, Supabase est la source de vérité)
      */
     const handleSaveData = () => {
         try {
-            const dataStr = JSON.stringify(state, null, 2);
+            const exportData = { owners: rawOwners, lots };
+            const dataStr = JSON.stringify(exportData, null, 2);
             const blob = new Blob([dataStr], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
@@ -35,38 +56,18 @@ export default function ParamsTab() {
             link.click();
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
-            toast.success('Données sauvegardées avec succès !');
+            toast.success('Données exportées avec succès !');
         } catch (error) {
-            console.error('Erreur sauvegarde:', error);
-            toast.error('Erreur lors de la sauvegarde');
+            console.error('Erreur export:', error);
+            toast.error('Erreur lors de l\'export');
         }
     };
 
     /**
-     * Charge un fichier JSON et remplace le state
+     * Chargement désactivé - les données sont maintenant sur Supabase
      */
-    const handleLoadData = (event) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const loadedData = JSON.parse(e.target.result);
-                // Validation basique
-                if (!loadedData.owners || !loadedData.budget) {
-                    throw new Error('Format de fichier invalide');
-                }
-                updateState(loadedData);
-                toast.success('Données chargées avec succès !');
-            } catch (error) {
-                console.error('Erreur chargement:', error);
-                toast.error('Erreur: fichier invalide ou corrompu');
-            }
-        };
-        reader.readAsText(file);
-        // Reset input pour permettre de recharger le même fichier
-        event.target.value = '';
+    const handleLoadData = () => {
+        toast.info('Import désactivé. Les données sont gérées via Supabase.');
     };
 
     return (

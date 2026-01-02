@@ -1,14 +1,14 @@
-id,name,apt,lot_principal,lot_annexe,tantiemes,has_meter,exo_gest,exo_men,email,phone,address,is_common,is_archived,archived_at
-1,BELLIARD Véronique,"Gd Balcon, Pt Balcon",12,13,102,true,false,true,veroniquebelliard@neuf.fr,06 70 95 70 11,7 Rue André LEROUX 33780 SOULAC,false,false,
-2,CARSOULE,Cellier: Lot 9 (4),1,C9,74,true,false,false,fcarsoule@yahoo.fr,06 64 84 79 60,295 rue du faubourg saint Antoine 75011 PARIS,false,false,
-3,CARSOULE,PESSAC LEOGNAN,21,,43,true,false,false,,,,false,false,
-4,CAUPENE Corinne,Pt Balcon,10,11,199,false,false,true,librairiecorinne@orange.fr,06 76 15 58 29,17 Avenue Georges POMPIDOU 33780 SOULAC,false,false,
-5,GABRIEL Thomas,Cellier: Lot 5 (3),14,C5,62,true,false,false,tho.gabriel@gmail.com,06 89 15 89 95,42 Rue A LEROI 33400 Talence,false,false,
-6,IDEALAMBARD SAS,"Cellier: Lot 3 (4), Pt Balcon",19,C9,125,true,false,false,ideal.33@wanadoo.fr,06 80 03 34 53,2 rue du Maréchal Leclerc 33780 Soulac,false,false,
-7,LE MERLE Christophe,"Cellier: Lot 8 (3), Gd Balcon",18,C3,96,true,true,false,clemerle.lormont@gmail.com,06 12 55 26 21,15 rue andré Leroux 33780 Soulac-Sur-Mer,false,false,
-8,PALMARO,"Cellier: Lot 6 (3), Gd Balcon",15,C6,41,true,false,false,bpalmaro@free.fr,06 45 63 72 89,42 rue du général Chanzy 33400 Talence,false,false,
-9,PIRAS Eric,Cellier: Lot 4 (3),20,C4,69,true,false,false,piras.eric@orange.fr,06 18 03 33 05,13 rue andré Leroux 33780 Soulac-Sur-Mer,false,false,
-10,SALAHUN Yves,Gd Balcon,16,,37,true,false,false,yves.salahun@orange.fr,06 71 60 54 25,12 chemin de la renardière montlegun 11000 CARCASSONE,false,false,
-11,SCI le CLOT Sibrac,"Cellier: Lot 7 (2), Gd Balcon",17,C7,86,true,true,false,sibrac_vincent@orange.fr,06 82 44 50 88,19 chemin de Lescapon 33340 Queyrac,false,false,
-12,TROPAMER Véronique,ENTRE 2 MERS,2,,66,true,false,false,veronique.tropamer@orange.fr,06 22 08 60 20,9 rue andré Leroux 33780 Soulac-Sur-Mer,false,false,
-0,COMMUN (Général),Services,,,0,true,false,false,,,,true,false,
+id,name,lot_id,has_meter,exo_gest,exo_men,email,phone,address,is_common,is_archived,archived_at,is_current_owner
+1,BELLIARD Véronique,14,true,false,true,veroniquebelliard@neuf.fr,06 70 95 70 11,7 Rue André LEROUX 33780 SOULAC,false,false,,true
+2,CARSOULE (1),4,true,false,false,fcarsoule@yahoo.fr,06 64 84 79 60,295 rue du faubourg saint Antoine 75011 PARIS,false,false,,true
+3,CARSOULE (2),24,true,false,false,,,,false,false,,true
+4,CAUPENNE Corinne,13,false,false,true,librairiecorinne@orange.fr,06 76 15 58 29,17 Avenue Georges POMPIDOU 33780 SOULAC,false,false,,true
+5,GABRIEL Thomas,17,true,false,false,tho.gabriel@gmail.com,06 89 15 89 95,42 Rue A LEROI 33400 Talence,false,false,,true
+6,IDEALC (Lambard),22,true,false,false,ideal.33@wanadoo.fr,06 80 03 34 53,2 rue du Maréchal Leclerc 33780 Soulac,false,false,,true
+7,LE MERLE Christophe,21,true,true,false,clemerle.lormont@gmail.com,06 12 55 26 21,15 rue andré Leroux 33780 Soulac-Sur-Mer,false,false,,true
+8,PALMARO,18,true,false,false,bpalmaro@free.fr,06 45 63 72 89,42 rue du général Chanzy 33400 Talence,false,false,,true
+9,PIRAS Eric,23,true,false,false,piras.eric@orange.fr,06 18 03 33 05,13 rue andré Leroux 33780 Soulac-Sur-Mer,false,false,,true
+10,SALAHUN Yves,19,true,false,false,yves.salahun@orange.fr,06 71 60 54 25,12 chemin de la renardière montlegun 11000 CARCASSONE,false,false,,true
+11,SCI LE CLOT,20,true,true,false,sibrac_vincent@orange.fr,06 82 44 50 88,19 chemin de Lescapon 33340 Queyrac,false,false,,true
+12,TROPAMER,5,true,false,false,veronique.tropamer@orange.fr,06 22 08 60 20,9 rue andré Leroux 33780 Soulac-Sur-Mer,false,false,,true
+0,COMMUN (Général),,true,false,false,,,,true,false,,true

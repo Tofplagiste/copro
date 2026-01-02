@@ -55,13 +55,26 @@ export function CarnetSupabaseProvider({ children }) {
             codes: safeParse(p.codes, {})
         })),
         travaux: carnet.travaux || [],
-        proprietaires: (carnet.owners || []).map(o => ({
-            ...o,
-            lots: o.lot_principal ? (o.lot_annexe ? `${o.lot_principal}, ${o.lot_annexe}` : o.lot_principal) : (o.lot || ''),
-            infos: o.apt,
-            gestion: o.exo_gest ? null : o.tantiemes,
-            menage: o.exo_men ? null : o.tantiemes
-        })), // Mapped from owners table
+        lots: carnet.lots || [], // Expose lots array for LotSelector
+        proprietaires: (carnet.owners || []).map(o => {
+            // Get all lots owned by this owner via lot_ids
+            const ownerLots = (o.lot_ids || [])
+                .map(lid => (carnet.lots || []).find(l => l.id === lid))
+                .filter(Boolean);
+            const totalTantiemes = ownerLots.reduce((sum, l) => sum + (l.tantiemes || 0), 0);
+            const lotDisplay = ownerLots.map(l => `Lot ${l.numero}`).join(', ') || '-';
+
+            return {
+                ...o,
+                lots: ownerLots.length === 1 ? ownerLots[0] : null, // Legacy single lot (for backward compat)
+                ownerLots: ownerLots, // All lots array
+                lot: lotDisplay,
+                tantiemes: totalTantiemes,
+                infos: ownerLots.some(l => l.type === 'cellier') ? 'Cellier' : '',
+                gestion: o.exo_gest ? null : totalTantiemes,
+                menage: o.exo_men ? null : totalTantiemes
+            };
+        }), // Mapped from owners + owner_lots junction
 
         // Tentative de récupération depuis jsonb ou fallback
         diagnostics: safeParse(carnet.technique?.diagnostics, {}),

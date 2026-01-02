@@ -19,6 +19,9 @@ export function useGestionSupabase() {
     const [budgetItems, setBudgetItems] = useState({ general: [], special: [], menage: [], travaux: [] });
     const [accounts, setAccounts] = useState([]);
     const [operations, setOperations] = useState([]);
+    const [owners, setOwners] = useState([]);
+    const [categories, setCategories] = useState([]);
+    const [lots, setLots] = useState([]);
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -38,7 +41,7 @@ export function useGestionSupabase() {
         setError(null);
 
         try {
-            const [budgetRes, accountsRes, opsRes] = await Promise.all([
+            const [budgetRes, accountsRes, opsRes, ownersRes, categoriesRes, lotsRes, ownerLotsRes] = await Promise.all([
                 supabase
                     .from('budget_items')
                     .select('*')
@@ -51,16 +54,50 @@ export function useGestionSupabase() {
                 supabase
                     .from('finance_operations')
                     .select('*')
-                    .order('date', { ascending: false })
+                    .order('date', { ascending: false }),
+                supabase
+                    .from('owners')
+                    .select('*')
+                    .order('name'),
+                supabase
+                    .from('expense_categories')
+                    .select('*')
+                    .order('code'),
+                supabase
+                    .from('lots')
+                    .select('*')
+                    .order('numero'),
+                supabase
+                    .from('owner_lots')
+                    .select('*')
             ]);
 
             if (budgetRes.error) throw budgetRes.error;
             if (accountsRes.error) throw accountsRes.error;
             if (opsRes.error) throw opsRes.error;
+            if (ownersRes.error) throw ownersRes.error;
+            if (categoriesRes.error) throw categoriesRes.error;
+            if (lotsRes.error) throw lotsRes.error;
+            if (ownerLotsRes.error) throw ownerLotsRes.error;
+
+            // Build lot_ids array for each owner from junction table
+            const ownerLotsMap = {};
+            (ownerLotsRes.data || []).forEach(ol => {
+                if (!ownerLotsMap[ol.owner_id]) ownerLotsMap[ol.owner_id] = [];
+                ownerLotsMap[ol.owner_id].push(ol.lot_id);
+            });
+
+            const ownersWithLotIds = (ownersRes.data || []).map(o => ({
+                ...o,
+                lot_ids: ownerLotsMap[o.id] || []
+            }));
 
             setBudgetItems(groupBudgetItems(budgetRes.data));
             setAccounts(accountsRes.data || []);
             setOperations(opsRes.data || []);
+            setOwners(ownersWithLotIds);
+            setCategories(categoriesRes.data || []);
+            setLots(lotsRes.data || []);
 
         } catch (err) {
             console.error('[useGestionSupabase] Erreur loading:', err);
@@ -81,6 +118,9 @@ export function useGestionSupabase() {
         budgetItems,
         accounts,
         operations,
+        owners,
+        categories,
+        lots,
 
         // Status
         loading,

@@ -9,7 +9,7 @@ import { fmtMoney } from '../../../utils/formatters';
 import MailingModal from '../components/budget/MailingModal';
 import GererPostesModal from '../components/budget/GererPostesModal';
 import RecapTableModal from '../components/budget/RecapTableModal';
-import { useBudget } from '../hooks/useBudget';
+import { useBudgetSupabaseAdapter } from '../hooks/useBudgetSupabaseAdapter';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -52,7 +52,7 @@ export default function BudgetTab() {
         changeBudgetMode,
         addBudgetItem,
         deleteBudgetItem
-    } = useBudget();
+    } = useBudgetSupabaseAdapter();
 
     const toast = useToast();
     const [selectedQuarter, setSelectedQuarter] = useState('T1');

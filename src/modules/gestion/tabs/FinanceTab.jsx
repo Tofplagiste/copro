@@ -4,14 +4,25 @@
  */
 import { useState } from 'react';
 import { Plus, Calculator, Trash2, Pencil, Check, Filter } from 'lucide-react';
-import { useCopro } from '../../../context/CoproContext';
+
+import { useFinanceSupabaseAdapter } from '../hooks/useFinanceSupabaseAdapter';
 import { fmtMoney, fmtDateFR, getTodayISO } from '../../../utils/formatters';
 import FinancialCharts from '../components/finance/FinancialCharts';
 import VentilationModal from '../components/finance/VentilationModal';
 import { ConfirmModal } from '../../../components/Modal';
 
 export default function FinanceTab() {
-    const { state, updateState } = useCopro();
+    // Phase 4 : Migration Supabase (via Adapter)
+    const {
+        accounts,
+        operations,
+        categories,
+        addOperation,
+        updateOperation,
+        deleteOperation,
+        updateAccount // Pour le pointage (real_balance)
+    } = useFinanceSupabaseAdapter();
+
     const [showForm, setShowForm] = useState(false);
     const [editingOp, setEditingOp] = useState(null);
     const [filterAccount, setFilterAccount] = useState(null);
@@ -24,15 +35,10 @@ export default function FinanceTab() {
     const [dateTo, setDateTo] = useState('');
     const [showVentilation, setShowVentilation] = useState(false);
 
-    const accounts = state.accounts || [];
-    const operations = state.finance?.operations || [];
-    const realBalances = state.finance?.realBalances || {};
-    const categories = state.categories || [];
-
     // Calcul solde par compte (Global)
     const getAccountBalance = (accId) => {
         const acc = accounts.find(a => a.id === accId);
-        let bal = acc?.initial || 0;
+        let bal = acc?.initial || 0; // Utiliser initial_balance de Supabase si dispo, sinon 0
         operations.forEach(op => {
             if (op.account === accId) {
                 bal += op.type === 'recette' ? op.amount : -op.amount;
@@ -44,33 +50,23 @@ export default function FinanceTab() {
     // Update Real Balance (Pointage)
     const handleUpdateRealBalance = (accId, val) => {
         const newVal = parseFloat(val);
-        updateState({
-            finance: {
-                ...state.finance,
-                realBalances: {
-                    ...realBalances,
-                    [accId]: isNaN(newVal) ? '' : newVal
-                }
-            }
-        });
+        // Update via Supabase Context
+        updateAccount(accId, { real_balance: isNaN(newVal) ? 0 : newVal });
     };
 
     // Ajout/modification opération
     const handleSaveOp = (op) => {
-        const newOp = {
+        const opData = {
             ...op,
-            id: op.id || Date.now() + Math.random(),
             amount: parseFloat(op.amount) || 0
         };
 
-        let newOps;
         if (editingOp) {
-            newOps = operations.map(o => o.id === op.id ? newOp : o);
+            updateOperation(op.id, opData);
         } else {
-            newOps = [...operations, newOp];
+            addOperation(opData);
         }
 
-        updateState({ finance: { ...state.finance, operations: newOps } });
         setShowForm(false);
         setEditingOp(null);
     };
@@ -78,8 +74,7 @@ export default function FinanceTab() {
     // Suppression opération (Confirmée par Modal)
     const confirmDeleteOp = () => {
         if (deleteModal.opId) {
-            const newOps = operations.filter(o => o.id !== deleteModal.opId);
-            updateState({ finance: { ...state.finance, operations: newOps } });
+            deleteOperation(deleteModal.opId);
             setDeleteModal({ open: false, opId: null });
 
             // If deleting the currently edited op, reset form
@@ -92,12 +87,9 @@ export default function FinanceTab() {
 
     // Save Ventilation (Multi-ops)
     const handleSaveVentilation = (data) => {
-        const newOps = [...operations];
-
-        data.parts.forEach((part, index) => {
+        data.parts.forEach((part) => {
             if (part.amount > 0) {
-                newOps.push({
-                    id: Date.now() + Math.random() + index,
+                addOperation({
                     date: data.date,
                     account: data.account,
                     type: 'depense',
@@ -107,8 +99,6 @@ export default function FinanceTab() {
                 });
             }
         });
-
-        updateState({ finance: { ...state.finance, operations: newOps } });
     };
 
     // Filtrage
@@ -141,7 +131,7 @@ export default function FinanceTab() {
     // Selected Account Data for Pointage
     const selectedAccountData = filterAccount ? accounts.find(a => a.id === filterAccount) : null;
     const selectedBalance = selectedAccountData ? getAccountBalance(filterAccount) : 0;
-    const realBalance = selectedAccountData ? (realBalances[filterAccount] !== undefined ? realBalances[filterAccount] : '') : '';
+    const realBalance = selectedAccountData ? (selectedAccountData.real_balance !== undefined ? selectedAccountData.real_balance : '') : '';
     const ecart = selectedAccountData && realBalance !== '' ? (selectedBalance - realBalance) : 0;
 
     return (

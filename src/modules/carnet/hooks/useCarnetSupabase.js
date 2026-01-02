@@ -12,7 +12,8 @@ export function useCarnetSupabase() {
         technique: null,
         prestataires: [],
         travaux: [],
-        owners: []
+        owners: [],
+        lots: []
     });
 
     const [loading, setLoading] = useState(true);
@@ -24,14 +25,28 @@ export function useCarnetSupabase() {
         setLoading(true);
         setError(null);
         try {
-            const [gen, adm, tech, prest, trav, own] = await Promise.all([
+            const [gen, adm, tech, prest, trav, own, lotsRes, ownerLotsRes] = await Promise.all([
                 supabase.from('carnet_general').select('*').limit(1).maybeSingle(),
                 supabase.from('carnet_admin').select('*').limit(1).maybeSingle(),
                 supabase.from('carnet_technique').select('*').limit(1).maybeSingle(),
                 supabase.from('carnet_prestataires').select('*').order('name'),
                 supabase.from('carnet_travaux').select('*').order('annee', { ascending: false }),
-                supabase.from('owners').select('*').order('name')
+                supabase.from('owners').select('*').order('name'),
+                supabase.from('lots').select('*').order('numero'),
+                supabase.from('owner_lots').select('*')
             ]);
+
+            // Build lot_ids array for each owner from junction table
+            const ownerLotsMap = {};
+            (ownerLotsRes.data || []).forEach(ol => {
+                if (!ownerLotsMap[ol.owner_id]) ownerLotsMap[ol.owner_id] = [];
+                ownerLotsMap[ol.owner_id].push(ol.lot_id);
+            });
+
+            const ownersWithLotIds = (own.data || []).map(o => ({
+                ...o,
+                lot_ids: ownerLotsMap[o.id] || []
+            }));
 
             setCarnetData({
                 general: gen.data || {},
@@ -39,7 +54,8 @@ export function useCarnetSupabase() {
                 technique: tech.data || {},
                 prestataires: prest.data || [],
                 travaux: trav.data || [],
-                owners: own.data || []
+                owners: ownersWithLotIds,
+                lots: lotsRes.data || []
             });
 
         } catch (err) {
@@ -78,10 +94,38 @@ export function useCarnetSupabase() {
         updateProprietaire: (id, d) => {
             // Sanitize payload: remove calculated fields
             // eslint-disable-next-line no-unused-vars
-            const { gestion, menage, lots, infos, ...rest } = d;
+            const { gestion, menage, lots, infos, lot_ids, ...rest } = d;
             return actions.updateListItem('owners', id, rest, 'owners');
         },
         deleteProprietaire: (id) => actions.deleteListItem('owners', id, 'owners'),
+
+        // Lot Assignment (Junction table)
+        updateOwnerLots: async (ownerId, newLotIds) => {
+            try {
+                // 1. Delete all current lots for this owner
+                await supabase.from('owner_lots').delete().eq('owner_id', ownerId);
+
+                // 2. Insert new lot assignments
+                if (newLotIds.length > 0) {
+                    const inserts = newLotIds.map(lotId => ({ owner_id: ownerId, lot_id: lotId }));
+                    const { error } = await supabase.from('owner_lots').insert(inserts);
+                    if (error) throw error;
+                }
+
+                // 3. Update local state
+                setCarnetData(prev => ({
+                    ...prev,
+                    owners: prev.owners.map(o =>
+                        o.id === ownerId ? { ...o, lot_ids: newLotIds } : o
+                    )
+                }));
+
+                return { success: true };
+            } catch (err) {
+                setError(err.message);
+                return { success: false, error: err.message };
+            }
+        },
 
         refresh: loadCarnet
     };
