@@ -2,7 +2,7 @@
 trigger: always_on
 ---
 
-# Standards de Développement & Architecture - Projet Copro (V5)
+# Standards de Développement & Architecture - Projet Copro (V6)
 
 ## 1. Philosophie du Projet
 Ce projet est une **Suite d'Applications** regroupant 4 outils distincts (Gestion, Carnet, Crédit, Vote) sous un même Dashboard unifié.
@@ -12,7 +12,8 @@ L'objectif est de fournir un code **robuste**, **typé** (via JSDoc), **testé**
 - **Build :** Vite + React 18 (JavaScript + SWC).
 - **Style :** Tailwind CSS. Utiliser `clsx` ou `tailwind-merge` pour les classes dynamiques.
 - **Routing :** React Router DOM (v6+). Architecture SPA avec routes définies.
-- **Tests :** Vitest (Compatible Jest). Obligatoire pour toute logique de calcul.
+- **Tests :** Vitest (Compatible Jest) + React Testing Library.
+- **Qualité :** ESLint.
 - **Icônes :** Lucide-React.
 - **State :** Context API + Hooks personnalisés (Pas de Redux).
 
@@ -36,11 +37,13 @@ src/
 
 ## 4. Règles de Clean Code (Strictes)
 
-### A. Composants (UI)
-- **Taille Max :** Un composant ne doit pas dépasser **150 lignes**. Au-delà, il doit être découpé en sous-composants.
-- **Zéro Logique Métier :** Les composants UI ne font que de l'affichage et de l'appel aux Hooks.
-    - ❌ *Interdit :* `const total = data.reduce(...)` dans le JSX.
-    - ✅ *Requis :* `const total = calculateTotal(data)` (fonction importée de `utils/`).
+### A. Composants & Découpage (Règle CRITIQUE)
+- **LIMITE STRICTE : 150 Lignes Max.**
+    - C'est une **contrainte bloquante**. Tout fichier dépassant 150 lignes est considéré comme une dette technique immédiate.
+- **Découpage Préventif (Surtout le JSX) :**
+    - Ne jamais attendre la phase de refactoring pour découper.
+    - Si le JSX d'un composant devient profond ou long, il doit **immédiatement** être extrait en sous-composants dédiés (ex: `<InvoiceHeader />`, `<InvoiceRows />`, `<InvoiceFooter />`).
+    - **Règle :** Si un composant a besoin de scroller pour être lu, il est trop gros.
 
 ### B. Gestion des Données & Persistance
 - **Isolation :** Aucun appel direct à `localStorage` dans les composants UI.
@@ -59,12 +62,22 @@ src/
      * @returns {number} Montant dû
      */
 
-## 5. Tests et Fiabilité (Vitest)
-- **Règle d'or :** "Si ça calcule de l'argent, des tantièmes ou des votes, ça doit être testé."
-- Chaque fichier `utils/*.js` contenant de la logique métier doit avoir son fichier `utils/*.test.js` correspondant.
-- Les tests doivent couvrir les cas nominaux et les cas d'erreur.
+## 5. Tests, Qualité & Linting
+- **Linting (OBLIGATOIRE) :**
+    - Le code ne doit générer **aucune erreur ni warning** au `npm run lint`.
+    - Cette commande doit être exécutée systématiquement avant de valider une tâche.
+- **Tests Unitaires (Logique) :**
+    - "Si ça calcule de l'argent, des tantièmes ou des votes, ça doit être testé."
+    - Chaque fichier `utils/*.js` critique doit avoir son `utils/*.test.js`.
+- **Tests Frontend (Composants) :**
+    - Les composants complexes (formulaires, tableaux interactifs) doivent être testés.
+    - Vérifier le rendu correct (Rendering) et les interactions utilisateur (User Events) via React Testing Library.
 
 ## 6. Workflow IA
-1. **Analyse :** Toujours lister les fichiers à créer avant de générer le code.
-2. **Modularité :** Vérifier si le code appartient au module courant ou au dossier partagé (`src/components`).
-3. **Implémentation :** Commencer par la logique pure (`utils`) et les tests, puis les Hooks, enfin l'UI.
+1. **Analyse :** Lister les fichiers à créer et identifier les potentiels dépassements de 150 lignes avant de coder.
+2. **Modularité :** Vérifier si le code appartient au module courant ou au dossier partagé.
+3. **Implémentation :**
+    - 1. Logique pure (`utils`) + Tests Unitaires.
+    - 2. Hooks.
+    - 3. UI (en découpant immédiatement en sous-composants < 150 lignes).
+4. **Vérification :** Lancer `npm run lint` et `npm run test` pour valider le code produit.
