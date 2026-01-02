@@ -3,13 +3,14 @@
  * Contient le titre, le bouton retour et les actions
  */
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Calculator, Download, FileText } from 'lucide-react';
+import { ArrowLeft, Calculator, FileText } from 'lucide-react';
 
 /**
  * @param {Object} props
  * @param {Function} props.onExportPdf - Callback pour export PDF
+ * @param {boolean} props.disabled - Si true, désactive le bouton PDF
  */
-export default function CreditHeader({ onExportPdf }) {
+export default function CreditHeader({ onExportPdf, disabled = false }) {
     return (
         <header className="bg-white shadow-md sticky top-0 z-50">
             <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
@@ -30,7 +31,14 @@ export default function CreditHeader({ onExportPdf }) {
                     </div>
                 </div>
                 <div className="flex gap-2">
-                    <button onClick={onExportPdf} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-semibold flex items-center gap-2">
+                    <button
+                        onClick={onExportPdf}
+                        disabled={disabled}
+                        className={`px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors ${disabled
+                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                : 'bg-indigo-600 hover:bg-indigo-500 text-white'
+                            }`}
+                    >
                         <FileText size={16} />
                         PDF
                     </button>

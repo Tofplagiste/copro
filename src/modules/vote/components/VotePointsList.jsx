@@ -14,6 +14,7 @@ import VotePointCard from './VotePointCard';
  * @param {Function} props.setAllVotes - Callback pour voter tous
  * @param {Function} props.resetPointVotes - Callback pour reset
  * @param {Function} props.updatePointArticle - Callback pour changer l'article
+ * @param {Function} props.deletePoint - Callback pour supprimer un point
  */
 export default function VotePointsList({
     points,
@@ -23,16 +24,26 @@ export default function VotePointsList({
     updateVote,
     setAllVotes,
     resetPointVotes,
-    updatePointArticle
+    updatePointArticle,
+    deletePoint
 }) {
     const votants = getVotants();
 
+    if (points.length === 0) {
+        return (
+            <div className="bg-white/10 backdrop-blur rounded-xl p-8 text-center">
+                <p className="text-white/60">Aucun point de vote. Ajoutez-en un ci-dessus.</p>
+            </div>
+        );
+    }
+
     return (
         <div className="space-y-6">
-            {points.map(point => (
+            {points.map((point, index) => (
                 <VotePointCard
                     key={point.id}
                     point={point}
+                    index={index + 1}
                     votants={votants}
                     votes={votes[point.id]}
                     result={getPointResult(point.id)}
@@ -40,6 +51,7 @@ export default function VotePointsList({
                     onSetAllVotes={setAllVotes}
                     onResetVotes={resetPointVotes}
                     onUpdateArticle={updatePointArticle}
+                    onDeletePoint={deletePoint}
                 />
             ))}
         </div>

@@ -1,15 +1,15 @@
 /**
  * useVoteSupabase - Hook Vote migré sur Supabase
  * 
- * EXEMPLE DE PATTERN MIGRATION
- * Démontre la gestion du loading, des erreurs, et des appels async.
- * 
- * NOTE: Ce hook est une VERSION ALTERNATIVE de useVote.
- * Il montre le pattern à suivre pour migrer les autres hooks.
+ * Gestion complète des sessions de vote avec:
+ * - Liste des sessions existantes
+ * - Création avec import des owners
+ * - Suppression / Renommage
+ * - Gestion des points de vote
  */
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '../../../lib/supabaseClient';
-import { ARTICLES, TOTAL_TANTIEMES } from '../data/voteConstants';
+import { TOTAL_TANTIEMES } from '../data/voteConstants';
 
 /**
  * Hook principal du module Vote (version Supabase)
@@ -20,12 +20,13 @@ export function useVoteSupabase(sessionId = null) {
     // =====================================================
     // STATE
     // =====================================================
+    const [sessions, setSessions] = useState([]);       // Liste des sessions
     const [session, setSession] = useState(null);
     const [copros, setCopros] = useState([]);
     const [points, setPoints] = useState([]);
     const [votes, setVotes] = useState({});
 
-    // Loading & Error states (PATTERN CLEF)
+    // Loading & Error states
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState(null);
@@ -35,10 +36,31 @@ export function useVoteSupabase(sessionId = null) {
     // =====================================================
 
     /**
+     * Charge la liste des sessions existantes
+     */
+    const loadSessionsList = useCallback(async () => {
+        try {
+            const { data, error: listError } = await supabase
+                .from('vote_sessions')
+                .select('id, title, session_date, status, created_at')
+                .order('session_date', { ascending: false });
+
+            if (listError) throw listError;
+            setSessions(data || []);
+        } catch (err) {
+            console.error('[useVoteSupabase] Erreur liste sessions:', err);
+        }
+    }, []);
+
+    /**
      * Charge une session existante depuis Supabase
      */
     const loadSession = useCallback(async (id) => {
         if (!id) {
+            setSession(null);
+            setCopros([]);
+            setPoints([]);
+            setVotes({});
             setLoading(false);
             return;
         }
@@ -66,7 +88,6 @@ export function useVoteSupabase(sessionId = null) {
 
             if (coprosError) throw coprosError;
 
-            // Transformer vers le format attendu par l'UI
             const formattedCopros = coprosData.map(c => ({
                 id: c.id,
                 nom: c.name,
@@ -92,21 +113,24 @@ export function useVoteSupabase(sessionId = null) {
             }));
             setPoints(formattedPoints);
 
-            // 4. Charger les votes
-            const { data: votesData, error: votesError } = await supabase
-                .from('vote_participations')
-                .select('*')
-                .in('point_id', pointsData.map(p => p.id));
+            // 4. Charger les votes (seulement si des points existent)
+            if (pointsData.length > 0) {
+                const { data: votesData, error: votesError } = await supabase
+                    .from('vote_participations')
+                    .select('*')
+                    .in('point_id', pointsData.map(p => p.id));
 
-            if (votesError) throw votesError;
+                if (votesError) throw votesError;
 
-            // Transformer en format { pointId: { coproId: voteType } }
-            const votesMap = {};
-            votesData.forEach(v => {
-                if (!votesMap[v.point_id]) votesMap[v.point_id] = {};
-                votesMap[v.point_id][v.copro_id] = v.vote_type;
-            });
-            setVotes(votesMap);
+                const votesMap = {};
+                (votesData || []).forEach(v => {
+                    if (!votesMap[v.point_id]) votesMap[v.point_id] = {};
+                    votesMap[v.point_id][v.copro_id] = v.vote_type;
+                });
+                setVotes(votesMap);
+            } else {
+                setVotes({});
+            }
 
         } catch (err) {
             console.error('[useVoteSupabase] Erreur chargement:', err);
@@ -116,31 +140,33 @@ export function useVoteSupabase(sessionId = null) {
         }
     }, []);
 
-    // Charger au montage si sessionId fourni
+    // Charger au montage
     useEffect(() => {
-        if (sessionId) {
-            loadSession(sessionId);
-        } else {
-            setLoading(false);
-        }
-    }, [sessionId, loadSession]);
+        const init = async () => {
+            await loadSessionsList();
+            if (sessionId) {
+                await loadSession(sessionId);
+            } else {
+                setLoading(false);
+            }
+        };
+        init();
+    }, [sessionId, loadSession, loadSessionsList]);
 
     // =====================================================
-    // DATA MUTATIONS
+    // SESSION MUTATIONS
     // =====================================================
 
     /**
-     * Crée une nouvelle session de vote
-     * @param {string} title - Titre de la session
-     * @param {string} date - Date de la session
-     * @returns {Promise<{success: boolean, sessionId?: number, error?: string}>}
+     * Crée une nouvelle session de vote et importe les owners
      */
     const createSession = async (title, date) => {
         setSaving(true);
         setError(null);
 
         try {
-            const { data, error: createError } = await supabase
+            // 1. Créer la session
+            const { data: sessionData, error: createError } = await supabase
                 .from('vote_sessions')
                 .insert({
                     title,
@@ -153,8 +179,34 @@ export function useVoteSupabase(sessionId = null) {
 
             if (createError) throw createError;
 
-            setSession(data);
-            return { success: true, sessionId: data.id };
+            // 2. Importer les owners depuis la table owners
+            const { data: ownersData, error: ownersError } = await supabase
+                .from('owners')
+                .select('id, name, tantiemes')
+                .eq('is_common', false)
+                .order('name');
+
+            if (ownersError) throw ownersError;
+
+            // 3. Créer les vote_copros
+            if (ownersData && ownersData.length > 0) {
+                const coprosPayload = ownersData.map(o => ({
+                    session_id: sessionData.id,
+                    owner_id: o.id,
+                    name: o.name,
+                    tantiemes: o.tantiemes,
+                    presence: null
+                }));
+
+                const { error: coprosError } = await supabase
+                    .from('vote_copros')
+                    .insert(coprosPayload);
+
+                if (coprosError) throw coprosError;
+            }
+
+            await loadSessionsList();
+            return { success: true, sessionId: sessionData.id };
         } catch (err) {
             setError(err.message);
             return { success: false, error: err.message };
@@ -164,18 +216,166 @@ export function useVoteSupabase(sessionId = null) {
     };
 
     /**
-     * Met à jour la présence d'un copropriétaire
-     * PATTERN: Update local + sync to Supabase
+     * Supprime une session
      */
+    const deleteSession = async (id) => {
+        setSaving(true);
+        try {
+            // CASCADE supprime vote_copros, vote_points, vote_participations
+            const { error: deleteError } = await supabase
+                .from('vote_sessions')
+                .delete()
+                .eq('id', id);
+
+            if (deleteError) throw deleteError;
+
+            if (session?.id === id) {
+                setSession(null);
+                setCopros([]);
+                setPoints([]);
+                setVotes({});
+            }
+
+            await loadSessionsList();
+            return { success: true };
+        } catch (err) {
+            setError(err.message);
+            return { success: false, error: err.message };
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    /**
+     * Renomme une session
+     */
+    const renameSession = async (id, newTitle) => {
+        setSaving(true);
+        try {
+            const { error: updateError } = await supabase
+                .from('vote_sessions')
+                .update({ title: newTitle })
+                .eq('id', id);
+
+            if (updateError) throw updateError;
+
+            if (session?.id === id) {
+                setSession(prev => ({ ...prev, title: newTitle }));
+            }
+
+            await loadSessionsList();
+            return { success: true };
+        } catch (err) {
+            setError(err.message);
+            return { success: false, error: err.message };
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    // =====================================================
+    // POINTS DE VOTE MUTATIONS
+    // =====================================================
+
+    /**
+     * Ajoute un point de vote
+     */
+    const addPoint = async (titre, article = '24') => {
+        if (!session) return { success: false, error: 'No session' };
+
+        setSaving(true);
+        try {
+            const sortOrder = points.length + 1;
+
+            const { data, error: insertError } = await supabase
+                .from('vote_points')
+                .insert({
+                    session_id: session.id,
+                    title: titre,
+                    article,
+                    sort_order: sortOrder
+                })
+                .select()
+                .single();
+
+            if (insertError) throw insertError;
+
+            setPoints(prev => [...prev, {
+                id: data.id,
+                titre: data.title,
+                article: data.article
+            }]);
+
+            return { success: true };
+        } catch (err) {
+            setError(err.message);
+            return { success: false, error: err.message };
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    /**
+     * Supprime un point de vote
+     */
+    const deletePoint = async (pointId) => {
+        setSaving(true);
+        try {
+            const { error: deleteError } = await supabase
+                .from('vote_points')
+                .delete()
+                .eq('id', pointId);
+
+            if (deleteError) throw deleteError;
+
+            setPoints(prev => prev.filter(p => p.id !== pointId));
+            setVotes(prev => {
+                const newVotes = { ...prev };
+                delete newVotes[pointId];
+                return newVotes;
+            });
+
+            return { success: true };
+        } catch (err) {
+            setError(err.message);
+            return { success: false, error: err.message };
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    /**
+     * Met à jour l'article d'un point
+     */
+    const updatePointArticle = async (pointId, article) => {
+        // Optimistic update
+        setPoints(prev => prev.map(p =>
+            p.id === pointId ? { ...p, article } : p
+        ));
+
+        try {
+            const { error: updateError } = await supabase
+                .from('vote_points')
+                .update({ article })
+                .eq('id', pointId);
+
+            if (updateError) throw updateError;
+        } catch (err) {
+            setError(err.message);
+        }
+    };
+
+    // =====================================================
+    // COPROS / PRESENCE MUTATIONS
+    // =====================================================
+
     const updatePresence = async (coproId, presence) => {
-        // 1. Update local immédiatement (optimistic update)
         setCopros(prev => prev.map(c =>
             c.id === coproId
                 ? { ...c, presence, procurationDonneeA: presence !== 'procuration' ? null : c.procurationDonneeA }
                 : c
         ));
 
-        // 2. Sync to Supabase
         try {
             const { error: updateError } = await supabase
                 .from('vote_copros')
@@ -189,20 +389,14 @@ export function useVoteSupabase(sessionId = null) {
         } catch (err) {
             console.error('[useVoteSupabase] Erreur update présence:', err);
             setError(err.message);
-            // Optionnel: rollback en cas d'erreur
         }
     };
 
-    /**
-     * Met à jour le mandataire d'une procuration
-     */
     const updateProcuration = async (coproId, mandataireId) => {
-        // Optimistic update
         setCopros(prev => prev.map(c =>
             c.id === coproId ? { ...c, procurationDonneeA: mandataireId } : c
         ));
 
-        // Sync
         try {
             await supabase
                 .from('vote_copros')
@@ -213,11 +407,11 @@ export function useVoteSupabase(sessionId = null) {
         }
     };
 
-    /**
-     * Met à jour un vote
-     */
+    // =====================================================
+    // VOTES MUTATIONS
+    // =====================================================
+
     const updateVote = async (pointId, coproId, voteType) => {
-        // Optimistic update
         setVotes(prev => ({
             ...prev,
             [pointId]: {
@@ -226,7 +420,6 @@ export function useVoteSupabase(sessionId = null) {
             }
         }));
 
-        // Sync (upsert)
         try {
             const { error: voteError } = await supabase
                 .from('vote_participations')
@@ -245,9 +438,6 @@ export function useVoteSupabase(sessionId = null) {
         }
     };
 
-    /**
-     * Met tous les votants sur un type de vote
-     */
     const setAllVotes = async (pointId, voteType) => {
         const votantsIds = copros
             .filter(c => c.presence === 'present' || c.presence === 'correspondance' ||
@@ -257,13 +447,11 @@ export function useVoteSupabase(sessionId = null) {
         const newVotes = {};
         votantsIds.forEach(id => { newVotes[id] = voteType; });
 
-        // Optimistic update
         setVotes(prev => ({
             ...prev,
             [pointId]: newVotes
         }));
 
-        // Sync all votes
         try {
             const payload = votantsIds.map(coproId => ({
                 point_id: pointId,
@@ -281,8 +469,46 @@ export function useVoteSupabase(sessionId = null) {
         }
     };
 
+    const resetPointVotes = async (pointId) => {
+        setVotes(prev => ({
+            ...prev,
+            [pointId]: {}
+        }));
+
+        try {
+            const { error: deleteError } = await supabase
+                .from('vote_participations')
+                .delete()
+                .eq('point_id', pointId);
+
+            if (deleteError) throw deleteError;
+        } catch (err) {
+            setError(err.message);
+        }
+    };
+
+    const resetAllVotes = async () => {
+        if (!session) return;
+
+        setVotes({});
+
+        try {
+            const pointIds = points.map(p => p.id);
+            if (pointIds.length > 0) {
+                const { error: deleteError } = await supabase
+                    .from('vote_participations')
+                    .delete()
+                    .in('point_id', pointIds);
+
+                if (deleteError) throw deleteError;
+            }
+        } catch (err) {
+            setError(err.message);
+        }
+    };
+
     // =====================================================
-    // COMPUTED VALUES (same as original)
+    // COMPUTED VALUES
     // =====================================================
 
     const presenceStats = useMemo(() => {
@@ -318,7 +544,6 @@ export function useVoteSupabase(sessionId = null) {
         return counts;
     }, [copros]);
 
-    /** Calcule le résultat d'un point de vote */
     const getPointResult = useCallback((pointId) => {
         const pointVotes = votes[pointId] || {};
         const article = points.find(p => p.id === pointId)?.article || '24';
@@ -375,12 +600,13 @@ export function useVoteSupabase(sessionId = null) {
 
     return {
         // État
+        sessions,
         session,
         copros,
         points,
         votes,
 
-        // Loading / Error (NOUVEAU)
+        // Loading / Error
         loading,
         saving,
         error,
@@ -390,13 +616,27 @@ export function useVoteSupabase(sessionId = null) {
         procurationCounts,
         TOTAL_TANTIEMES,
 
-        // Actions
+        // Session Actions
         loadSession,
+        loadSessionsList,
         createSession,
+        deleteSession,
+        renameSession,
+
+        // Points Actions
+        addPoint,
+        deletePoint,
+        updatePointArticle,
+
+        // Presence Actions
         updatePresence,
         updateProcuration,
+
+        // Vote Actions
         updateVote,
         setAllVotes,
+        resetPointVotes,
+        resetAllVotes,
 
         // Helpers
         getPointResult,

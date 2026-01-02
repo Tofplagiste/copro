@@ -7,30 +7,42 @@ import { autoTable } from 'jspdf-autotable';
 import { TOTAL_TANTIEMES } from '../data/voteConstants';
 
 /**
+ * Sanitize filename by removing special characters
+ * @param {string} str - String to sanitize
+ * @returns {string} Sanitized string
+ */
+function sanitizeFilename(str) {
+    return str.replace(/[^a-zA-Z0-9àâäéèêëïîôùûüç\s-]/gi, '').replace(/\s+/g, '_').substring(0, 50);
+}
+
+/**
  * Exporte le procès-verbal d'AG en PDF
  * @param {Object} params - Données du vote
+ * @param {string} params.title - Titre de la session
  * @param {string} params.date - Date de l'AG
  * @param {Array} params.copros - Liste des copropriétaires
  * @param {Array} params.points - Points de vote
  * @param {Object} params.presenceStats - Statistiques de présence
  * @param {Function} params.getPointResult - Fonction pour calculer résultat d'un point
  */
-export function exportVotePdf({ date, copros, points, presenceStats, getPointResult }) {
+export function exportVotePdf({ title, date, copros, points, presenceStats, getPointResult }) {
     const doc = new jsPDF();
 
-    // En-tête
+    // En-tête avec titre de session
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
     doc.text('PROCÈS-VERBAL ASSEMBLÉE GÉNÉRALE', 105, 20, { align: 'center' });
+    doc.setFontSize(12);
+    doc.text(title || 'Session de vote', 105, 28, { align: 'center' });
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text('Copropriété 9 Rue André Leroux - 33780 SOULAC-SUR-MER', 105, 28, { align: 'center' });
-    doc.text(`Date: ${new Date(date).toLocaleDateString('fr-FR')}`, 105, 35, { align: 'center' });
+    doc.text('Copropriété 9 Rue André Leroux - 33780 SOULAC-SUR-MER', 105, 35, { align: 'center' });
+    doc.text(`Date: ${new Date(date).toLocaleDateString('fr-FR')}`, 105, 42, { align: 'center' });
 
     // Feuille de présence
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.text('Feuille de Présence', 14, 50);
+    doc.text('Feuille de Présence', 14, 55);
 
     const presenceRows = copros.map(c => {
         let statut = 'Absent';
@@ -44,7 +56,7 @@ export function exportVotePdf({ date, copros, points, presenceStats, getPointRes
     });
 
     autoTable(doc, {
-        startY: 55,
+        startY: 60,
         head: [['Copropriétaire', 'Tantièmes', 'Statut']],
         body: presenceRows,
         headStyles: { fillColor: [51, 65, 85] },
@@ -88,5 +100,8 @@ export function exportVotePdf({ date, copros, points, presenceStats, getPointRes
         doc.setTextColor(0, 0, 0);
     });
 
-    doc.save(`PV_AG_${date}.pdf`);
+    // Filename with session title
+    const safeTitle = sanitizeFilename(title || 'Session');
+    doc.save(`PV_AG_${safeTitle}_${date}.pdf`);
 }
+

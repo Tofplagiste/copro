@@ -1,14 +1,20 @@
 /**
  * GestionApp - Application Gestion Copropriété
  * Regroupe les onglets Water, Budget, Finance, Annexes, BudgetDetail, Params
+ * 
+ * MIGRATION PHASE 6 : Wrappé avec GestionSupabaseProvider pour charger les données Supabase.
+ * Les tabs peuvent accéder aux données via useGestionData() ou l'ancien useCopro().
  */
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { TABS_CONFIG } from '../../data/initialState';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 import TabNavigation from '../../components/TabNavigation';
+
+// Supabase Context Provider
+import { GestionSupabaseProvider, useGestionData } from './context/GestionSupabaseContext';
 
 // Feature tabs - Gestion Copro
 import WaterTab from './tabs/WaterTab';
@@ -28,7 +34,12 @@ const TAB_COMPONENTS = {
     'params': ParamsTab
 };
 
-export default function GestionApp() {
+/**
+ * Contenu principal de l'app Gestion (enfant du Provider)
+ */
+function GestionContent() {
+    const { loading, error, refresh } = useGestionData();
+
     const [activeTab, setActiveTab] = useState(() => {
         const saved = sessionStorage.getItem('coproActiveTab');
         return saved || 'water';
@@ -40,6 +51,39 @@ export default function GestionApp() {
     };
 
     const ActiveTabComponent = TAB_COMPONENTS[activeTab] || WaterTab;
+
+    // Loading state
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+                <div className="bg-white rounded-xl p-8 shadow-lg flex flex-col items-center gap-4">
+                    <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
+                    <p className="text-gray-600 font-medium">Chargement des données...</p>
+                    <p className="text-gray-400 text-sm">Budget, Comptes, Opérations...</p>
+                </div>
+            </div>
+        );
+    }
+
+    // Error state
+    if (error) {
+        return (
+            <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+                <div className="bg-white rounded-xl p-8 shadow-lg flex flex-col items-center gap-4 max-w-md">
+                    <AlertCircle className="w-12 h-12 text-red-500" />
+                    <p className="text-red-600 text-center font-medium">Erreur de chargement</p>
+                    <p className="text-gray-500 text-sm text-center">{error}</p>
+                    <button
+                        onClick={refresh}
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                        <RefreshCw className="w-4 h-4" />
+                        Réessayer
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gray-100 flex flex-col">
@@ -56,6 +100,11 @@ export default function GestionApp() {
                     </Link>
                     <span className="text-slate-400">|</span>
                     <span className="font-semibold">Gestion Copro</span>
+                    <div className="ml-auto flex items-center gap-2">
+                        <span className="text-xs text-emerald-400 bg-emerald-900/30 px-2 py-0.5 rounded">
+                            ☁️ Supabase
+                        </span>
+                    </div>
                 </div>
 
                 <Header />
@@ -72,5 +121,16 @@ export default function GestionApp() {
 
             <Footer />
         </div>
+    );
+}
+
+/**
+ * GestionApp - Point d'entrée avec Provider
+ */
+export default function GestionApp() {
+    return (
+        <GestionSupabaseProvider>
+            <GestionContent />
+        </GestionSupabaseProvider>
     );
 }
