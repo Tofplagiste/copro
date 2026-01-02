@@ -1,0 +1,13 @@
+category,name,reel,previ,previ_n1,sort_order
+general,Frais bancaire,138,140,140,1
+general,Poubelles,550,570,570,2
+general,Sécurité incendie,280,300,300,3
+general,Assurance AXA,1020,1050,1050,4
+general,Gestion courante,150,150,150,5
+general,EDF communs,195,210,210,6
+general,Fond de travaux,3000,3000,3000,7
+general,Réserve DPE PPT,800,800,800,8
+general,Assurance ACC,0,180,180,9
+special,Indemnité Syndic,600,600,600,10
+special,Indemnité RPTE,600,600,600,11
+menage,Ménage,1100,1166,1166,12

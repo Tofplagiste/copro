@@ -2,16 +2,19 @@
  * RepartitionTab - Onglet répartition des tantièmes par copropriétaire
  */
 import { useState } from 'react';
-import { Plus, Edit, Trash2, FileText, Download, User } from 'lucide-react';
-import { useCarnet } from '../../../context/CarnetContext';
+import { Plus, Edit, Trash2, FileText, Download, User, Loader2, AlertCircle } from 'lucide-react';
+import { useCarnetData } from '../context/CarnetSupabaseContext';
 import Modal, { ConfirmModal } from '../../../components/Modal';
 import { setupPDF, addHeader, addFooter } from '../../../utils/pdfBase';
 import { autoTable } from 'jspdf-autotable';
 
 export default function RepartitionTab() {
-    const { state, addProprietaire, updateProprietaire, deleteProprietaire } = useCarnet();
+    const { state, addProprietaire, updateProprietaire, deleteProprietaire, loading, error } = useCarnetData();
     const [editModal, setEditModal] = useState({ open: false, data: null });
     const [deleteConfirm, setDeleteConfirm] = useState({ open: false, id: null });
+
+    if (loading) return <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-blue-600" /></div>;
+    if (error) return <div className="p-4 bg-red-50 text-red-600 rounded flex items-center gap-2"><AlertCircle size={20} />{error}</div>;
 
     const proprietaires = state.proprietaires || [];
     const totalTantiemes = proprietaires.reduce((sum, p) => sum + (p.tantiemes || 0), 0);
@@ -104,7 +107,8 @@ export default function RepartitionTab() {
         const form = e.target;
         const data = {
             name: form.name.value,
-            lots: form.lots.value,
+            lot_principal: form.lot_principal.value,
+            lot_annexe: form.lot_annexe.value,
             tantiemes: parseInt(form.tantiemes.value) || 0,
             gestion: form.gestion.value ? parseFloat(form.gestion.value) : null,
             menage: form.menage.value ? parseFloat(form.menage.value) : null,
@@ -160,7 +164,14 @@ export default function RepartitionTab() {
                             {proprietaires.map(proprio => (
                                 <tr key={proprio.id} className="border-b hover:bg-slate-50">
                                     <td className="px-4 py-3 font-bold text-slate-800">{proprio.name}</td>
-                                    <td className="px-4 py-3 text-slate-600">{proprio.lots}</td>
+                                    <td className="px-4 py-3 text-slate-600">
+                                        <div className="flex flex-col">
+                                            <span className="font-semibold text-slate-700">P: {proprio.lot_principal || '-'}</span>
+                                            {proprio.lot_annexe && (
+                                                <span className="text-xs text-slate-500">A: {proprio.lot_annexe}</span>
+                                            )}
+                                        </div>
+                                    </td>
                                     <td className="px-4 py-3 text-center font-bold text-blue-600">{proprio.tantiemes}</td>
                                     <td className="px-4 py-3 text-center">
                                         {proprio.gestion !== null ? (
@@ -242,12 +253,21 @@ export default function RepartitionTab() {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Lots associés</label>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Lot Principal</label>
                                 <input
-                                    name="lots"
-                                    defaultValue={editModal.data?.lots}
+                                    name="lot_principal"
+                                    defaultValue={editModal.data?.lot_principal}
                                     className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                                    placeholder="Ex: Lot 12 + Parking 4"
+                                    placeholder="Ex: 12"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Lot Annexe</label>
+                                <input
+                                    name="lot_annexe"
+                                    defaultValue={editModal.data?.lot_annexe}
+                                    className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                    placeholder="Ex: Parking 4"
                                 />
                             </div>
                         </div>

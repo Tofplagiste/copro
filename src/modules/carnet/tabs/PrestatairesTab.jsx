@@ -2,16 +2,19 @@
  * PrestatairesTab - Liste des prestataires de la copropriété
  */
 import { useState } from 'react';
-import { Plus, Edit, Trash2, FileText, Download, Phone, Mail, Key } from 'lucide-react';
-import { useCarnet } from '../../../context/CarnetContext';
+import { Plus, Edit, Trash2, FileText, Download, Phone, Mail, Key, Loader2, AlertCircle } from 'lucide-react';
+import { useCarnetData } from '../context/CarnetSupabaseContext';
 import Modal, { ConfirmModal } from '../../../components/Modal';
 import { setupPDF, addHeader, addFooter } from '../../../utils/pdfBase';
 import { autoTable } from 'jspdf-autotable';
 
 export default function PrestatairesTab() {
-    const { state, addPrestataire, updatePrestataire, deletePrestataire } = useCarnet();
+    const { state, addPrestataire, updatePrestataire, deletePrestataire, loading, error } = useCarnetData();
     const [editModal, setEditModal] = useState({ open: false, data: null });
     const [deleteConfirm, setDeleteConfirm] = useState({ open: false, id: null });
+
+    if (loading) return <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-blue-600" /></div>;
+    if (error) return <div className="p-4 bg-red-50 text-red-600 rounded flex items-center gap-2"><AlertCircle size={20} />{error}</div>;
 
     const prestataires = state.prestataires || [];
 

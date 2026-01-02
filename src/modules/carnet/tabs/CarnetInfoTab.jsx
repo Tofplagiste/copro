@@ -2,8 +2,8 @@
  * CarnetInfoTab - Onglet principal du carnet avec informations générales
  */
 import { useState } from 'react';
-import { Info, Users, Euro, Wrench, FileCheck, History, Plus, Edit, Trash2, Download } from 'lucide-react';
-import { useCarnet } from '../../../context/CarnetContext';
+import { Info, Users, Euro, Wrench, FileCheck, History, Plus, Edit, Trash2, Download, Loader2, AlertCircle } from 'lucide-react';
+import { useCarnetData } from '../context/CarnetSupabaseContext';
 import Modal, { ConfirmModal } from '../../../components/Modal';
 import { setupPDF, addHeader, addSectionIdx, addFooter, checkPageBreak } from '../../../utils/pdfBase';
 import { autoTable } from 'jspdf-autotable';
@@ -38,13 +38,22 @@ const InfoItem = ({ label, value }) => (
 );
 
 export default function CarnetInfoTab() {
-    const { state, updateState, addTravaux, updateTravaux, deleteTravaux } = useCarnet();
+    const {
+        state,
+        updateGeneral, updateAdmin, updateTechnique,
+        addTravaux, updateTravaux, deleteTravaux,
+        loading, error
+    } = useCarnetData();
+
     const [editingSection, setEditingSection] = useState(null);
     const [travailModal, setTravailModal] = useState({ open: false, data: null });
     const [deleteConfirm, setDeleteConfirm] = useState({ open: false, id: null });
 
-    // Form state for editing sections
+    // Form state
     const [editFormData, setEditFormData] = useState({});
+
+    if (loading) return <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-blue-600" /></div>;
+    if (error) return <div className="p-4 bg-red-50 text-red-600 rounded flex items-center gap-2"><AlertCircle size={20} />{error}</div>;
 
     const openEditModal = (editKey) => {
         // Initialize form data based on the section being edited
@@ -70,14 +79,37 @@ export default function CarnetInfoTab() {
         setEditingSection(editKey);
     };
 
-    const handleSaveSection = () => {
+    const handleSaveSection = async () => {
         if (!editingSection) return;
 
-        const newState = { ...state };
-        newState[editingSection] = editFormData;
-        updateState(newState);
-        setEditingSection(null);
-        setEditFormData({});
+        try {
+            switch (editingSection) {
+                case 'general':
+                    await updateGeneral(editFormData);
+                    break;
+                case 'admin':
+                    await updateAdmin(editFormData);
+                    break;
+                case 'technique':
+                    await updateTechnique(editFormData);
+                    break;
+                case 'diagnostics':
+                    // Assume diagnostics stored in general.diagnostics
+                    await updateGeneral({ diagnostics: editFormData });
+                    break;
+                case 'finances':
+                    // Assume finances stored in admin.finances or similar
+                    await updateAdmin({ finances: editFormData });
+                    break;
+                default:
+                    console.warn("Unknown section:", editingSection);
+            }
+            setEditingSection(null);
+            setEditFormData({});
+        } catch (err) {
+            console.error("Save error:", err);
+            alert("Erreur lors de la sauvegarde: " + err.message);
+        }
     };
 
     const handleSaveTravail = (e) => {

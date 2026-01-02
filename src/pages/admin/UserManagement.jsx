@@ -36,7 +36,7 @@ export default function UserManagement() {
 
             const { data: ownersData, error: ownersError } = await supabase
                 .from('owners')
-                .select('id, name, email, tantiemes, profile_id, apt')
+                .select('id, name, email, tantiemes, profile_id, apt, lot')
                 .order('name');
 
             if (ownersError) throw ownersError;
@@ -71,7 +71,9 @@ export default function UserManagement() {
                 .update({
                     is_approved: newApproved,
                     status: newStatus,
-                    updated_at: new Date().toISOString()
+                    updated_at: new Date().toISOString(),
+                    approved_at: newApproved ? new Date().toISOString() : null,
+                    approved_by: newApproved ? currentUser?.id : null,
                 })
                 .eq('id', userId);
 
@@ -371,14 +373,14 @@ export default function UserManagement() {
                                                         onChange={(e) => linkToOwner(user.id, e.target.value)}
                                                     >
                                                         <option value="">-- Aucun --</option>
-                                                        {user.linkedOwner && <option value={user.linkedOwner.id}>{user.linkedOwner.apt}</option>}
-                                                        {availableOwners.map(o => <option key={o.id} value={o.id}>{o.apt} ({o.tantiemes}t)</option>)}
+                                                        {user.linkedOwner && <option value={user.linkedOwner.id}>{user.linkedOwner.apt} - {user.linkedOwner.lot} ({user.linkedOwner.tantiemes}t)</option>}
+                                                        {availableOwners.map(o => <option key={o.id} value={o.id}>{o.apt} - {o.lot} ({o.tantiemes}t)</option>)}
                                                     </select>
                                                     <button onClick={() => setLinkingUser(null)} className="text-slate-400 hover:text-white">✕</button>
                                                 </div>
                                             ) : user.linkedOwner ? (
                                                 <div className="flex items-center gap-2 text-emerald-400 text-sm">
-                                                    <Home className="w-4 h-4" /> {user.linkedOwner.apt}
+                                                    <Home className="w-4 h-4" /> {user.linkedOwner.apt} - {user.linkedOwner.lot} ({user.linkedOwner.tantiemes}t)
                                                 </div>
                                             ) : (
                                                 <span className="text-slate-500 italic text-sm">Non lié</span>

@@ -6,7 +6,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Book, Calculator, Users, Briefcase, Map } from 'lucide-react';
-import { CarnetProvider } from '../../context/CarnetContext';
+import { CarnetSupabaseProvider } from './context/CarnetSupabaseContext';
 import { CARNET_TABS } from '../../data/carnetState';
 
 // Import sub-tabs
@@ -52,6 +52,11 @@ function CarnetContent() {
                                 <h1 className="font-bold text-lg sm:hidden">Copro</h1>
                                 <p className="text-slate-300 text-xs hidden sm:block">Carnet d'Entretien</p>
                             </div>
+                        </div>
+                        <div className="ml-4 flex items-center gap-2">
+                            <span className="text-xs text-emerald-400 bg-emerald-900/30 px-2 py-0.5 rounded">
+                                ☁️ Supabase
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -102,8 +107,8 @@ function PlanPlaceholder() {
 
 export default function CarnetApp() {
     return (
-        <CarnetProvider>
+        <CarnetSupabaseProvider>
             <CarnetContent />
-        </CarnetProvider>
+        </CarnetSupabaseProvider>
     );
 }
