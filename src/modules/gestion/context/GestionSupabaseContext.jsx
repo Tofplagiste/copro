@@ -27,6 +27,7 @@ export function GestionSupabaseProvider({ children }) {
  * Hook pour accéder aux données Gestion Supabase
  * @returns {Object} État et fonctions du hook useGestionSupabase
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useGestionData() {
     const context = useContext(GestionSupabaseContext);
     if (!context) {

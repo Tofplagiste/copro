@@ -59,12 +59,7 @@ export default function CreditApp() {
         return credit.simulations.filter(s => s.title.toLowerCase().includes(term));
     }, [credit.simulations, searchTerm]);
 
-    // Sync rename title
-    useEffect(() => {
-        if (credit.simulation) {
-            setRenameTitle(credit.simulation.title);
-        }
-    }, [credit.simulation?.title, credit.simulation?.id]);
+
 
     // Focus input when inline editing
     useEffect(() => {
@@ -445,7 +440,10 @@ export default function CreditApp() {
                         >
                             <Save size={16} />
                         </button>
-                        <button onClick={() => setShowRenameModal(true)} className="p-2 bg-slate-100 hover:bg-slate-200 rounded-lg" title="Renommer">
+                        <button onClick={() => {
+                            setRenameTitle(credit.simulation?.title || '');
+                            setShowRenameModal(true);
+                        }} className="p-2 bg-slate-100 hover:bg-slate-200 rounded-lg" title="Renommer">
                             <Pencil size={16} className="text-gray-600" />
                         </button>
                         <button onClick={() => setShowDeleteConfirm(true)} className="p-2 bg-red-500/80 hover:bg-red-500 text-white rounded-lg" title="Supprimer">

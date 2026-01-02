@@ -61,12 +61,7 @@ export default function VoteApp() {
         return vote.sessions.filter(s => s.title.toLowerCase().includes(term));
     }, [vote.sessions, searchTerm]);
 
-    // Sync rename title with session
-    useEffect(() => {
-        if (vote.session) {
-            setRenameTitle(vote.session.title);
-        }
-    }, [vote.session?.title, vote.session?.id]);
+
 
     // Focus input when inline editing
     useEffect(() => {
@@ -461,7 +456,10 @@ export default function VoteApp() {
                     </span>
 
                     <div className="flex items-center gap-2 ml-auto">
-                        <button onClick={() => setShowRenameModal(true)} className="p-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg" title="Renommer">
+                        <button onClick={() => {
+                            setRenameTitle(vote.session?.title || '');
+                            setShowRenameModal(true);
+                        }} className="p-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg" title="Renommer">
                             <Pencil size={16} />
                         </button>
                         <button onClick={() => setShowDeleteConfirm(true)} className="p-2 bg-red-500/80 hover:bg-red-500 text-white rounded-lg" title="Supprimer">
