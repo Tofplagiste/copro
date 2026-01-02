@@ -2,23 +2,14 @@
  * BankAccountsPanel - Gestion des comptes bancaires
  */
 import { useState } from 'react';
-import { CreditCard, Plus, Trash2, Edit2, Save, X } from 'lucide-react';
+import { CreditCard, Trash2, Edit2 } from 'lucide-react';
 import { useCopro } from '../../../../context/CoproContext';
 
 export default function BankAccountsPanel() {
     const { state, updateState } = useCopro();
     const { accounts } = state;
 
-    const [editingId, setEditingId] = useState(null);
     const [newItem, setNewItem] = useState({ id: '', name: '', initial: '' });
-
-    // Mettre à jour un compte
-    const handleUpdate = (id, field, value) => {
-        const updatedAccounts = accounts.map(acc =>
-            acc.id === id ? { ...acc, [field]: value } : acc
-        );
-        updateState({ accounts: updatedAccounts });
-    };
 
     // Supprimer un compte
     const handleDelete = (id) => {

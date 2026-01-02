@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 /**
  * CoproContext - Contexte React pour l'état global de l'application
  */

@@ -2,7 +2,6 @@
  * WaterProjection - Bilan annuel et projection N+1
  * Utilise le hook useWater pour la logique métier (Phase 4)
  */
-import { useCopro } from '../../../../context/CoproContext';
 import { useWater } from '../../hooks/useWater';
 import { useToast } from '../../../../components/ToastProvider';
 import { fmtMoney } from '../../../../utils/formatters';
@@ -11,12 +10,12 @@ import { autoTable } from 'jspdf-autotable';
 
 
 export default function WaterProjection() {
-    const { state } = useCopro();
+    // state unused
     const toast = useToast();
     const {
         water,
         owners,
-        validTantiemes,
+        // validTantiemes unused
         getAnnualConsumption,
         getProjectedBudget,
         updateWaterParam,

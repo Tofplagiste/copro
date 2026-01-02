@@ -2,10 +2,10 @@
  * PrestatairesTab - Liste des prestataires de la copropriété
  */
 import { useState } from 'react';
-import { Plus, Edit, Trash2, FileText, Download, Phone, Mail, MapPin, Key } from 'lucide-react';
+import { Plus, Edit, Trash2, FileText, Download, Phone, Mail, Key } from 'lucide-react';
 import { useCarnet } from '../../../context/CarnetContext';
 import Modal, { ConfirmModal } from '../../../components/Modal';
-import { setupPDF, addHeader, addFooter, checkPageBreak } from '../../../utils/pdfBase';
+import { setupPDF, addHeader, addFooter } from '../../../utils/pdfBase';
 import { autoTable } from 'jspdf-autotable';
 
 export default function PrestatairesTab() {

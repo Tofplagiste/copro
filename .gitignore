@@ -40,3 +40,7 @@ Desktop.ini
 
 # Tests (Si tu en ajoutes plus tard)
 coverage
+
+# Supabase
+supabase/.branches
+supabase/.temp

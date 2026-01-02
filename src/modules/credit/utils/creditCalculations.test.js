@@ -43,7 +43,7 @@ describe('creditCalculations', () => {
             // Prêt 100 000€ sur 20 ans à 3% + 0.36% assurance
             const mensualite = calculerMensualite(100000, 240, 3, 0.36);
             const assuranceMensuelle = 100000 * (0.36 / 100 / 12); // 30€
-            expect(mensualite).toBeCloseTo(554.60 + 30, 0);
+            expect(mensualite).toBeCloseTo(554.60 + assuranceMensuelle, 0);
         });
     });
 

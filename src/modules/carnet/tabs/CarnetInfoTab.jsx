@@ -2,11 +2,40 @@
  * CarnetInfoTab - Onglet principal du carnet avec informations générales
  */
 import { useState } from 'react';
-import { Info, Users, Euro, Wrench, FileCheck, History, Plus, Edit, Trash2, X, Check, Shield, PiggyBank, PenTool, ClipboardList, Timer, Save, FileText, Download } from 'lucide-react';
+import { Info, Users, Euro, Wrench, FileCheck, History, Plus, Edit, Trash2, Download } from 'lucide-react';
 import { useCarnet } from '../../../context/CarnetContext';
 import Modal, { ConfirmModal } from '../../../components/Modal';
 import { setupPDF, addHeader, addSectionIdx, addFooter, checkPageBreak } from '../../../utils/pdfBase';
 import { autoTable } from 'jspdf-autotable';
+
+// eslint-disable-next-line no-unused-vars
+const SectionCard = ({ icon: IconComponent, title, children, editKey, onEdit }) => (
+    <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-slate-50 to-white border-b">
+            <div className="flex items-center gap-2">
+                <IconComponent size={20} className="text-blue-600" />
+                <h3 className="font-bold text-slate-700">{title}</h3>
+            </div>
+            {editKey && (
+                <button
+                    onClick={() => onEdit(editKey)}
+                    className="text-blue-600 hover:bg-blue-50 p-1.5 rounded transition-colors"
+                    title="Modifier"
+                >
+                    <Edit size={16} />
+                </button>
+            )}
+        </div>
+        <div className="p-4">{children}</div>
+    </div>
+);
+
+const InfoItem = ({ label, value }) => (
+    <div className="mb-3">
+        <span className="text-xs font-bold text-slate-500 uppercase block mb-1">{label}</span>
+        <span className="text-sm text-slate-800 whitespace-pre-line">{value || '-'}</span>
+    </div>
+);
 
 export default function CarnetInfoTab() {
     const { state, updateState, addTravaux, updateTravaux, deleteTravaux } = useCarnet();
@@ -50,34 +79,6 @@ export default function CarnetInfoTab() {
         setEditingSection(null);
         setEditFormData({});
     };
-
-    const SectionCard = ({ icon: Icon, title, children, editKey }) => (
-        <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-slate-50 to-white border-b">
-                <div className="flex items-center gap-2">
-                    <Icon size={20} className="text-blue-600" />
-                    <h3 className="font-bold text-slate-700">{title}</h3>
-                </div>
-                {editKey && (
-                    <button
-                        onClick={() => openEditModal(editKey)}
-                        className="text-blue-600 hover:bg-blue-50 p-1.5 rounded transition-colors"
-                        title="Modifier"
-                    >
-                        <Edit size={16} />
-                    </button>
-                )}
-            </div>
-            <div className="p-4">{children}</div>
-        </div>
-    );
-
-    const InfoItem = ({ label, value }) => (
-        <div className="mb-3">
-            <span className="text-xs font-bold text-slate-500 uppercase block mb-1">{label}</span>
-            <span className="text-sm text-slate-800 whitespace-pre-line">{value || '-'}</span>
-        </div>
-    );
 
     const handleSaveTravail = (e) => {
         e.preventDefault();
@@ -512,7 +513,7 @@ export default function CarnetInfoTab() {
             </div>
 
             {/* Informations Générales */}
-            <SectionCard icon={Info} title="Informations Générales" editKey="general">
+            <SectionCard icon={Info} title="Informations Générales" editKey="general" onEdit={openEditModal}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <InfoItem label="Adresse Immeuble" value={state.general?.address} />
                     <InfoItem label="Lots" value={state.general?.lots} />
@@ -522,7 +523,7 @@ export default function CarnetInfoTab() {
             </SectionCard>
 
             {/* Administration */}
-            <SectionCard icon={Users} title="Administration & Conseil Syndical" editKey="admin">
+            <SectionCard icon={Users} title="Administration & Conseil Syndical" editKey="admin" onEdit={openEditModal}>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <InfoItem
                         label="Syndic Bénévole"
@@ -535,7 +536,7 @@ export default function CarnetInfoTab() {
             </SectionCard>
 
             {/* Budget & Finances */}
-            <SectionCard icon={Euro} title="Budget & Finances" editKey="finances">
+            <SectionCard icon={Euro} title="Budget & Finances" editKey="finances" onEdit={openEditModal}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <InfoItem label="Avance Trésorerie" value={state.finances?.avanceTresorerie} />
                     <InfoItem label="Fonds de Travaux" value={state.finances?.fondsTravaux} />
@@ -543,7 +544,7 @@ export default function CarnetInfoTab() {
             </SectionCard>
 
             {/* Données Techniques */}
-            <SectionCard icon={Wrench} title="Données Techniques" editKey="technique">
+            <SectionCard icon={Wrench} title="Données Techniques" editKey="technique" onEdit={openEditModal}>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     <InfoItem label="Construction" value={state.technique?.construction} />
                     <InfoItem label="Surface Développée" value={state.technique?.surface} />
@@ -555,7 +556,7 @@ export default function CarnetInfoTab() {
             </SectionCard>
 
             {/* Diagnostics */}
-            <SectionCard icon={FileCheck} title="Diagnostics" editKey="diagnostics">
+            <SectionCard icon={FileCheck} title="Diagnostics" editKey="diagnostics" onEdit={openEditModal}>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <InfoItem label="Amiante" value={state.diagnostics?.amiante} />
                     <InfoItem label="Plomb" value={state.diagnostics?.plomb} />

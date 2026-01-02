@@ -2,43 +2,57 @@
  * VotePointCard - Carte d'un point de vote
  * Affiche le résultat et permet de voter
  */
+import { Trash2 } from 'lucide-react';
 import { ARTICLES } from '../data/voteConstants';
 import VoteResultBadge from './VoteResultBadge';
 
 /**
  * @param {Object} props
  * @param {Object} props.point - Point de vote
+ * @param {number} props.index - Numéro du point
  * @param {Array} props.votants - Liste des votants
  * @param {Object} props.votes - Votes pour ce point
  * @param {Object} props.result - Résultat calculé
  * @param {Function} props.onUpdateVote - Callback pour voter
  * @param {Function} props.onSetAllVotes - Callback pour voter tous
  * @param {Function} props.onResetVotes - Callback pour reset
+ * @param {Function} props.onUpdateArticle - Callback pour changer l'article
+ * @param {Function} props.onDeletePoint - Callback pour supprimer
  */
 export default function VotePointCard({
     point,
+    index,
     votants,
     votes,
     result,
     onUpdateVote,
     onSetAllVotes,
     onResetVotes,
-    onUpdateArticle
+    onUpdateArticle,
+    onDeletePoint
 }) {
     const articleInfo = ARTICLES[point.article];
+
+    const handleDelete = () => {
+        if (window.confirm(`Supprimer le point "${point.titre}" ?`)) {
+            onDeletePoint?.(point.id);
+        }
+    };
 
     return (
         <div className="bg-white rounded-xl p-6 shadow-lg border-l-4 border-indigo-500">
             <div className="flex items-start justify-between mb-4">
-                <div>
-                    <h3 className="text-lg font-bold text-slate-800">{point.id}. {point.titre}</h3>
-                    <div className="flex items-center gap-2 mt-1">
+                <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                        <span className="text-indigo-600 font-bold text-lg">★</span>
+                        <h3 className="text-lg font-bold text-slate-800">{index}. {point.titre}</h3>
+                    </div>
+                    <div className="flex items-center gap-2 mt-2">
                         <label className="text-sm font-medium text-slate-600">Article:</label>
                         <select
                             value={point.article}
                             onChange={(e) => onUpdateArticle(point.id, e.target.value)}
                             className="text-sm border-slate-300 rounded shadow-sm focus:border-indigo-500 focus:ring-indigo-500 py-1 pl-2 pr-8"
-                            onClick={(e) => e.stopPropagation()}
                         >
                             {Object.entries(ARTICLES).map(([key, info]) => (
                                 <option key={key} value={key}>
@@ -52,7 +66,16 @@ export default function VotePointCard({
                     </div>
                 </div>
 
-                {result.hasVotes && <VoteResultBadge adopte={result.adopte} />}
+                <div className="flex items-center gap-3">
+                    {result.hasVotes && <VoteResultBadge adopte={result.adopte} />}
+                    <button
+                        onClick={handleDelete}
+                        className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                        title="Supprimer ce point"
+                    >
+                        <Trash2 size={18} />
+                    </button>
+                </div>
             </div>
 
             {/* Grille de votes */}

@@ -7,6 +7,15 @@ import { autoTable } from 'jspdf-autotable';
 import { formatMoney } from './creditCalculations';
 
 /**
+ * Sanitize filename by removing special characters
+ * @param {string} str - String to sanitize
+ * @returns {string} Sanitized string
+ */
+function sanitizeFilename(str) {
+    return str.replace(/[^a-zA-Z0-9àâäéèêëïîôùûüç\s-]/gi, '').replace(/\s+/g, '_').substring(0, 50);
+}
+
+/**
  * Dessine une carte colorée avec gradient
  * @param {jsPDF} doc - Instance jsPDF
  * @param {number} x - Position X
@@ -40,6 +49,7 @@ function drawColorCard(doc, x, y, w, h, color, label, value) {
 /**
  * Exporte la simulation de crédit en PDF
  * @param {Object} params - Données de la simulation
+ * @param {string} params.title - Titre de la simulation
  * @param {number} params.duree - Durée en mois
  * @param {number} params.tauxNominal - Taux nominal (%)
  * @param {number} params.tauxAssurance - Taux assurance (%)
@@ -48,14 +58,14 @@ function drawColorCard(doc, x, y, w, h, color, label, value) {
  * @param {Array} params.repartition - Répartition par copropriétaire
  * @param {Object} params.totaux - Totaux financiers
  */
-export function exportCreditPdf({ duree, tauxNominal, tauxAssurance, montantTotal, fondsTravaux, repartition, totaux }) {
+export function exportCreditPdf({ title, duree, tauxNominal, tauxAssurance, montantTotal, fondsTravaux, repartition, totaux }) {
     const doc = new jsPDF('landscape');
 
     // === EN-TÊTE ===
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(51, 65, 85);
-    doc.text('Simulateur de Crédit Copropriété - Récapitulatif', 14, 15);
+    doc.text(`Simulateur de Crédit - ${title || 'Simulation'}`, 14, 15);
 
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
@@ -210,5 +220,7 @@ export function exportCreditPdf({ duree, tauxNominal, tauxAssurance, montantTota
     doc.setTextColor(150, 150, 150);
     doc.text(`Généré le ${new Date().toLocaleDateString('fr-FR')} - Durée: ${duree} mois | TEG: ${tauxNominal}% | Assurance: ${tauxAssurance}%`, 14, pageHeight - 8);
 
-    doc.save('Simulation_Credit_Copro.pdf');
+    // Filename with simulation title
+    const safeTitle = sanitizeFilename(title || 'Simulation');
+    doc.save(`Credit_${safeTitle}.pdf`);
 }

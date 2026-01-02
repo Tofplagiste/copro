@@ -4,6 +4,7 @@
  */
 import { Building2, Calculator, Vote, BookOpen } from 'lucide-react';
 import DashboardCard from '../components/ui/DashboardCard';
+import UserMenu from '../components/auth/UserMenu';
 
 const APPS = [
     {
@@ -54,14 +55,19 @@ export default function Dashboard() {
             {/* Header */}
             <header className="bg-slate-900/80 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-50">
                 <div className="max-w-7xl mx-auto px-6 py-4">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-bold text-xl shadow-lg">
-                            🏠
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                                🏠
+                            </div>
+                            <div>
+                                <h1 className="text-2xl font-bold text-white">Les Pyrénées</h1>
+                                <p className="text-slate-400 text-sm">Syndic Bénévole - Suite de Gestion</p>
+                            </div>
                         </div>
-                        <div>
-                            <h1 className="text-2xl font-bold text-white">Les Pyrénées</h1>
-                            <p className="text-slate-400 text-sm">Syndic Bénévole - Suite de Gestion</p>
-                        </div>
+
+                        {/* User Menu */}
+                        <UserMenu />
                     </div>
                 </div>
             </header>

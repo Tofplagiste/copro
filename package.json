@@ -6,12 +6,14 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "lint": "eslint .",
+    "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "test": "vitest",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "test:ci": "vitest run --coverage"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.89.0",
     "@tailwindcss/vite": "^4.1.18",
     "jspdf": "^3.0.4",
     "jspdf-autotable": "^5.0.2",
@@ -26,6 +28,7 @@
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react-swc": "^4.2.2",
+    "@vitest/coverage-v8": "^4.0.16",
     "autoprefixer": "^10.4.23",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",

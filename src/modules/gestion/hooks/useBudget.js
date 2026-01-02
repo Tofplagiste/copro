@@ -6,11 +6,10 @@
  */
 import { useState, useMemo, useCallback } from 'react';
 import { useCopro } from '../../../context/CoproContext';
-import {
-    calculateDivisors,
-    calculateCategoryTotal,
-    calculateOwnerCall
-} from '../utils/calculations';
+import { calculateDivisors, calculateCategoryTotal, calculateOwnerCall } from '../utils/calculations';
+
+// Constant for stable reference
+const DEFAULT_WATER_PREVI = { subs: {}, charges: {}, reguls: {} };
 
 /**
  * Hook pour gérer le budget et les appels de fonds.
@@ -25,7 +24,7 @@ export function useBudget() {
     // Extraction des données
     const budget = state.budget;
     const owners = state.owners;
-    const waterPrevi = state.waterPrevi || { subs: {}, charges: {}, reguls: {} };
+    const waterPrevi = state.waterPrevi || DEFAULT_WATER_PREVI;
 
     // Calcul des diviseurs (mémoïsé)
     const divisors = useMemo(() => {

@@ -1,9 +1,10 @@
 /**
  * Configuration globale pour les tests React
  * Ce fichier est chargé automatiquement par Vitest avant chaque test
- * 
+ *
  * Le mock jsPDF est complet pour permettre à jspdf-autotable de fonctionner
  */
+/* global global */
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 
@@ -18,7 +19,8 @@ export const pdfMockCalls = {
 // Mock complet pour jsPDF avec toutes les méthodes internes nécessaires à jspdf-autotable
 vi.mock('jspdf', () => {
     class MockJsPDF {
-        constructor(orientation = 'portrait', unit = 'mm', format = 'a4') {
+        // Remove unused unit/format
+        constructor(orientation = 'portrait') {
             this.orientation = orientation;
             this.lastAutoTable = { finalY: 100 };
             this.currentPage = 1;
@@ -80,11 +82,12 @@ vi.mock('jspdf', () => {
         setFontSize(size) { this._fontSize = size; return this; }
 
         // Text methods
-        text(text, x, y, options) { return this; }
+        // Remove unused params
+        text() { return this; }
         getTextWidth(text) { return (text?.length || 0) * 2; }
         getStringUnitWidth(text) { return (text?.length || 0) * 0.5; }
         getTextDimensions(text) { return { w: (text?.length || 0) * 3, h: this._fontSize }; }
-        splitTextToSize(text, maxLen) { return [text]; }
+        splitTextToSize(text) { return [text]; }
 
         // Color methods
         setTextColor(r, g, b) { this._textColor = { r, g, b }; return this; }
@@ -95,16 +98,16 @@ vi.mock('jspdf', () => {
         getFillColor() { return `${this._fillColor.r} ${this._fillColor.g} ${this._fillColor.b}`; }
 
         // Drawing methods
-        rect(x, y, w, h, style) { return this; }
-        line(x1, y1, x2, y2) { return this; }
+        rect() { return this; }
+        line() { return this; }
         setLineWidth(w) { this._lineWidth = w; return this; }
         getLineWidth() { return this._lineWidth; }
-        setLineCap(style) { return this; }
-        setLineJoin(style) { return this; }
-        circle(x, y, r, style) { return this; }
-        ellipse(x, y, rx, ry, style) { return this; }
-        triangle(x1, y1, x2, y2, x3, y3, style) { return this; }
-        roundedRect(x, y, w, h, rx, ry, style) { return this; }
+        setLineCap() { return this; }
+        setLineJoin() { return this; }
+        circle() { return this; }
+        ellipse() { return this; }
+        triangle() { return this; }
+        roundedRect() { return this; }
 
         // Page methods
         addPage() {
@@ -117,16 +120,16 @@ vi.mock('jspdf', () => {
         getCurrentPageInfo() { return { pageNumber: this.currentPage }; }
 
         // Misc methods
-        setProperties(props) { return this; }
+        setProperties() { return this; }
         output(type) { return type === 'blob' ? new Blob(['']) : ''; }
         getCharSpace() { return 0; }
-        setCharSpace(space) { return this; }
-        getCreationDate(type) { return new Date().toISOString(); }
-        setCreationDate(date) { return this; }
+        setCharSpace() { return this; }
+        getCreationDate() { return new Date().toISOString(); }
+        setCreationDate() { return this; }
         getLineHeightFactor() { return 1.15; }
-        setLineHeightFactor(factor) { return this; }
+        setLineHeightFactor() { return this; }
         getR2L() { return false; }
-        setR2L(value) { return this; }
+        setR2L() { return this; }
     }
 
     return {
