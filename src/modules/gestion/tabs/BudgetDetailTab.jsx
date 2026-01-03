@@ -2,6 +2,7 @@
 /**
  * BudgetDetailTab - Tableau de bord mensuel (Dépenses & Trésorerie) V6
  * Design fidèle à la version legacy avec modaux
+ * Données persistées via Supabase (monthly_expenses, monthly_income)
  */
 import { useState } from 'react';
 import { Check, Eraser, Zap, ListOrdered, Plus, Settings } from 'lucide-react';
@@ -13,11 +14,62 @@ import AddQuickLineModal from '../components/budget/AddQuickLineModal';
 
 const MONTHS = ["Jan", "Fev", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Sep", "Oct", "Nov", "Déc"];
 
-export default function BudgetDetailTab() {
-    const { budgetItems, accounts } = useGestionData();
+/**
+ * Input qui sauvegarde uniquement au blur (perte de focus)
+ * Permet de taper un nombre complet sans blocage
+ */
+function BlurInput({ value, onSave, className, ...props }) {
+    // Utilise la valeur initiale, les changements sont locaux jusqu'au blur
+    const [localValue, setLocalValue] = useState(value || '');
+    // Track si l'input a le focus pour ne pas écraser pendant la saisie
+    const [hasFocus, setHasFocus] = useState(false);
 
-    // Local state for monthly data (TODO: migrate to Supabase)
-    const [monthly, setMonthly] = useState({ expenses: {}, income: {} });
+    // Sync avec la valeur DB uniquement si on n'est pas en train d'éditer
+    const displayValue = hasFocus ? localValue : (value || '');
+
+    const handleFocus = () => {
+        setHasFocus(true);
+        setLocalValue(value || '');
+    };
+
+    const handleBlur = () => {
+        setHasFocus(false);
+        const numValue = parseFloat(localValue) || 0;
+        // Ne sauvegarder que si la valeur a changé
+        if (numValue !== (parseFloat(value) || 0)) {
+            onSave(numValue);
+        }
+    };
+
+    return (
+        <input
+            type="number"
+            value={displayValue}
+            onChange={(e) => setLocalValue(e.target.value)}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
+            className={className}
+            {...props}
+        />
+    );
+}
+
+
+export default function BudgetDetailTab() {
+    const {
+        budgetItems,
+        accounts,
+        monthlyExpenses,
+        monthlyIncome,
+        selectedYear,
+        setSelectedYear,
+        saveMonthlyExpense,
+        saveMonthlyIncome,
+        clearMonthlyExpenseLine,
+        fillMonthlyExpenseLine,
+        addBudgetItem,
+        deleteBudgetItem
+    } = useGestionData();
 
     // Fix: budgetItems is an object { general: [], ... }, not an array
     const budget = {
@@ -26,7 +78,7 @@ export default function BudgetDetailTab() {
         menage: budgetItems?.menage || [],
         travaux: budgetItems?.travaux || []
     };
-    // Create a flat list for legacy code compatibility if needed, or use specific categories
+    // Create a flat list for the table
     const allBudgetItems = [
         ...budget.general,
         ...budget.special,
@@ -35,19 +87,16 @@ export default function BudgetDetailTab() {
     ];
 
     const [selectedMonth, setSelectedMonth] = useState(0);
-    const [selectedYear, setSelectedYear] = useState(2026);
     const [selectedAccount, setSelectedAccount] = useState(accounts[0]?.id || '512-CIC');
     const [validationDay, setValidationDay] = useState(28);
 
     // Modals state
-    const [confirmModal, setConfirmModal] = useState({ open: false, itemName: '' });
-    const [promptModal, setPromptModal] = useState({ open: false, itemName: '', mode: '' });
+    const [confirmModal, setConfirmModal] = useState({ open: false, itemId: null, itemName: '' });
+    const [promptModal, setPromptModal] = useState({ open: false, itemId: null, itemName: '', mode: '' });
 
     // New Modals
     const [isManageLinesOpen, setIsManageLinesOpen] = useState(false);
     const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
-
-    // Use budget items from context directly\n    const allBudgetItems = budgetItems || [];
 
     // Couleurs LEGACY par catégorie
     const getCategoryClass = (cat) => {
@@ -59,74 +108,63 @@ export default function BudgetDetailTab() {
         }
     };
 
-    // Mise à jour d'une dépense mensuelle
-    const handleExpenseUpdate = (itemName, monthIndex, value) => {
-        const newExpenses = { ...monthly.expenses };
-        if (!newExpenses[itemName]) newExpenses[itemName] = new Array(12).fill(0);
-        newExpenses[itemName] = [...newExpenses[itemName]];
-        newExpenses[itemName][monthIndex] = parseFloat(value) || 0;
-        setMonthly({ ...monthly, expenses: newExpenses });
+    // Mise à jour d'une dépense mensuelle → Supabase (reçoit le montant directement du BlurInput)
+    const handleExpenseUpdate = (itemId, monthIndex, amount) => {
+        saveMonthlyExpense(itemId, monthIndex + 1, amount);
     };
 
-    // Effacer une ligne (via modal)
-    const handleClearLine = (itemName) => {
-        const newExpenses = { ...monthly.expenses };
-        newExpenses[itemName] = new Array(12).fill(0);
-        setMonthly({ ...monthly, expenses: newExpenses });
+    // Effacer une ligne (via modal) → Supabase
+    const handleClearLine = (itemId) => {
+        clearMonthlyExpenseLine(itemId);
     };
 
-    // Remplir une ligne (via modal)
-    const handleFillLine = (itemName, mode, value) => {
-        const newExpenses = { ...monthly.expenses };
+    // Remplir une ligne (via modal) → Supabase
+    const handleFillLine = (itemId, mode, value) => {
         const val = parseFloat(value) || 0;
-
-        if (mode === 'all') {
-            newExpenses[itemName] = new Array(12).fill(val);
-        } else if (mode === 'quarter') {
-            const arr = new Array(12).fill(0);
-            [0, 3, 6, 9].forEach(i => arr[i] = val);
-            newExpenses[itemName] = arr;
-        }
-
-        setMonthly({ ...monthly, expenses: newExpenses });
+        fillMonthlyExpenseLine(itemId, mode, val);
     };
 
-    // Gestion des Postes - TODO: Migrate to Supabase
-    const handleAddBudgetLine = () => {
-        // TODO: Implement with finance.addBudgetItem when available
-        console.log('handleAddBudgetLine - TODO: migrate to Supabase');
+    // Mise à jour d'une recette mensuelle → Supabase (reçoit le montant directement du BlurInput)
+    const handleIncomeUpdate = (monthIndex, field, amount) => {
+        const currentData = monthlyIncome[monthIndex] || { calls: 0, reguls: 0, other: 0 };
+        const newData = { ...currentData, [field]: amount };
+        saveMonthlyIncome(monthIndex + 1, newData);
     };
 
-    const handleDeleteBudgetLine = () => {
-        // TODO: Implement with finance.deleteBudgetItem when available
-        console.log('handleDeleteBudgetLine - TODO: migrate to Supabase');
+    // Gestion des Postes
+    const handleAddBudgetLine = (data) => {
+        addBudgetItem(data);
     };
 
+    const handleDeleteBudgetLine = (id) => {
+        deleteBudgetItem(id);
+    };
 
-    // Calcul des totaux
+    // Calcul des totaux (utilise les données Supabase)
     const getMonthlyTotals = () => {
         const totals = new Array(12).fill(0);
         allBudgetItems.forEach(item => {
-            const data = monthly.expenses[item.name] || [];
+            const data = monthlyExpenses[item.id] || [];
             data.forEach((val, idx) => { totals[idx] += val || 0; });
         });
         return totals;
     };
 
-    const getItemTotal = (itemName) => {
-        const data = monthly.expenses[itemName] || [];
+    const getItemTotal = (itemId) => {
+        const data = monthlyExpenses[itemId] || [];
         return data.reduce((sum, val) => sum + (val || 0), 0);
     };
 
     const monthlyTotals = getMonthlyTotals();
+
 
     return (
         <div className="p-4 space-y-4">
             {/* Modals */}
             <ConfirmModal
                 isOpen={confirmModal.open}
-                onClose={() => setConfirmModal({ open: false, itemName: '' })}
-                onConfirm={() => handleClearLine(confirmModal.itemName)}
+                onClose={() => setConfirmModal({ open: false, itemId: null, itemName: '' })}
+                onConfirm={() => handleClearLine(confirmModal.itemId)}
                 title="Effacer la ligne"
                 message={`Voulez-vous effacer toutes les valeurs de "${confirmModal.itemName}" ?`}
                 confirmText="Effacer"
@@ -135,8 +173,8 @@ export default function BudgetDetailTab() {
 
             <PromptModal
                 isOpen={promptModal.open}
-                onClose={() => setPromptModal({ open: false, itemName: '', mode: '' })}
-                onSubmit={(val) => handleFillLine(promptModal.itemName, promptModal.mode, val)}
+                onClose={() => setPromptModal({ open: false, itemId: null, itemName: '', mode: '' })}
+                onSubmit={(val) => handleFillLine(promptModal.itemId, promptModal.mode, val)}
                 title={promptModal.mode === 'all' ? 'Remplir tous les mois' : 'Remplir par trimestre'}
                 message="Entrez le montant à appliquer :"
                 placeholder="0.00"
@@ -275,21 +313,21 @@ export default function BudgetDetailTab() {
                                         {/* Actions */}
                                         <div className="absolute bottom-1 left-0 right-0 flex justify-center gap-0.5">
                                             <button
-                                                onClick={() => setPromptModal({ open: true, itemName: item.name, mode: 'all' })}
+                                                onClick={() => setPromptModal({ open: true, itemId: item.id, itemName: item.name, mode: 'all' })}
                                                 className="text-amber-400 hover:text-amber-600 transition-colors"
                                                 title="Remplir tous les mois"
                                             >
                                                 <Zap size={12} />
                                             </button>
                                             <button
-                                                onClick={() => setPromptModal({ open: true, itemName: item.name, mode: 'quarter' })}
+                                                onClick={() => setPromptModal({ open: true, itemId: item.id, itemName: item.name, mode: 'quarter' })}
                                                 className="text-blue-400 hover:text-blue-600 transition-colors"
                                                 title="Trimestriel (Jan, Avr, Juil, Oct)"
                                             >
                                                 <ListOrdered size={12} />
                                             </button>
                                             <button
-                                                onClick={() => setConfirmModal({ open: true, itemName: item.name })}
+                                                onClick={() => setConfirmModal({ open: true, itemId: item.id, itemName: item.name })}
                                                 className="text-gray-300 hover:text-red-500 transition-colors"
                                                 title="Effacer"
                                             >
@@ -310,13 +348,12 @@ export default function BudgetDetailTab() {
                                         <span className="text-blue-600 underline decoration-blue-300 cursor-pointer hover:text-blue-800">{month}</span>
                                     </td>
                                     {allBudgetItems.map((item, i) => {
-                                        const val = monthly.expenses[item.name]?.[mIdx] || 0;
+                                        const val = monthlyExpenses[item.id]?.[mIdx] || 0;
                                         return (
                                             <td key={i} className="px-0.5 py-0.5 text-center">
-                                                <input
-                                                    type="number"
-                                                    value={val || ''}
-                                                    onChange={(e) => handleExpenseUpdate(item.name, mIdx, e.target.value)}
+                                                <BlurInput
+                                                    value={val}
+                                                    onSave={(amount) => handleExpenseUpdate(item.id, mIdx, amount)}
                                                     className={`w-full max-w-[55px] px-1 py-1 text-center text-xs border border-gray-200 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200 bg-white transition-all ${val ? getCategoryClass(item.category) + ' font-semibold' : 'text-gray-400'}`}
                                                 />
                                             </td>
@@ -332,7 +369,7 @@ export default function BudgetDetailTab() {
                             <tr className="bg-gray-100 border-t-2 border-gray-300 font-bold">
                                 <td className="sticky left-0 bg-gray-100 z-10 px-3 py-2 text-gray-700 border-r">TOTAL</td>
                                 {allBudgetItems.map((item, i) => {
-                                    const total = getItemTotal(item.name);
+                                    const total = getItemTotal(item.id);
                                     return (
                                         <td key={i} className="px-1 py-2 text-center text-xs text-gray-600">
                                             {total > 0 ? total.toFixed(0) : '-'}
@@ -368,8 +405,8 @@ export default function BudgetDetailTab() {
                         </thead>
                         <tbody>
                             {MONTHS.map((month, mIdx) => {
-                                const income = monthly.income?.[mIdx] || {};
-                                const totalIncome = (income.calls || 0) + (income.reguls || 0) + (income.other || 0);
+                                const incomeData = monthlyIncome[mIdx] || { calls: 0, reguls: 0, other: 0 };
+                                const totalIncome = (incomeData.calls || 0) + (incomeData.reguls || 0) + (incomeData.other || 0);
                                 const totalExpense = monthlyTotals[mIdx];
                                 const balance = totalIncome - totalExpense;
 
@@ -379,13 +416,25 @@ export default function BudgetDetailTab() {
                                             <span className="text-blue-600 font-bold underline decoration-blue-300 cursor-pointer">{month}</span>
                                         </td>
                                         <td className="px-1 py-1">
-                                            <input type="number" defaultValue="" className="w-full px-2 py-1 text-center border border-gray-200 rounded focus:border-blue-500" />
+                                            <BlurInput
+                                                value={incomeData.calls}
+                                                onSave={(amount) => handleIncomeUpdate(mIdx, 'calls', amount)}
+                                                className="w-full px-2 py-1 text-center border border-gray-200 rounded focus:border-blue-500"
+                                            />
                                         </td>
                                         <td className="px-1 py-1">
-                                            <input type="number" defaultValue="" className="w-full px-2 py-1 text-center border border-gray-200 rounded focus:border-blue-500" />
+                                            <BlurInput
+                                                value={incomeData.reguls}
+                                                onSave={(amount) => handleIncomeUpdate(mIdx, 'reguls', amount)}
+                                                className="w-full px-2 py-1 text-center border border-gray-200 rounded focus:border-blue-500"
+                                            />
                                         </td>
                                         <td className="px-1 py-1">
-                                            <input type="number" defaultValue="" className="w-full px-2 py-1 text-center border border-gray-200 rounded focus:border-blue-500" />
+                                            <BlurInput
+                                                value={incomeData.other}
+                                                onSave={(amount) => handleIncomeUpdate(mIdx, 'other', amount)}
+                                                className="w-full px-2 py-1 text-center border border-gray-200 rounded focus:border-blue-500"
+                                            />
                                         </td>
                                         <td className="px-2 py-1.5 text-center font-bold text-green-600 bg-green-50">{totalIncome > 0 ? fmtMoney(totalIncome) : '-'}</td>
                                         <td className="px-2 py-1.5 text-center font-bold text-red-600 bg-red-50 border-x border-gray-200">{totalExpense > 0 ? fmtMoney(totalExpense) : '-'}</td>

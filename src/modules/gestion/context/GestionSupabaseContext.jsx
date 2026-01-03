@@ -1,22 +1,25 @@
 /**
  * GestionSupabaseContext - Contexte React pour le module Gestion (Supabase)
  * 
- * PHASE 6 : Combine useFinanceSupabase et useWaterSupabase.
- * Fournit les données Budget, Comptes, Opérations, et Eau aux composants enfants.
+ * PHASE 6 : Combine useFinanceSupabase, useWaterSupabase et useMonthlyBudget.
+ * Fournit les données Budget, Comptes, Opérations, Eau et Monthly aux composants enfants.
  */
-import { createContext, useContext, useMemo } from 'react';
+import { createContext, useContext, useMemo, useState } from 'react';
 import { useFinanceSupabase } from '../hooks/useFinanceSupabase';
 import { useWaterSupabase } from '../hooks/useWaterSupabase';
+import { useMonthlyBudget } from '../hooks/useMonthlyBudget';
 
 const GestionSupabaseContext = createContext(null);
 
 /**
  * Provider pour les données Gestion Supabase
- * Combine Finance et Water, expose un loading/error global
+ * Combine Finance, Water et Monthly Budget, expose un loading/error global
  */
 export function GestionSupabaseProvider({ children }) {
+    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
     const finance = useFinanceSupabase();
     const water = useWaterSupabase();
+    const monthly = useMonthlyBudget(selectedYear);
 
     // Combine loading and error states
     const value = useMemo(() => ({
@@ -33,10 +36,14 @@ export function GestionSupabaseProvider({ children }) {
         lots: water.lots,
         owners: water.owners,
         previsions: water.previsions,
+        // Monthly Budget data
+        monthlyExpenses: monthly.expenses,
+        monthlyIncome: monthly.income,
+        selectedYear,
         // Status
-        loading: finance.loading || water.loading,
-        saving: finance.saving || water.saving,
-        error: finance.error || water.error,
+        loading: finance.loading || water.loading || monthly.loading,
+        saving: finance.saving || water.saving || monthly.saving,
+        error: finance.error || water.error || monthly.error,
         // Finance actions
         addOperation: finance.addOperation,
         updateOperation: finance.updateOperation,
@@ -58,11 +65,17 @@ export function GestionSupabaseProvider({ children }) {
         updateMeterNumber: water.updateMeterNumber,
         updateWaterSettings: water.updateSettings,
         savePrevision: water.savePrevision,
+        // Monthly Budget actions
+        setSelectedYear,
+        saveMonthlyExpense: monthly.saveExpense,
+        saveMonthlyIncome: monthly.saveIncome,
+        clearMonthlyExpenseLine: monthly.clearExpenseLine,
+        fillMonthlyExpenseLine: monthly.fillExpenseLine,
         // Combined refresh
         refresh: async () => {
-            await Promise.all([finance.refresh(), water.refresh()]);
+            await Promise.all([finance.refresh(), water.refresh(), monthly.refresh()]);
         }
-    }), [finance, water]);
+    }), [finance, water, monthly, selectedYear]);
 
     return (
         <GestionSupabaseContext.Provider value={value}>
