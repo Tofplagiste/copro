@@ -38,7 +38,7 @@ export default function FinanceTab() {
     // Calcul solde par compte (Global)
     const getAccountBalance = (accId) => {
         const acc = accounts.find(a => a.id === accId);
-        let bal = acc?.initial || 0; // Utiliser initial_balance de Supabase si dispo, sinon 0
+        let bal = parseFloat(acc?.initial_balance || 0); // Utiliser initial_balance de Supabase
         operations.forEach(op => {
             if (op.account === accId) {
                 bal += op.type === 'recette' ? op.amount : -op.amount;

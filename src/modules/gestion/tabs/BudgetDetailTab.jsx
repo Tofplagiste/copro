@@ -18,7 +18,21 @@ export default function BudgetDetailTab() {
 
     // Local state for monthly data (TODO: migrate to Supabase)
     const [monthly, setMonthly] = useState({ expenses: {}, income: {} });
-    const budget = { general: budgetItems?.filter(i => i.category === 'general') || [] };
+
+    // Fix: budgetItems is an object { general: [], ... }, not an array
+    const budget = {
+        general: budgetItems?.general || [],
+        special: budgetItems?.special || [],
+        menage: budgetItems?.menage || [],
+        travaux: budgetItems?.travaux || []
+    };
+    // Create a flat list for legacy code compatibility if needed, or use specific categories
+    const allBudgetItems = [
+        ...budget.general,
+        ...budget.special,
+        ...budget.menage,
+        ...budget.travaux
+    ];
 
     const [selectedMonth, setSelectedMonth] = useState(0);
     const [selectedYear, setSelectedYear] = useState(2026);
@@ -92,7 +106,7 @@ export default function BudgetDetailTab() {
     // Calcul des totaux
     const getMonthlyTotals = () => {
         const totals = new Array(12).fill(0);
-        budgetItems.forEach(item => {
+        allBudgetItems.forEach(item => {
             const data = monthly.expenses[item.name] || [];
             data.forEach((val, idx) => { totals[idx] += val || 0; });
         });
@@ -246,7 +260,7 @@ export default function BudgetDetailTab() {
                                 <th className="sticky left-0 bg-white z-20 px-3 py-2 text-left font-bold text-gray-600 border-r" style={{ width: 60 }}>
                                     Mois
                                 </th>
-                                {budgetItems.map((item, i) => (
+                                {allBudgetItems.map((item, i) => (
                                     <th key={i} className="px-1 text-center relative" style={{ minWidth: 60, height: 100 }}>
                                         {/* Texte en diagonal */}
                                         <div
@@ -295,7 +309,7 @@ export default function BudgetDetailTab() {
                                     <td className="sticky left-0 bg-white z-10 px-3 py-1.5 border-r font-bold">
                                         <span className="text-blue-600 underline decoration-blue-300 cursor-pointer hover:text-blue-800">{month}</span>
                                     </td>
-                                    {budgetItems.map((item, i) => {
+                                    {allBudgetItems.map((item, i) => {
                                         const val = monthly.expenses[item.name]?.[mIdx] || 0;
                                         return (
                                             <td key={i} className="px-0.5 py-0.5 text-center">
@@ -317,7 +331,7 @@ export default function BudgetDetailTab() {
                         <tfoot>
                             <tr className="bg-gray-100 border-t-2 border-gray-300 font-bold">
                                 <td className="sticky left-0 bg-gray-100 z-10 px-3 py-2 text-gray-700 border-r">TOTAL</td>
-                                {budgetItems.map((item, i) => {
+                                {allBudgetItems.map((item, i) => {
                                     const total = getItemTotal(item.name);
                                     return (
                                         <td key={i} className="px-1 py-2 text-center text-xs text-gray-600">

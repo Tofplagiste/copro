@@ -54,14 +54,17 @@ export default function WaterReadings() {
     };
 
     // Handle meter number change
-    const handleMeterChange = (meterId, value) => {
-        if (meterId) {
-            updateMeterNumber(meterId, value);
-        }
+    const handleMeterChange = (meterId, value, lotId) => {
+        updateMeterNumber(meterId, value, lotId);
     };
 
+    // Filter visible rows (only apartments per user request)
+    const filteredRows = useMemo(() => {
+        return waterRows.filter(r => (r.lot_type || '').toLowerCase().includes('appart'));
+    }, [waterRows]);
+
     // Calculate totals
-    const totals = useMemo(() => calculateTotals(waterRows, q), [waterRows, q]);
+    const totals = useMemo(() => calculateTotals(filteredRows, q), [filteredRows, q]);
 
     return (
         <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
@@ -84,7 +87,7 @@ export default function WaterReadings() {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                        {waterRows.map(row => (
+                        {filteredRows.map(row => (
                             <WaterReadingRow
                                 key={row.lot_id}
                                 row={row}

@@ -82,14 +82,18 @@ export function transformWaterData(lots, year) {
     if (!lots || lots.length === 0) return [];
 
     return lots.map(lot => {
-        const meter = lot.water_meters?.[0] || null;
+        // Robust check: Supabase can return array or single object depending on relation
+        const rawMeter = lot.water_meters;
+        const meter = Array.isArray(rawMeter) ? rawMeter[0] : rawMeter;
+
         const ownerInfo = getOwnerInfo(lot.owner_lots);
         const readings = formatReadingsByQuarter(lot.water_readings, year);
 
         return {
             lot_id: lot.id,
             lot_numero: lot.numero || '',
-            lot_type: lot.type || 'appartement',
+            lot_type: lot.type || 'appart',
+            lot_nom: lot.nom || '',
             lot_tantiemes: lot.tantiemes || 0,
             owner_name: ownerInfo.name,
             owner_id: ownerInfo.id,

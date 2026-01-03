@@ -1,8 +1,10 @@
 /**
  * WaterConfig - Configuration du trimestre et prix (V6)
- * 
+ *
  * Migration Phase 6 : Utilise useGestionData() au lieu de useCopro.
+ * Optimisation : Utilise WaterSettingInput pour éviter le rechargement à chaque frappe.
  */
+import { useState, useEffect } from 'react';
 import { useGestionData } from '../../context/GestionSupabaseContext';
 
 export default function WaterConfig() {
@@ -27,7 +29,7 @@ export default function WaterConfig() {
         updateWaterSettings({ price_mode: e.target.value });
     };
 
-    // Handle field change
+    // Handle field change (Appelé au BLUR via WaterSettingInput)
     const handleFieldChange = (field, value) => {
         const numValue = parseFloat(value) || 0;
         let updates = { [field]: numValue };
@@ -83,7 +85,7 @@ export default function WaterConfig() {
                         onChange={handlePriceModeChange}
                         className="w-full mt-1 px-3 py-2 text-sm border rounded-lg"
                     >
-                        <option value="quarter">Facture Trimestre (Réel)</option>
+                        <option value="invoice">Facture Trimestre (Réel)</option>
                         <option value="annual">Facture Annuelle (Moyenne)</option>
                         <option value="manual">Prix Fixe (Manuel)</option>
                     </select>
@@ -91,12 +93,12 @@ export default function WaterConfig() {
 
                 {/* Panel Mode Annuel */}
                 {settings.price_mode === 'annual' && (
-                    <AnnualModePanel settings={settings} onChange={handleFieldChange} />
+                    <AnnualModePanel settings={settings} onSave={handleFieldChange} />
                 )}
 
                 {/* Panel Mode Manuel */}
                 {settings.price_mode === 'manual' && (
-                    <ManualModePanel settings={settings} onChange={handleFieldChange} />
+                    <ManualModePanel settings={settings} onSave={handleFieldChange} />
                 )}
 
                 {/* Prix appliqué */}
@@ -112,10 +114,9 @@ export default function WaterConfig() {
                 <div>
                     <label className="text-xs font-bold text-gray-500 uppercase">2. Abonnement (Trim.)</label>
                     <div className="flex items-center mt-1">
-                        <input
-                            type="number"
-                            value={(settings.sub_amount || 0).toFixed(2)}
-                            onChange={(e) => handleFieldChange('sub_amount', e.target.value)}
+                        <WaterSettingInput
+                            value={settings.sub_amount || 0}
+                            onChange={(val) => handleFieldChange('sub_amount', val)}
                             className="flex-1 px-3 py-2 font-bold border rounded-l-lg"
                             step="0.01"
                             disabled={settings.price_mode === 'annual'}
@@ -128,36 +129,61 @@ export default function WaterConfig() {
     );
 }
 
+// Sub-component: Input with local state & blur save
+function WaterSettingInput({ value, onChange, className, step, disabled }) {
+    const [localValue, setLocalValue] = useState(value);
+
+    useEffect(() => {
+        setLocalValue(value);
+    }, [value]);
+
+    const handleBlur = () => {
+        // Convert to number for comparison or just compare string representations roughly
+        if (parseFloat(localValue) !== parseFloat(value)) {
+            onChange(localValue);
+        }
+    };
+
+    return (
+        <input
+            type="number"
+            value={localValue}
+            onChange={(e) => setLocalValue(e.target.value)}
+            onBlur={handleBlur}
+            className={className}
+            step={step}
+            disabled={disabled}
+        />
+    );
+}
+
 // Sub-component: Annual Mode Panel
-function AnnualModePanel({ settings, onChange }) {
+function AnnualModePanel({ settings, onSave }) {
     return (
         <div className="bg-gray-50 border rounded-lg p-3 space-y-2">
             <div>
                 <label className="text-xs text-gray-500">Total Facture Annuelle (€)</label>
-                <input
-                    type="number"
+                <WaterSettingInput
                     value={settings.annual_total || 0}
-                    onChange={(e) => onChange('annual_total', e.target.value)}
+                    onChange={(val) => onSave('annual_total', val)}
                     className="w-full mt-1 px-3 py-2 font-bold border border-blue-500 rounded-lg"
                     step="0.01"
                 />
             </div>
             <div>
                 <label className="text-xs text-gray-500">Dont Abo. Annuel (€)</label>
-                <input
-                    type="number"
+                <WaterSettingInput
                     value={settings.annual_sub || 0}
-                    onChange={(e) => onChange('annual_sub', e.target.value)}
+                    onChange={(val) => onSave('annual_sub', val)}
                     className="w-full mt-1 px-3 py-2 border rounded-lg"
                     step="0.01"
                 />
             </div>
             <div>
                 <label className="text-xs text-gray-500">Volume Annuel (m³)</label>
-                <input
-                    type="number"
+                <WaterSettingInput
                     value={settings.annual_vol || 0}
-                    onChange={(e) => onChange('annual_vol', e.target.value)}
+                    onChange={(val) => onSave('annual_vol', val)}
                     className="w-full mt-1 px-3 py-2 border rounded-lg"
                     step="0.001"
                 />
@@ -167,14 +193,13 @@ function AnnualModePanel({ settings, onChange }) {
 }
 
 // Sub-component: Manual Mode Panel
-function ManualModePanel({ settings, onChange }) {
+function ManualModePanel({ settings, onSave }) {
     return (
         <div className="bg-gray-50 border rounded-lg p-3">
             <label className="text-xs text-gray-500">Prix du m³ (€)</label>
-            <input
-                type="number"
+            <WaterSettingInput
                 value={settings.manual_price || 0}
-                onChange={(e) => onChange('manual_price', e.target.value)}
+                onChange={(val) => onSave('manual_price', val)}
                 className="w-full mt-1 px-3 py-2 font-bold border rounded-lg"
                 step="0.0001"
             />

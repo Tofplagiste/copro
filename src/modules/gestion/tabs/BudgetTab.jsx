@@ -2,7 +2,7 @@
  * BudgetTab - Onglet Budget & Appels de Fonds
  * Migré pour utiliser le hook useBudget (Phase 3)
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FileText, Mail, Download, Table2, Settings, Copy } from 'lucide-react';
 import { useToast } from '../../../components/ToastProvider';
 import { fmtMoney } from '../../../utils/formatters';
@@ -92,18 +92,11 @@ export default function BudgetTab() {
                             </span>
                             <div className="flex-1 grid grid-cols-3 gap-1">
                                 {['reel', 'previ', 'previ_n1'].map(field => (
-                                    <input
+                                    <BudgetInput
                                         key={field}
-                                        type="number"
                                         value={item[field] || 0}
-                                        onChange={(e) => updateBudgetItem(category, i, field, e.target.value)}
-                                        className={`
-                      w-full px-1 py-0.5 text-right text-xs font-mono border rounded
-                      ${field === budgetMode
-                                                ? 'border-blue-500 bg-white font-bold shadow-sm'
-                                                : 'border-gray-200 bg-gray-50 text-gray-400'
-                                            }
-                    `}
+                                        onChange={(val) => updateBudgetItem(category, i, field, val)}
+                                        isActive={field === budgetMode}
                                     />
                                 ))}
                             </div>
@@ -111,6 +104,43 @@ export default function BudgetTab() {
                     ))}
                 </div>
             </div>
+        );
+    };
+
+    // Helper component for debounced input
+    const BudgetInput = ({ value, onChange, isActive }) => {
+        const [localValue, setLocalValue] = useState(value);
+
+        useEffect(() => {
+            setLocalValue(value);
+        }, [value]);
+
+        // Update local value if prop value changes (external update)
+        // We only do this if the document is not focused on this input, 
+        // OR better: we don't sync from props while editing to avoid cursor jumps.
+        // But here, we just want to avoid the "reload" effect.
+
+        // Simple onBlur approach
+        const handleBlur = () => {
+            if (parseFloat(localValue) !== parseFloat(value)) {
+                onChange(localValue);
+            }
+        };
+
+        return (
+            <input
+                type="number"
+                value={localValue}
+                onChange={(e) => setLocalValue(e.target.value)}
+                onBlur={handleBlur}
+                className={`
+                      w-full px-1 py-0.5 text-right text-xs font-mono border rounded
+                      ${isActive
+                        ? 'border-blue-500 bg-white font-bold shadow-sm'
+                        : 'border-gray-200 bg-gray-50 text-gray-400'
+                    }
+                `}
+            />
         );
     };
 

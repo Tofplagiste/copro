@@ -30,6 +30,8 @@ export function GestionSupabaseProvider({ children }) {
         waterSettings: water.settings,
         activeQuarter: water.activeQuarter,
         currentYear: water.currentYear,
+        lots: water.lots,
+        owners: water.owners,
         // Status
         loading: finance.loading || water.loading,
         saving: finance.saving || water.saving,
@@ -41,6 +43,14 @@ export function GestionSupabaseProvider({ children }) {
         addBudgetItem: finance.addBudgetItem,
         updateBudgetItem: finance.updateBudgetItem,
         deleteBudgetItem: finance.deleteBudgetItem,
+        // Accounts actions
+        addAccount: finance.addAccount,
+        updateAccount: finance.updateAccount,
+        deleteAccount: finance.deleteAccount,
+        // Categories actions
+        addCategory: finance.addCategory,
+        addCategories: finance.addCategories,
+        deleteCategory: finance.deleteCategory,
         // Water actions
         setActiveQuarter: water.setActiveQuarter,
         saveReading: water.saveReading,

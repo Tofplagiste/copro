@@ -6,6 +6,9 @@ import { useState } from 'react';
 import { FileText, Plus, X } from 'lucide-react';
 import { useGestionData } from '../../context/GestionSupabaseContext';
 
+import Modal from '../../../../components/Modal';
+import { useToast } from '../../../../components/ToastProvider';
+
 // Postes comptables par défaut - COMPLETE LIST
 const DEFAULT_POSTES = [
     { code: '601', libelle: 'Eau' },
@@ -25,7 +28,8 @@ const DEFAULT_POSTES = [
 ];
 
 export default function PostesComptablesPanel() {
-    const { categories } = useGestionData();
+    const { categories, addCategory, addCategories, deleteCategory } = useGestionData();
+    const toast = useToast();
 
     // Use categories from Supabase, fallback to defaults
     const postesComptables = categories?.length > 0
@@ -35,20 +39,58 @@ export default function PostesComptablesPanel() {
     const [newCode, setNewCode] = useState('');
     const [newLibelle, setNewLibelle] = useState('');
 
-    // TODO: Migrate to Supabase
-    const handleAdd = () => {
-        if (!newCode.trim() || !newLibelle.trim()) return;
-        if (postesComptables.some(p => p.code === newCode.trim())) return;
+    // Modal State
+    const [deleteItem, setDeleteItem] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
-        // TODO: Implement with finance.addCategory when available
-        console.log('Add poste:', { code: newCode.trim(), libelle: newLibelle.trim() });
+    const handleAdd = async () => {
+        if (!newCode.trim() || !newLibelle.trim()) return;
+        if (postesComptables.some(p => p.code === newCode.trim())) {
+            toast.error("Ce code existe déjà");
+            return;
+        }
+
+        const newItem = { code: newCode.trim(), label: newLibelle.trim() };
+
+        // Si la base est vide (mode défaut), on sauvegarde tous les défauts + le nouveau
+        if (!categories || categories.length === 0) {
+            const toSeed = DEFAULT_POSTES.map(p => ({ code: p.code, label: p.libelle }));
+            toSeed.push(newItem);
+            await addCategories(toSeed);
+            toast.success("Poste ajouté (Liste initialisée)");
+        } else {
+            // Sinon ajout normal
+            await addCategory(newItem);
+            toast.success("Poste ajouté");
+        }
+
         setNewCode('');
         setNewLibelle('');
     };
 
-    const handleDelete = (index) => {
-        // TODO: Implement with finance.deleteCategory when available
-        console.log('Delete poste at index:', index);
+    const handleDeleteClick = (poste) => {
+        setDeleteItem(poste);
+        setIsModalOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!deleteItem) return;
+
+        // Si on a des catégories en base, on est en mode "DB" -> suppression directe
+        if (categories && categories.length > 0) {
+            await deleteCategory(deleteItem.code);
+            toast.success("Poste supprimé");
+        } else {
+            // Mode défaut : on initialise la base avec tout SAUF l'élément supprimé
+            const toSeed = DEFAULT_POSTES
+                .filter(p => p.code !== deleteItem.code)
+                .map(p => ({ code: p.code, label: p.libelle }));
+
+            await addCategories(toSeed);
+            toast.success("Poste supprimé (Liste initialisée)");
+        }
+        setIsModalOpen(false);
+        setDeleteItem(null);
     };
 
     return (
@@ -105,8 +147,8 @@ export default function PostesComptablesPanel() {
                                 <td className="px-2 sm:px-4 py-1.5 sm:py-2 text-gray-600 truncate max-w-[120px] sm:max-w-none">{poste.libelle}</td>
                                 <td className="px-1 sm:px-2 py-1.5 sm:py-2 text-center">
                                     <button
-                                        onClick={() => handleDelete(index)}
-                                        className="text-red-400 hover:text-red-600 p-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity"
+                                        onClick={() => handleDeleteClick(poste)}
+                                        className="text-red-400 hover:text-red-600 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                                         title="Supprimer"
                                     >
                                         <X size={14} />
@@ -123,6 +165,35 @@ export default function PostesComptablesPanel() {
                     Aucun poste comptable défini
                 </div>
             )}
+
+            {/* Modal de Confirmation */}
+            <Modal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                title="Supprimer ce poste ?"
+                size="sm"
+            >
+                <div className="text-sm text-gray-600 mb-4">
+                    Êtes-vous sur de vouloir supprimer le poste <strong>{deleteItem?.code} - {deleteItem?.libelle}</strong> ?
+                    {(!categories || categories.length === 0) && (
+                        <div className="mt-2 p-2 bg-amber-50 text-amber-700 rounded border border-amber-200">
+                            <strong>Note :</strong> C'est un poste par défaut. Sa suppression initialisera votre liste personnalisée avec les autres postes par défaut.
+                        </div>
+                    )}
+                </div>
+                <div className="flex justify-end gap-2">
+                    <button
+                        onClick={() => setIsModalOpen(false)}
+                        className="px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">
+                        Annuler
+                    </button>
+                    <button
+                        onClick={confirmDelete}
+                        className="px-3 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700">
+                        Supprimer
+                    </button>
+                </div>
+            </Modal>
         </div>
     );
 }

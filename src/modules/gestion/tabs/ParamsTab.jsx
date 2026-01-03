@@ -31,7 +31,9 @@ export default function ParamsTab() {
                     lot: lotDisplay,
                     tantiemes: totalTantiemes,
                     exoGest: o.exo_gest,
-                    exoMen: o.exo_men
+                    exoMen: o.exo_men,
+                    email: o.email,
+                    phone: o.phone
                 };
             });
     }, [rawOwners, lots]);
@@ -85,41 +87,7 @@ export default function ParamsTab() {
                 </div>
             </div>
 
-            {/* Section: Sauvegarde / Chargement - NOUVEAU */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                <div className="bg-gradient-to-r from-emerald-600 to-green-700 px-5 py-4 flex items-center gap-3">
-                    <FileJson size={20} className="text-white" />
-                    <h3 className="font-bold text-white">Sauvegarde des Données</h3>
-                </div>
-                <div className="p-5 flex flex-wrap gap-4 items-center">
-                    <button
-                        onClick={handleSaveData}
-                        className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-emerald-500 to-green-600 text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transition-all"
-                    >
-                        <Save size={18} />
-                        Sauvegarder mes données
-                    </button>
 
-                    <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept=".json"
-                        onChange={handleLoadData}
-                        className="hidden"
-                    />
-                    <button
-                        onClick={() => fileInputRef.current?.click()}
-                        className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transition-all"
-                    >
-                        <Upload size={18} />
-                        Charger une sauvegarde
-                    </button>
-
-                    <p className="text-sm text-gray-500 flex-1">
-                        💡 La sauvegarde inclut tous vos propriétaires, budgets, relevés d'eau et paramètres.
-                    </p>
-                </div>
-            </div>
 
             {/* Section: Copropriétaires */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">

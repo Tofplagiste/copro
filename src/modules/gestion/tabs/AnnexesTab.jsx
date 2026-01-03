@@ -3,6 +3,7 @@
  */
 import { useState } from 'react';
 import { BookOpen, Scale, TrendingUp, Users, Plus, Trash2 } from 'lucide-react';
+import { useFinanceSupabaseAdapter } from '../hooks/useFinanceSupabaseAdapter';
 import { useGestionData } from '../context/GestionSupabaseContext';
 import { useToast } from '../../../components/ToastProvider';
 import { fmtMoney } from '../../../utils/formatters';
@@ -11,7 +12,8 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 export default function AnnexesTab() {
-    const { accounts, operations, owners } = useGestionData();
+    const { accounts, operations } = useFinanceSupabaseAdapter();
+    const { owners } = useGestionData();
     const toast = useToast();
 
     // Manual Entries - local state (TODO: migrate to Supabase)
@@ -22,7 +24,7 @@ export default function AnnexesTab() {
     // 1. Calcul Solde Bancaire (Comptes 512)
     const getAccountBalance = (accId) => {
         const acc = accounts.find(a => a.id === accId);
-        let bal = acc?.initial || 0;
+        let bal = acc?.initial_balance || 0;
         operations.forEach(op => {
             if (op.account === accId) {
                 bal += op.type === 'recette' ? op.amount : -op.amount;

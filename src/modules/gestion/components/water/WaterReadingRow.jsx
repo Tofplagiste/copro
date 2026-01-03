@@ -3,7 +3,7 @@
  * 
  * Composant extrait pour respecter la limite de 150 lignes.
  */
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 
 /**
  * Ligne individuelle du tableau de relevés.
@@ -22,6 +22,11 @@ export default function WaterReadingRow({ row, quarter, onReadingChange, onMeter
     const [localNew, setLocalNew] = useState(reading.new || '');
     const [localMeter, setLocalMeter] = useState(row.meter_number || '');
 
+    // Sync state with props
+    useEffect(() => { setLocalOld(reading.old || ''); }, [reading.old]);
+    useEffect(() => { setLocalNew(reading.new || ''); }, [reading.new]);
+    useEffect(() => { setLocalMeter(row.meter_number || ''); }, [row.meter_number]);
+
     // Save on blur
     const handleOldBlur = useCallback(() => {
         const numVal = parseFloat(localOld) || 0;
@@ -38,31 +43,20 @@ export default function WaterReadingRow({ row, quarter, onReadingChange, onMeter
     }, [localNew, reading.new, row.lot_id, onReadingChange]);
 
     const handleMeterBlur = useCallback(() => {
-        if (localMeter !== row.meter_number && row.meter_id) {
-            onMeterChange(row.meter_id, localMeter);
+        if (localMeter !== (row.meter_number || '')) {
+            // Pass lot_id to allow creating meter if meter_id is null
+            onMeterChange(row.meter_id, localMeter, row.lot_id);
         }
-    }, [localMeter, row.meter_number, row.meter_id, onMeterChange]);
+    }, [localMeter, row.meter_number, row.meter_id, row.lot_id, onMeterChange]);
 
-    if (!row.has_meter) {
-        return (
-            <tr className="hover:bg-gray-50 bg-gray-100">
-                <td className="px-4 py-3">
-                    <div className="font-semibold text-gray-800">{row.owner_name}</div>
-                    <span className="text-xs text-green-600 italic">{row.lot_numero}</span>
-                </td>
-                <td className="px-3 py-2"><div className="h-8 bg-gray-200 rounded opacity-50" /></td>
-                <td className="px-3 py-2"><div className="h-8 bg-gray-200 rounded opacity-50" /></td>
-                <td className="px-3 py-2"><div className="h-8 bg-gray-200 rounded opacity-50" /></td>
-                <td className="px-3 py-2 text-center text-gray-400">-</td>
-            </tr>
-        );
-    }
+    // ALLOW EDITING EVEN IF NO METER (To create one)
+    // if (!row.has_meter) { ... } -> Removed to allow adding meter number
 
     return (
         <tr className="hover:bg-gray-50">
             <td className="px-4 py-3">
                 <div className="font-semibold text-gray-800">{row.owner_name}</div>
-                <span className="text-xs text-green-600 italic">{row.lot_numero}</span>
+                <span className="text-xs text-green-600 italic">Lot {row.lot_numero} / {row.lot_nom}</span>
             </td>
             <td className="px-3 py-2">
                 <input

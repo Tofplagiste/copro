@@ -21,8 +21,9 @@ export function useFinanceSupabase() {
     const [error, setError] = useState(null);
 
     // ===== CHARGEMENT INITIAL =====
-    const loadData = useCallback(async () => {
-        setLoading(true);
+    // silent = true pour ne pas déclencher le loading global (ex: après update)
+    const loadData = useCallback(async (silent = false) => {
+        if (!silent) setLoading(true);
         setError(null);
 
         try {
@@ -46,7 +47,7 @@ export function useFinanceSupabase() {
             console.error('[useFinanceSupabase] Load error:', err);
             setError(err.message);
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
     }, []);
 
@@ -62,7 +63,7 @@ export function useFinanceSupabase() {
         try {
             const { error: err } = await supabase.from('finance_operations').insert([data]);
             if (err) throw err;
-            await loadData();
+            await loadData(true);
         } catch (err) {
             setError(err.message);
         } finally {
@@ -80,7 +81,7 @@ export function useFinanceSupabase() {
         try {
             const { error: err } = await supabase.from('finance_operations').update(data).eq('id', id);
             if (err) throw err;
-            await loadData();
+            await loadData(true);
         } catch (err) {
             setError(err.message);
         } finally {
@@ -97,7 +98,7 @@ export function useFinanceSupabase() {
         try {
             const { error: err } = await supabase.from('finance_operations').delete().eq('id', id);
             if (err) throw err;
-            await loadData();
+            await loadData(true);
         } catch (err) {
             setError(err.message);
         } finally {
@@ -115,7 +116,7 @@ export function useFinanceSupabase() {
         try {
             const { error: err } = await supabase.from('budget_items').insert([data]);
             if (err) throw err;
-            await loadData();
+            await loadData(true);
         } catch (err) {
             setError(err.message);
         } finally {
@@ -133,7 +134,7 @@ export function useFinanceSupabase() {
         try {
             const { error: err } = await supabase.from('budget_items').update(data).eq('id', id);
             if (err) throw err;
-            await loadData();
+            await loadData(true);
         } catch (err) {
             setError(err.message);
         } finally {
@@ -150,7 +151,87 @@ export function useFinanceSupabase() {
         try {
             const { error: err } = await supabase.from('budget_items').delete().eq('id', id);
             if (err) throw err;
-            await loadData();
+            await loadData(true);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setSaving(false);
+        }
+    }, [loadData]);
+
+    // ===== ACCOUNTS CRUD =====
+    const addAccount = useCallback(async (data) => {
+        setSaving(true);
+        try {
+            const { error: err } = await supabase.from('accounts').insert([data]);
+            if (err) throw err;
+            await loadData(true);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setSaving(false);
+        }
+    }, [loadData]);
+
+    const updateAccount = useCallback(async (id, data) => {
+        setSaving(true);
+        try {
+            const { error: err } = await supabase.from('accounts').update(data).eq('id', id);
+            if (err) throw err;
+            await loadData(true);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setSaving(false);
+        }
+    }, [loadData]);
+
+    const deleteAccount = useCallback(async (id) => {
+        setSaving(true);
+        try {
+            const { error: err } = await supabase.from('accounts').delete().eq('id', id);
+            if (err) throw err;
+            await loadData(true);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setSaving(false);
+        }
+    }, [loadData]);
+
+    // ===== CATEGORIES CRUD =====
+    const addCategory = useCallback(async (data) => {
+        setSaving(true);
+        try {
+            const { error: err } = await supabase.from('expense_categories').insert([data]);
+            if (err) throw err;
+            await loadData(true);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setSaving(false);
+        }
+    }, [loadData]);
+
+    const deleteCategory = useCallback(async (code) => {
+        setSaving(true);
+        try {
+            const { error: err } = await supabase.from('expense_categories').delete().eq('code', code);
+            if (err) throw err;
+            await loadData(true);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setSaving(false);
+        }
+    }, [loadData]);
+
+    const addCategories = useCallback(async (dataArray) => {
+        setSaving(true);
+        try {
+            const { error: err } = await supabase.from('expense_categories').upsert(dataArray, { onConflict: 'code' });
+            if (err) throw err;
+            await loadData(true);
         } catch (err) {
             setError(err.message);
         } finally {
@@ -163,6 +244,8 @@ export function useFinanceSupabase() {
         loading, saving, error,
         addOperation, updateOperation, deleteOperation,
         addBudgetItem, updateBudgetItem, deleteBudgetItem,
+        addAccount, updateAccount, deleteAccount,
+        addCategory, addCategories, deleteCategory,
         refresh: loadData
     };
 }
