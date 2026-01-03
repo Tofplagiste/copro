@@ -4,7 +4,6 @@
  */
 /* eslint-disable react-refresh/only-export-components */
 import { render } from '@testing-library/react';
-import { CoproProvider } from '../context/CoproContext';
 import { ToastProvider } from '../components/ToastProvider';
 import { MemoryRouter } from 'react-router-dom';
 
@@ -15,11 +14,9 @@ import { MemoryRouter } from 'react-router-dom';
 export function AllProviders({ children }) {
     return (
         <MemoryRouter>
-            <CoproProvider>
-                <ToastProvider>
-                    {children}
-                </ToastProvider>
-            </CoproProvider>
+            <ToastProvider>
+                {children}
+            </ToastProvider>
         </MemoryRouter>
     );
 }

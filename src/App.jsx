@@ -5,7 +5,7 @@
  */
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
-import { CoproProvider } from './context/CoproContext';
+
 import { ToastProvider } from './components/ToastProvider';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 
@@ -31,69 +31,67 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <ToastProvider>
-          <CoproProvider>
-            <Routes>
-              {/* Routes publiques (Auth) */}
-              <Route path="/auth/login" element={<LoginPage />} />
-              <Route path="/auth/signup" element={<SignupPage />} />
-              <Route path="/auth/pending" element={<PendingApprovalPage />} />
+          <Routes>
+            {/* Routes publiques (Auth) */}
+            <Route path="/auth/login" element={<LoginPage />} />
+            <Route path="/auth/signup" element={<SignupPage />} />
+            <Route path="/auth/pending" element={<PendingApprovalPage />} />
 
-              {/* Routes protégées */}
-              <Route
-                path="/"
-                element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/gestion/*"
-                element={
-                  <ProtectedRoute>
-                    <GestionApp />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/carnet/*"
-                element={
-                  <ProtectedRoute>
-                    <CarnetApp />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/credit/*"
-                element={
-                  <ProtectedRoute>
-                    <CreditApp />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/vote/*"
-                element={
-                  <ProtectedRoute>
-                    <VoteApp />
-                  </ProtectedRoute>
-                }
-              />
+            {/* Routes protégées */}
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/gestion/*"
+              element={
+                <ProtectedRoute>
+                  <GestionApp />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/carnet/*"
+              element={
+                <ProtectedRoute>
+                  <CarnetApp />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/credit/*"
+              element={
+                <ProtectedRoute>
+                  <CreditApp />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/vote/*"
+              element={
+                <ProtectedRoute>
+                  <VoteApp />
+                </ProtectedRoute>
+              }
+            />
 
-              {/* Routes Admin (requireAdmin) */}
-              <Route
-                path="/admin/users"
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <UserManagement />
-                  </ProtectedRoute>
-                }
-              />
+            {/* Routes Admin (requireAdmin) */}
+            <Route
+              path="/admin/users"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <UserManagement />
+                </ProtectedRoute>
+              }
+            />
 
-              {/* Route catch-all : redirige vers / (le ProtectedRoute gèrera) */}
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </CoproProvider>
+            {/* Route catch-all : redirige vers / (le ProtectedRoute gèrera) */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
         </ToastProvider>
       </AuthProvider>
     </BrowserRouter>
