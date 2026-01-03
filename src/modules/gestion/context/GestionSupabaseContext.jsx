@@ -1,23 +1,59 @@
 /**
  * GestionSupabaseContext - Contexte React pour le module Gestion (Supabase)
  * 
- * Fournit les données Budget, Comptes et Opérations aux composants enfants.
- * Permet une migration progressive : les tabs peuvent migrer un par un.
+ * PHASE 6 : Combine useFinanceSupabase et useWaterSupabase.
+ * Fournit les données Budget, Comptes, Opérations, et Eau aux composants enfants.
  */
-import { createContext, useContext } from 'react';
-import { useGestionSupabase } from '../hooks/useGestionSupabase';
+import { createContext, useContext, useMemo } from 'react';
+import { useFinanceSupabase } from '../hooks/useFinanceSupabase';
+import { useWaterSupabase } from '../hooks/useWaterSupabase';
 
 const GestionSupabaseContext = createContext(null);
 
 /**
  * Provider pour les données Gestion Supabase
- * Encapsule useGestionSupabase et expose ses valeurs via Context
+ * Combine Finance et Water, expose un loading/error global
  */
 export function GestionSupabaseProvider({ children }) {
-    const gestion = useGestionSupabase();
+    const finance = useFinanceSupabase();
+    const water = useWaterSupabase();
+
+    // Combine loading and error states
+    const value = useMemo(() => ({
+        // Finance data
+        budgetItems: finance.budgetItems,
+        accounts: finance.accounts,
+        operations: finance.operations,
+        categories: finance.categories,
+        // Water data
+        waterRows: water.waterRows,
+        waterSettings: water.settings,
+        activeQuarter: water.activeQuarter,
+        currentYear: water.currentYear,
+        // Status
+        loading: finance.loading || water.loading,
+        saving: finance.saving || water.saving,
+        error: finance.error || water.error,
+        // Finance actions
+        addOperation: finance.addOperation,
+        updateOperation: finance.updateOperation,
+        deleteOperation: finance.deleteOperation,
+        addBudgetItem: finance.addBudgetItem,
+        updateBudgetItem: finance.updateBudgetItem,
+        deleteBudgetItem: finance.deleteBudgetItem,
+        // Water actions
+        setActiveQuarter: water.setActiveQuarter,
+        saveReading: water.saveReading,
+        updateMeterNumber: water.updateMeterNumber,
+        updateWaterSettings: water.updateSettings,
+        // Combined refresh
+        refresh: async () => {
+            await Promise.all([finance.refresh(), water.refresh()]);
+        }
+    }), [finance, water]);
 
     return (
-        <GestionSupabaseContext.Provider value={gestion}>
+        <GestionSupabaseContext.Provider value={value}>
             {children}
         </GestionSupabaseContext.Provider>
     );
@@ -25,7 +61,7 @@ export function GestionSupabaseProvider({ children }) {
 
 /**
  * Hook pour accéder aux données Gestion Supabase
- * @returns {Object} État et fonctions du hook useGestionSupabase
+ * @returns {Object} État et fonctions combinées finance + eau
  */
 // eslint-disable-next-line react-refresh/only-export-components
 export function useGestionData() {

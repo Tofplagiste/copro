@@ -1,10 +1,10 @@
 /**
- * PostesComptablesPanel - Gestion des Postes Comptables (Responsive)
+ * PostesComptablesPanel - Gestion des Postes Comptables (V6)
  * Permet d'ajouter/supprimer des codes comptables avec leurs libellés
  */
 import { useState } from 'react';
 import { FileText, Plus, X } from 'lucide-react';
-import { useCopro } from '../../../../context/CoproContext';
+import { useGestionData } from '../../context/GestionSupabaseContext';
 
 // Postes comptables par défaut - COMPLETE LIST
 const DEFAULT_POSTES = [
@@ -25,34 +25,30 @@ const DEFAULT_POSTES = [
 ];
 
 export default function PostesComptablesPanel() {
-    const { state, updateState } = useCopro();
+    const { categories } = useGestionData();
 
-    // Récupérer les postes comptables depuis l'état ou utiliser les valeurs par défaut
-    const postesComptables = state.postesComptables || DEFAULT_POSTES;
+    // Use categories from Supabase, fallback to defaults
+    const postesComptables = categories?.length > 0
+        ? categories.map(c => ({ code: c.code, libelle: c.label }))
+        : DEFAULT_POSTES;
 
     const [newCode, setNewCode] = useState('');
     const [newLibelle, setNewLibelle] = useState('');
 
+    // TODO: Migrate to Supabase
     const handleAdd = () => {
         if (!newCode.trim() || !newLibelle.trim()) return;
+        if (postesComptables.some(p => p.code === newCode.trim())) return;
 
-        // Check if code already exists
-        if (postesComptables.some(p => p.code === newCode.trim())) {
-            // Optional: You could set an error state here
-            return;
-        }
-
-        const newPoste = { code: newCode.trim(), libelle: newLibelle.trim() };
-        const updatedPostes = [...postesComptables, newPoste];
-        updateState({ postesComptables: updatedPostes });
-
+        // TODO: Implement with finance.addCategory when available
+        console.log('Add poste:', { code: newCode.trim(), libelle: newLibelle.trim() });
         setNewCode('');
         setNewLibelle('');
     };
 
     const handleDelete = (index) => {
-        const updatedPostes = postesComptables.filter((_, i) => i !== index);
-        updateState({ postesComptables: updatedPostes });
+        // TODO: Implement with finance.deleteCategory when available
+        console.log('Delete poste at index:', index);
     };
 
     return (

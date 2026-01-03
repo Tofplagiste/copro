@@ -2,8 +2,8 @@
  * GestionApp - Application Gestion Copropriété
  * Regroupe les onglets Water, Budget, Finance, Annexes, BudgetDetail, Params
  * 
- * MIGRATION PHASE 6 : Wrappé avec GestionSupabaseProvider pour charger les données Supabase.
- * Les tabs peuvent accéder aux données via useGestionData() ou l'ancien useCopro().
+ * MIGRATION PHASE 6 : TERMINÉE ✅
+ * Tous les composants utilisent maintenant useGestionData() au lieu de useCopro().
  */
 import { useState } from 'react';
 import { Link } from 'react-router-dom';

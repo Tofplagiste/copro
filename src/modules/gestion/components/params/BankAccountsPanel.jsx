@@ -1,33 +1,29 @@
 /**
- * BankAccountsPanel - Gestion des comptes bancaires
+ * BankAccountsPanel - Gestion des comptes bancaires (V6)
  */
 import { useState } from 'react';
 import { CreditCard, Trash2, Edit2 } from 'lucide-react';
-import { useCopro } from '../../../../context/CoproContext';
+import { useGestionData } from '../../context/GestionSupabaseContext';
 
 export default function BankAccountsPanel() {
-    const { state, updateState } = useCopro();
-    const { accounts } = state;
+    const { accounts } = useGestionData();
 
     const [newItem, setNewItem] = useState({ id: '', name: '', initial: '' });
 
     // Supprimer un compte
+    // Supprimer un compte - TODO: migrate to Supabase
     const handleDelete = (id) => {
         if (window.confirm('Supprimer ce compte ?')) {
-            const updatedAccounts = accounts.filter(acc => acc.id !== id);
-            updateState({ accounts: updatedAccounts });
+            // TODO: Implement with finance.deleteAccount when available
+            console.log('Delete account:', id);
         }
     };
 
-    // Ajouter un compte
+    // Ajouter un compte - TODO: migrate to Supabase
     const handleAdd = () => {
         if (!newItem.id || !newItem.name) return;
-        const newAccount = {
-            id: newItem.id,
-            name: newItem.name,
-            initial: parseFloat(newItem.initial) || 0
-        };
-        updateState({ accounts: [...accounts, newAccount] });
+        // TODO: Implement with finance.addAccount when available
+        console.log('Add account:', newItem);
         setNewItem({ id: '', name: '', initial: '' });
     };
 

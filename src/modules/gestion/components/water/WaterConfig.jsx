@@ -1,69 +1,53 @@
 /**
- * WaterConfig - Configuration du trimestre et prix
+ * WaterConfig - Configuration du trimestre et prix (V6)
+ * 
+ * Migration Phase 6 : Utilise useGestionData() au lieu de useCopro.
  */
-import { useCopro } from '../../../../context/CoproContext';
+import { useGestionData } from '../../context/GestionSupabaseContext';
 
-export default function WaterConfig({ onPriceChange }) {
-    const { state, updateState } = useCopro();
-    const water = state.water;
+export default function WaterConfig() {
+    const {
+        waterSettings,
+        activeQuarter,
+        setActiveQuarter,
+        updateWaterSettings
+    } = useGestionData();
 
+    const settings = waterSettings || {};
+
+    // Handle quarter change
     const handleQuarterChange = (e) => {
         const newQuarter = e.target.value;
-        const prevQ = newQuarter === 'T2' ? 'T1' : newQuarter === 'T3' ? 'T2' : newQuarter === 'T4' ? 'T3' : null;
-
-        // Auto-fill old index from previous quarter's new index
-        const updatedReadings = { ...water.readings };
-        if (prevQ && updatedReadings[prevQ]) {
-            if (!updatedReadings[newQuarter]) updatedReadings[newQuarter] = {};
-
-            state.owners.forEach(o => {
-                if (!o.isCommon && o.hasMeter) {
-                    const prevNew = updatedReadings[prevQ][o.id]?.new || 0;
-                    const currentOld = updatedReadings[newQuarter][o.id]?.old || 0;
-
-                    if ((!currentOld || currentOld === 0) && prevNew > 0) {
-                        if (!updatedReadings[newQuarter][o.id]) {
-                            updatedReadings[newQuarter][o.id] = { old: 0, new: 0 };
-                        }
-                        updatedReadings[newQuarter][o.id].old = prevNew;
-                    }
-                }
-            });
-        }
-
-        updateState({
-            water: { ...water, activeQuarter: newQuarter, readings: updatedReadings }
-        });
+        setActiveQuarter(newQuarter);
+        updateWaterSettings({ active_quarter: newQuarter });
     };
 
+    // Handle price mode change
     const handlePriceModeChange = (e) => {
-        updateState({ water: { ...water, priceMode: e.target.value } });
-        onPriceChange?.();
+        updateWaterSettings({ price_mode: e.target.value });
     };
 
+    // Handle field change
     const handleFieldChange = (field, value) => {
         const numValue = parseFloat(value) || 0;
         let updates = { [field]: numValue };
 
-        // Si mode annuel, recalculer l'abonnement trimestriel
-        if (water.priceMode === 'annual' && field === 'annualSub') {
-            updates.subAmount = numValue / 4;
+        // If annual mode, recalculate quarterly subscription
+        if (settings.price_mode === 'annual' && field === 'annual_sub') {
+            updates.sub_amount = numValue / 4;
         }
 
-        updateState({ water: { ...water, ...updates } });
-        onPriceChange?.();
+        updateWaterSettings(updates);
     };
 
-    // Calcul du prix au m³
+    // Calculate price per m³
     const computePrice = () => {
-        if (water.priceMode === 'manual') return water.manualPrice || 0;
-        if (water.priceMode === 'quarter') {
-            // Calcul basé sur facture trimestre (non implémenté pour l'instant)
-            return water.manualPrice || 4.5;
+        if (settings.price_mode === 'manual') return settings.manual_price || 0;
+        if (settings.price_mode === 'annual') {
+            const conso = (settings.annual_total || 0) - (settings.annual_sub || 0);
+            return (settings.annual_vol || 0) > 0 ? conso / settings.annual_vol : 0;
         }
-        // Mode annual
-        const conso = water.annualTotal - water.annualSub;
-        return water.annualVol > 0 ? conso / water.annualVol : 0;
+        return settings.manual_price || 4.5;
     };
 
     const pricePerM3 = computePrice();
@@ -78,9 +62,9 @@ export default function WaterConfig({ onPriceChange }) {
                 <div>
                     <label className="text-xs font-bold text-gray-500 uppercase">Trimestre Actif</label>
                     <select
-                        value={water.activeQuarter}
+                        value={activeQuarter}
                         onChange={handleQuarterChange}
-                        className="w-full mt-1 px-3 py-2 font-bold border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full mt-1 px-3 py-2 font-bold border rounded-lg focus:ring-2 focus:ring-blue-500"
                     >
                         <option value="T1">Trimestre 1</option>
                         <option value="T2">Trimestre 2</option>
@@ -95,7 +79,7 @@ export default function WaterConfig({ onPriceChange }) {
                 <div>
                     <label className="text-xs font-bold text-gray-500 uppercase">1. Coût au m³</label>
                     <select
-                        value={water.priceMode}
+                        value={settings.price_mode || 'manual'}
                         onChange={handlePriceModeChange}
                         className="w-full mt-1 px-3 py-2 text-sm border rounded-lg"
                     >
@@ -106,53 +90,13 @@ export default function WaterConfig({ onPriceChange }) {
                 </div>
 
                 {/* Panel Mode Annuel */}
-                {water.priceMode === 'annual' && (
-                    <div className="bg-gray-50 border rounded-lg p-3 space-y-2">
-                        <div>
-                            <label className="text-xs text-gray-500">Total Facture Annuelle (€)</label>
-                            <input
-                                type="number"
-                                value={water.annualTotal}
-                                onChange={(e) => handleFieldChange('annualTotal', e.target.value)}
-                                className="w-full mt-1 px-3 py-2 font-bold border border-blue-500 rounded-lg"
-                                step="0.01"
-                            />
-                        </div>
-                        <div>
-                            <label className="text-xs text-gray-500">Dont Abo. Annuel (€)</label>
-                            <input
-                                type="number"
-                                value={water.annualSub}
-                                onChange={(e) => handleFieldChange('annualSub', e.target.value)}
-                                className="w-full mt-1 px-3 py-2 border rounded-lg"
-                                step="0.01"
-                            />
-                        </div>
-                        <div>
-                            <label className="text-xs text-gray-500">Volume Annuel (m³)</label>
-                            <input
-                                type="number"
-                                value={water.annualVol}
-                                onChange={(e) => handleFieldChange('annualVol', e.target.value)}
-                                className="w-full mt-1 px-3 py-2 border rounded-lg"
-                                step="0.001"
-                            />
-                        </div>
-                    </div>
+                {settings.price_mode === 'annual' && (
+                    <AnnualModePanel settings={settings} onChange={handleFieldChange} />
                 )}
 
                 {/* Panel Mode Manuel */}
-                {water.priceMode === 'manual' && (
-                    <div className="bg-gray-50 border rounded-lg p-3">
-                        <label className="text-xs text-gray-500">Prix du m³ (€)</label>
-                        <input
-                            type="number"
-                            value={water.manualPrice}
-                            onChange={(e) => handleFieldChange('manualPrice', e.target.value)}
-                            className="w-full mt-1 px-3 py-2 font-bold border rounded-lg"
-                            step="0.0001"
-                        />
-                    </div>
+                {settings.price_mode === 'manual' && (
+                    <ManualModePanel settings={settings} onChange={handleFieldChange} />
                 )}
 
                 {/* Prix appliqué */}
@@ -170,16 +114,70 @@ export default function WaterConfig({ onPriceChange }) {
                     <div className="flex items-center mt-1">
                         <input
                             type="number"
-                            value={water.subAmount?.toFixed(2) || '0.00'}
-                            onChange={(e) => handleFieldChange('subAmount', e.target.value)}
+                            value={(settings.sub_amount || 0).toFixed(2)}
+                            onChange={(e) => handleFieldChange('sub_amount', e.target.value)}
                             className="flex-1 px-3 py-2 font-bold border rounded-l-lg"
                             step="0.01"
-                            disabled={water.priceMode === 'annual'}
+                            disabled={settings.price_mode === 'annual'}
                         />
                         <span className="px-3 py-2 bg-gray-100 border border-l-0 rounded-r-lg">€</span>
                     </div>
                 </div>
             </div>
+        </div>
+    );
+}
+
+// Sub-component: Annual Mode Panel
+function AnnualModePanel({ settings, onChange }) {
+    return (
+        <div className="bg-gray-50 border rounded-lg p-3 space-y-2">
+            <div>
+                <label className="text-xs text-gray-500">Total Facture Annuelle (€)</label>
+                <input
+                    type="number"
+                    value={settings.annual_total || 0}
+                    onChange={(e) => onChange('annual_total', e.target.value)}
+                    className="w-full mt-1 px-3 py-2 font-bold border border-blue-500 rounded-lg"
+                    step="0.01"
+                />
+            </div>
+            <div>
+                <label className="text-xs text-gray-500">Dont Abo. Annuel (€)</label>
+                <input
+                    type="number"
+                    value={settings.annual_sub || 0}
+                    onChange={(e) => onChange('annual_sub', e.target.value)}
+                    className="w-full mt-1 px-3 py-2 border rounded-lg"
+                    step="0.01"
+                />
+            </div>
+            <div>
+                <label className="text-xs text-gray-500">Volume Annuel (m³)</label>
+                <input
+                    type="number"
+                    value={settings.annual_vol || 0}
+                    onChange={(e) => onChange('annual_vol', e.target.value)}
+                    className="w-full mt-1 px-3 py-2 border rounded-lg"
+                    step="0.001"
+                />
+            </div>
+        </div>
+    );
+}
+
+// Sub-component: Manual Mode Panel
+function ManualModePanel({ settings, onChange }) {
+    return (
+        <div className="bg-gray-50 border rounded-lg p-3">
+            <label className="text-xs text-gray-500">Prix du m³ (€)</label>
+            <input
+                type="number"
+                value={settings.manual_price || 0}
+                onChange={(e) => onChange('manual_price', e.target.value)}
+                className="w-full mt-1 px-3 py-2 font-bold border rounded-lg"
+                step="0.0001"
+            />
         </div>
     );
 }

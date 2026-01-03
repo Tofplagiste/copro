@@ -1,9 +1,9 @@
 /**
- * AnnexesTab - Onglet Annexes Bilan (États financiers)
+ * AnnexesTab - Onglet Annexes Bilan (États financiers) V6
  */
 import { useState } from 'react';
 import { BookOpen, Scale, TrendingUp, Users, Plus, Trash2 } from 'lucide-react';
-import { useCopro } from '../../../context/CoproContext';
+import { useGestionData } from '../context/GestionSupabaseContext';
 import { useToast } from '../../../components/ToastProvider';
 import { fmtMoney } from '../../../utils/formatters';
 import Modal from '../../../components/Modal';
@@ -11,13 +11,11 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 export default function AnnexesTab() {
-    const { state, updateState } = useCopro();
+    const { accounts, operations, owners } = useGestionData();
     const toast = useToast();
-    const accounts = state.accounts || [];
-    const operations = state.finance?.operations || [];
 
-    // Manual Entries
-    const manualEntries = state.finance?.manualEntries || [];
+    // Manual Entries - local state (TODO: migrate to Supabase)
+    const [manualEntries, setManualEntries] = useState([]);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [newEntry, setNewEntry] = useState({ type: 'actif', label: '', amount: '' });
 
@@ -99,26 +97,14 @@ export default function AnnexesTab() {
             ...newEntry,
             amount: parseFloat(newEntry.amount)
         };
-        const updatedEntries = [...manualEntries, entry];
-        updateState({
-            finance: {
-                ...state.finance,
-                manualEntries: updatedEntries
-            }
-        });
+        setManualEntries([...manualEntries, entry]);
         setNewEntry({ type: 'actif', label: '', amount: '' });
         setIsAddModalOpen(false);
         toast.success('Entrée ajoutée');
     };
 
     const handleRemoveManualEntry = (id) => {
-        const updatedEntries = manualEntries.filter(e => e.id !== id);
-        updateState({
-            finance: {
-                ...state.finance,
-                manualEntries: updatedEntries
-            }
-        });
+        setManualEntries(manualEntries.filter(e => e.id !== id));
         toast.success('Entrée supprimée');
     };
 
@@ -356,7 +342,7 @@ export default function AnnexesTab() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {state.owners.filter(o => !o.isCommon).map(owner => (
+                                    {(owners || []).filter(o => !o.isCommon).map(owner => (
                                         <tr key={owner.id} className="border-b border-gray-100 hover:bg-gray-50">
                                             <td className="px-3 py-2">{owner.name}</td>
                                             <td className="px-3 py-2 text-right font-mono text-green-600">0.00</td>

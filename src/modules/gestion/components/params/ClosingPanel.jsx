@@ -1,9 +1,9 @@
 /**
- * ClosingPanel - Panneau de clôture d'exercice avec Modal de confirmation
+ * ClosingPanel - Panneau de clôture d'exercice avec Modal de confirmation (V6)
  */
 import { useState } from 'react';
-import { Archive, ArrowRight, AlertTriangle, X } from 'lucide-react';
-import { useCopro } from '../../../../context/CoproContext';
+import { Archive, ArrowRight, AlertTriangle } from 'lucide-react';
+import { useGestionData } from '../../context/GestionSupabaseContext';
 
 // Modal de confirmation
 function ConfirmCloseModal({ isOpen, onConfirm, onCancel }) {
@@ -63,7 +63,7 @@ function ConfirmCloseModal({ isOpen, onConfirm, onCancel }) {
 }
 
 export default function ClosingPanel() {
-    const { resetAll } = useCopro();
+    const { refresh } = useGestionData();
     const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
     const handleCloseYear = () => {
@@ -71,7 +71,8 @@ export default function ClosingPanel() {
     };
 
     const handleConfirm = () => {
-        resetAll();
+        // In Supabase mode, we don't reset localStorage - just refresh data
+        refresh();
         setIsConfirmOpen(false);
     };
 

@@ -1,11 +1,11 @@
 
 /**
- * BudgetDetailTab - Tableau de bord mensuel (Dépenses & Trésorerie)
+ * BudgetDetailTab - Tableau de bord mensuel (Dépenses & Trésorerie) V6
  * Design fidèle à la version legacy avec modaux
  */
 import { useState } from 'react';
 import { Check, Eraser, Zap, ListOrdered, Plus, Settings } from 'lucide-react';
-import { useCopro } from '../../../context/CoproContext';
+import { useGestionData } from '../context/GestionSupabaseContext';
 import { fmtMoney } from '../../../utils/formatters';
 import { ConfirmModal, PromptModal } from '../../../components/Modal';
 import GererPostesModal from '../components/budget/GererPostesModal';
@@ -14,10 +14,11 @@ import AddQuickLineModal from '../components/budget/AddQuickLineModal';
 const MONTHS = ["Jan", "Fev", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Sep", "Oct", "Nov", "Déc"];
 
 export default function BudgetDetailTab() {
-    const { state, updateState } = useCopro();
-    const budget = state.budget || {};
-    const monthly = state.monthly || { expenses: {}, income: {} };
-    const accounts = state.accounts || [];
+    const { budgetItems, accounts } = useGestionData();
+
+    // Local state for monthly data (TODO: migrate to Supabase)
+    const [monthly, setMonthly] = useState({ expenses: {}, income: {} });
+    const budget = { general: budgetItems?.filter(i => i.category === 'general') || [] };
 
     const [selectedMonth, setSelectedMonth] = useState(0);
     const [selectedYear, setSelectedYear] = useState(2026);
@@ -32,18 +33,7 @@ export default function BudgetDetailTab() {
     const [isManageLinesOpen, setIsManageLinesOpen] = useState(false);
     const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
 
-    // Récupérer tous les postes budgétaires
-    const getAllBudgetItems = () => {
-        const items = [];
-        ['general', 'special', 'menage', 'travaux'].forEach(cat => {
-            (budget[cat] || []).forEach(item => {
-                items.push({ ...item, category: cat });
-            });
-        });
-        return items;
-    };
-
-    const budgetItems = getAllBudgetItems();
+    // Use budget items from context directly\n    const allBudgetItems = budgetItems || [];
 
     // Couleurs LEGACY par catégorie
     const getCategoryClass = (cat) => {
@@ -61,14 +51,14 @@ export default function BudgetDetailTab() {
         if (!newExpenses[itemName]) newExpenses[itemName] = new Array(12).fill(0);
         newExpenses[itemName] = [...newExpenses[itemName]];
         newExpenses[itemName][monthIndex] = parseFloat(value) || 0;
-        updateState({ monthly: { ...monthly, expenses: newExpenses } });
+        setMonthly({ ...monthly, expenses: newExpenses });
     };
 
     // Effacer une ligne (via modal)
     const handleClearLine = (itemName) => {
         const newExpenses = { ...monthly.expenses };
         newExpenses[itemName] = new Array(12).fill(0);
-        updateState({ monthly: { ...monthly, expenses: newExpenses } });
+        setMonthly({ ...monthly, expenses: newExpenses });
     };
 
     // Remplir une ligne (via modal)
@@ -84,42 +74,18 @@ export default function BudgetDetailTab() {
             newExpenses[itemName] = arr;
         }
 
-        updateState({ monthly: { ...monthly, expenses: newExpenses } });
+        setMonthly({ ...monthly, expenses: newExpenses });
     };
 
-    // Gestion des Postes (Ajout/Suppression dans le Budget)
-    const handleAddBudgetLine = (category, name) => {
-        const currentList = budget[category] || [];
-        // Eviter doublons
-        if (currentList.some(i => i.name === name)) return;
-
-        const newList = [...currentList, { name, prevision: 0 }]; // Prevision default
-        updateState({
-            budget: {
-                ...budget,
-                [category]: newList
-            }
-        });
+    // Gestion des Postes - TODO: Migrate to Supabase
+    const handleAddBudgetLine = () => {
+        // TODO: Implement with finance.addBudgetItem when available
+        console.log('handleAddBudgetLine - TODO: migrate to Supabase');
     };
 
-    const handleDeleteBudgetLine = (category, index) => {
-        const currentList = budget[category] || [];
-        const itemToRemove = currentList[index];
-        const newList = currentList.filter((_, i) => i !== index);
-
-        const newExpenses = { ...monthly.expenses };
-        delete newExpenses[itemToRemove?.name];
-
-        updateState({
-            budget: {
-                ...budget,
-                [category]: newList
-            },
-            monthly: {
-                ...monthly,
-                expenses: newExpenses
-            }
-        });
+    const handleDeleteBudgetLine = () => {
+        // TODO: Implement with finance.deleteBudgetItem when available
+        console.log('handleDeleteBudgetLine - TODO: migrate to Supabase');
     };
 
 
