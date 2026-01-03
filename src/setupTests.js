@@ -8,6 +8,28 @@
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 
+// ===== Mock Supabase =====
+// Intercepte tous les appels à Supabase pour éviter les erreurs réseau en test
+vi.mock('@supabase/supabase-js', () => ({
+    createClient: () => ({
+        from: () => ({
+            select: () => Promise.resolve({ data: [], error: null }),
+            insert: () => Promise.resolve({ data: null, error: null }),
+            update: () => Promise.resolve({ data: null, error: null }),
+            delete: () => Promise.resolve({ data: null, error: null }),
+            upsert: () => Promise.resolve({ data: null, error: null }),
+        }),
+        auth: {
+            getUser: () => Promise.resolve({ data: { user: { id: 'test-user' } }, error: null }),
+            onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => { } } } }),
+            signInWithPassword: () => Promise.resolve({ data: { user: { id: 'test-user' } }, error: null }),
+            signUp: () => Promise.resolve({ data: { user: { id: 'test-user' } }, error: null }),
+            signOut: () => Promise.resolve({ error: null }),
+        },
+        rpc: () => Promise.resolve({ data: null, error: null }),
+    }),
+}));
+
 // Variables pour tracker les appels save (pour vérifier que le PDF est téléchargé)
 export const pdfMockCalls = {
     save: [],
