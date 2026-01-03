@@ -41,7 +41,7 @@ export default function WaterProjectionTable({ rows }) {
                                 <td className="px-4 py-3">
                                     <div className="flex flex-col">
                                         <span className="font-bold text-gray-800">{row.owner_name}</span>
-                                        <span className="text-xs text-green-600 italic">Lot {row.lot_numero} / {row.lot_nom}</span>
+                                        <span className="text-xs text-green-600 italic">{row.lot_numero}{row.lot_nom ? ` / ${row.lot_nom}` : ''}</span>
                                     </div>
                                 </td>
                                 {quarters.map((q, i) => (

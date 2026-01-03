@@ -7,12 +7,14 @@ export default function WaterPrevisionRow({ row, prevision, onSave }) {
     const [conso, setConso] = useState(prevision?.amount_conso || 0);
     const [regul, setRegul] = useState(prevision?.amount_regul || 0);
 
-    // Sync with props when they change (e.g. after reload)
+    /* eslint-disable react-hooks/set-state-in-effect */
+    // Sync with props when they change (intentional prop-to-state sync)
     useEffect(() => {
         setSub(prevision?.amount_sub || 0);
         setConso(prevision?.amount_conso || 0);
         setRegul(prevision?.amount_regul || 0);
     }, [prevision]);
+    /* eslint-enable react-hooks/set-state-in-effect */
 
     // Calculate total for display
     const total = (parseFloat(sub) || 0) + (parseFloat(conso) || 0) + (parseFloat(regul) || 0);

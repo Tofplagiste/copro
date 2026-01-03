@@ -43,7 +43,7 @@ vi.mock('./hooks/useCreditSupabase', () => {
             { id: '1', nom: 'M. Test', tantiemes: 1000, hasGrandBalcon: false, hasPetitBalcon: false, hasCellier: false }
         ],
         repartition: [
-            { id: '1', nom: 'M. Test', lot: '1', tantiemes: 1000, quotePart: 100, mensuel: 10, totalPart: 100, partCommunes: 100, partBalcon: 0, partCellier: 0, partFondsTravaux: 0, apportUtilise: 0, montantAFinancer: 10, paiementComptant: false, mensuel: 10, mensualite: 10 }
+            { id: '1', nom: 'M. Test', lot: '1', tantiemes: 1000, quotePart: 100, totalPart: 100, partCommunes: 100, partBalcon: 0, partCellier: 0, partFondsTravaux: 0, apportUtilise: 0, montantAFinancer: 10, paiementComptant: false, mensualite: 10 }
         ],
         totaux: {
             quotePart: 100000,

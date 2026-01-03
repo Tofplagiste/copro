@@ -22,9 +22,12 @@ export default function WaterReadingRow({ row, quarter, onReadingChange, onMeter
     const [localNew, setLocalNew] = useState(reading.new || '');
     const [localMeter, setLocalMeter] = useState(row.meter_number || '');
 
-    // Sync state with props
+    // Sync state with props (intentional prop-to-state sync pattern)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     useEffect(() => { setLocalOld(reading.old || ''); }, [reading.old]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     useEffect(() => { setLocalNew(reading.new || ''); }, [reading.new]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     useEffect(() => { setLocalMeter(row.meter_number || ''); }, [row.meter_number]);
 
     // Save on blur

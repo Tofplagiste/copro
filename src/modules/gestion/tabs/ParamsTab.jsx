@@ -2,18 +2,15 @@
  * ParamsTab - Onglet Paramètres
  * Inclut sauvegarde/chargement JSON
  */
-import { useRef, useMemo } from 'react';
-import { Settings, Users, Upload, Save, FileJson } from 'lucide-react';
+import { useMemo } from 'react';
+import { Settings, Users } from 'lucide-react';
 import { useGestionData } from '../context/GestionSupabaseContext';
-import { useToast } from '../../../components/ToastProvider';
 import BankAccountsPanel from '../components/params/BankAccountsPanel';
 import ClosingPanel from '../components/params/ClosingPanel';
 import PostesComptablesPanel from '../components/params/PostesComptablesPanel';
 
 export default function ParamsTab() {
     const { owners: rawOwners, lots } = useGestionData();
-    const toast = useToast();
-    const fileInputRef = useRef(null);
 
     // Map owners with lot display from lot_ids
     const owners = useMemo(() => {
@@ -38,39 +35,6 @@ export default function ParamsTab() {
             });
     }, [rawOwners, lots]);
 
-    // =====================================================
-    // SAUVEGARDE / CHARGEMENT JSON
-    // =====================================================
-
-    /**
-     * Télécharge les données en JSON (export seulement, Supabase est la source de vérité)
-     */
-    const handleSaveData = () => {
-        try {
-            const exportData = { owners: rawOwners, lots };
-            const dataStr = JSON.stringify(exportData, null, 2);
-            const blob = new Blob([dataStr], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `copro_backup_${new Date().toISOString().split('T')[0]}.json`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-            toast.success('Données exportées avec succès !');
-        } catch (error) {
-            console.error('Erreur export:', error);
-            toast.error('Erreur lors de l\'export');
-        }
-    };
-
-    /**
-     * Chargement désactivé - les données sont maintenant sur Supabase
-     */
-    const handleLoadData = () => {
-        toast.info('Import désactivé. Les données sont gérées via Supabase.');
-    };
 
     return (
         <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 bg-gradient-to-br from-slate-50 to-slate-100 min-h-full">
