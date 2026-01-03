@@ -80,10 +80,10 @@ export default function WaterReadings() {
                     <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
                         <tr>
                             <th className="text-left px-4 py-3">Propriétaire / Lot</th>
-                            <th className="px-3 py-3 bg-amber-50 text-amber-700" style={{ width: 120 }}>N° Compteur</th>
-                            <th className="px-3 py-3 bg-blue-50 text-blue-700" style={{ width: 90 }}>Ancien</th>
-                            <th className="px-3 py-3 bg-green-50 text-green-700" style={{ width: 90 }}>Nouveau</th>
-                            <th className="px-3 py-3 text-blue-600 font-bold">Conso</th>
+                            <th className="px-3 py-3 bg-amber-50 text-amber-700 w-32">N° Compteur</th>
+                            <th className="px-3 py-3 bg-blue-50 text-blue-700 w-32">Ancien</th>
+                            <th className="px-3 py-3 bg-green-50 text-green-700 w-32">Nouveau</th>
+                            <th className="px-3 py-3 text-blue-600 font-bold w-24">Conso</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">

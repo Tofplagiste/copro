@@ -1,47 +1,53 @@
 /**
  * WaterPrevisions - Saisie des prévisions eau (V6)
  * 
- * Migration Phase 6 : Utilise useGestionData() via le contexte Supabase.
- * Note: Cette fonctionnalité reste en localStorage car pas de table water_previsions en DB.
+ * Utilise la table water_previsions via useGestionData.
  */
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useGestionData } from '../../context/GestionSupabaseContext';
 import { useToast } from '../../../../components/ToastProvider';
 import { fmtMoney } from '../../../../utils/formatters';
+import WaterPrevisionRow from './WaterPrevisionRow';
 
 export default function WaterPrevisions() {
-    const { waterRows } = useGestionData();
+    const { waterRows, previsions = [], savePrevision, activeQuarter, currentYear, saving } = useGestionData();
     const toast = useToast();
+    const q = activeQuarter;
 
-    // Local state for previsions (pas encore en Supabase)
-    const [previsions, setPrevisions] = useState({ subs: {}, charges: {}, reguls: {} });
-
-    const handleUpdate = (lotId, type, value) => {
-        setPrevisions(prev => ({
-            ...prev,
-            [type]: {
-                ...prev[type],
-                [lotId]: parseFloat(value) || 0
-            }
-        }));
-    };
-
-    // Préparer les données à partir des waterRows (V6)
+    // Fusionner les données (lots + previsions)
     const rows = useMemo(() => {
         return waterRows.map(row => {
-            const sub = parseFloat(previsions.subs?.[row.lot_id]) || 0;
-            const chg = parseFloat(previsions.charges?.[row.lot_id]) || 0;
-            const reg = parseFloat(previsions.reguls?.[row.lot_id]) || 0;
+            // Find prevision for this lot & quarter
+            const prev = previsions.find(p => p.lot_id === row.lot_id && p.quarter === q) || {};
+
+            const sub = prev.amount_sub || 0;
+            const chg = prev.amount_conso || 0;
+            const reg = prev.amount_regul || 0;
             const tot = sub + chg + reg;
 
-            return { row, sub, chg, reg, tot };
+            return { row, prevision: prev, sub, chg, reg, tot };
         });
-    }, [waterRows, previsions]);
+    }, [waterRows, previsions, q]);
 
+    // Totaux
     const totalSub = rows.reduce((acc, r) => acc + r.sub, 0);
     const totalConso = rows.reduce((acc, r) => acc + r.chg, 0);
     const totalRegul = rows.reduce((acc, r) => acc + r.reg, 0);
     const totalTotal = rows.reduce((acc, r) => acc + r.tot, 0);
+
+    const handleSave = async (lotId, data) => {
+        try {
+            await savePrevision({
+                lot_id: lotId,
+                year: currentYear,
+                quarter: q,
+                ...data
+            });
+        } catch (err) {
+            console.error("Save Error:", err);
+            toast.error(`Erreur: ${err.message || "Sauvegarde"}`);
+        }
+    };
 
     // Copier vers Excel
     const handleCopyToExcel = async () => {
@@ -50,9 +56,9 @@ export default function WaterPrevisions() {
             const blob = new Blob([html], { type: 'text/html' });
             const item = new ClipboardItem({ 'text/html': blob });
             await navigator.clipboard.write([item]);
-            toast.success('Tableau copié ! Collez dans Excel (Ctrl+V)');
+            toast.success('Tableau copié !');
         } catch (err) {
-            console.error('Erreur copie:', err);
+            console.error(err);
             toast.error('Erreur lors de la copie');
         }
     };
@@ -61,7 +67,8 @@ export default function WaterPrevisions() {
         <div>
             <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-bold text-blue-600 flex items-center gap-2">
-                    💧 Saisie des Prévisions Eau (Trimestriel)
+                    💧 Saisie des Prévisions Eau ({q})
+                    {saving && <span className="text-xs text-orange-500 font-normal">Enregistrement...</span>}
                 </h3>
                 <button
                     onClick={handleCopyToExcel}
@@ -84,41 +91,13 @@ export default function WaterPrevisions() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                            {rows.map(({ row, sub, chg, reg, tot }) => (
-                                <tr key={row.lot_id} className="hover:bg-gray-50">
-                                    <td className="px-4 py-3">
-                                        <span className="font-bold text-gray-800">{row.owner_name}</span>
-                                        <span className="text-xs text-green-600 italic ml-2">{row.lot_numero}</span>
-                                    </td>
-                                    <td className="px-3 py-2">
-                                        <input
-                                            type="number"
-                                            value={sub || ''}
-                                            onChange={(e) => handleUpdate(row.lot_id, 'subs', e.target.value)}
-                                            className="w-full px-2 py-1 text-right font-mono border rounded focus:ring-2 focus:ring-blue-500"
-                                            step="0.01"
-                                        />
-                                    </td>
-                                    <td className="px-3 py-2">
-                                        <input
-                                            type="number"
-                                            value={chg || ''}
-                                            onChange={(e) => handleUpdate(row.lot_id, 'charges', e.target.value)}
-                                            className="w-full px-2 py-1 text-right font-mono border rounded focus:ring-2 focus:ring-blue-500"
-                                            step="0.01"
-                                        />
-                                    </td>
-                                    <td className="px-3 py-2">
-                                        <input
-                                            type="number"
-                                            value={reg || ''}
-                                            onChange={(e) => handleUpdate(row.lot_id, 'reguls', e.target.value)}
-                                            className="w-full px-2 py-1 text-right font-mono border rounded focus:ring-2 focus:ring-blue-500"
-                                            step="0.01"
-                                        />
-                                    </td>
-                                    <td className="px-4 py-3 font-bold text-green-600 text-center">{fmtMoney(tot)}</td>
-                                </tr>
+                            {rows.map(({ row, prevision }) => (
+                                <WaterPrevisionRow
+                                    key={row.lot_id}
+                                    row={row}
+                                    prevision={prevision}
+                                    onSave={handleSave}
+                                />
                             ))}
                         </tbody>
                         <tfoot className="bg-gray-100 font-bold border-t-2">

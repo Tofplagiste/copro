@@ -29,14 +29,14 @@ export default function WaterReadingRow({ row, quarter, onReadingChange, onMeter
 
     // Save on blur
     const handleOldBlur = useCallback(() => {
-        const numVal = parseFloat(localOld) || 0;
+        const numVal = parseFloat(String(localOld).replace(',', '.')) || 0;
         if (numVal !== (reading.old || 0)) {
             onReadingChange(row.lot_id, 'old', numVal);
         }
     }, [localOld, reading.old, row.lot_id, onReadingChange]);
 
     const handleNewBlur = useCallback(() => {
-        const numVal = parseFloat(localNew) || 0;
+        const numVal = parseFloat(String(localNew).replace(',', '.')) || 0;
         if (numVal !== (reading.new || 0)) {
             onReadingChange(row.lot_id, 'new', numVal);
         }

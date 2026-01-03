@@ -32,6 +32,7 @@ export function GestionSupabaseProvider({ children }) {
         currentYear: water.currentYear,
         lots: water.lots,
         owners: water.owners,
+        previsions: water.previsions,
         // Status
         loading: finance.loading || water.loading,
         saving: finance.saving || water.saving,
@@ -56,6 +57,7 @@ export function GestionSupabaseProvider({ children }) {
         saveReading: water.saveReading,
         updateMeterNumber: water.updateMeterNumber,
         updateWaterSettings: water.updateSettings,
+        savePrevision: water.savePrevision,
         // Combined refresh
         refresh: async () => {
             await Promise.all([finance.refresh(), water.refresh()]);

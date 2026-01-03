@@ -14,6 +14,7 @@ import { transformWaterData } from '../utils/waterAdapter';
  */
 export function useWaterSupabase() {
     const [rawLots, setRawLots] = useState([]);
+    const [previsions, setPrevisions] = useState([]);
     const [settings, setSettings] = useState(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -30,7 +31,7 @@ export function useWaterSupabase() {
         setError(null);
 
         try {
-            const [lotsRes, settingsRes] = await Promise.all([
+            const [lotsRes, settingsRes, previsionsRes] = await Promise.all([
                 supabase.from('lots').select(`
                     id, numero, type, tantiemes, nom,
                     water_meters (id, meter_number),
@@ -39,7 +40,8 @@ export function useWaterSupabase() {
                         owners (*)
                     )
                 `).order('numero', { ascending: true }),
-                supabase.from('water_settings').select('*').eq('year', currentYear).maybeSingle()
+                supabase.from('water_settings').select('*').eq('year', currentYear).maybeSingle(),
+                supabase.from('water_previsions').select('*').eq('year', currentYear)
             ]);
 
             if (lotsRes.error) throw lotsRes.error;
@@ -47,9 +49,11 @@ export function useWaterSupabase() {
             if (settingsRes.error && settingsRes.error.code !== 'PGRST116') {
                 throw settingsRes.error;
             }
+            if (previsionsRes.error) throw previsionsRes.error;
 
             setRawLots(lotsRes.data || []);
             setSettings(settingsRes.data || { year: currentYear, active_quarter: 'T1' });
+            setPrevisions(previsionsRes.data || []);
             if (settingsRes.data?.active_quarter) {
                 setActiveQuarter(settingsRes.data.active_quarter);
             }
@@ -96,7 +100,7 @@ export function useWaterSupabase() {
 
     // ===== ACTIONS =====
     /**
-     * Sauvegarde un relevé (upsert).
+     * Sauvegarde un relevé (upsert) et synchronise (Nouveau T1 -> Ancien T2).
      * @param {Object} data - { lot_id, year, quarter, old_value, new_value }
      */
     const saveReading = useCallback(async (data) => {
@@ -104,32 +108,69 @@ export function useWaterSupabase() {
         try {
             const { lot_id, year, quarter, old_value, new_value } = data;
 
-            // Check if reading exists
-            const { data: existing } = await supabase
-                .from('water_readings')
-                .select('id')
-                .eq('lot_id', lot_id)
-                .eq('year', year)
-                .eq('quarter', quarter)
-                .single();
+            // 1. Sauvegarde du trimestre courant
+            const { error: err } = await supabase.from('water_readings').upsert({
+                lot_id, year, quarter, old_value, new_value
+            }, { onConflict: 'lot_id,year,quarter' });
 
-            if (existing) {
-                // Update
-                const { error: err } = await supabase
-                    .from('water_readings')
-                    .update({ old_value, new_value })
-                    .eq('id', existing.id);
-                if (err) throw err;
-            } else {
-                // Insert
-                const { error: err } = await supabase
-                    .from('water_readings')
-                    .insert([{ lot_id, year, quarter, old_value, new_value }]);
-                if (err) throw err;
+            if (err) throw err;
+
+            // 2. Synchronisation
+            const quarters = ['T1', 'T2', 'T3', 'T4'];
+            const qIdx = quarters.indexOf(quarter);
+
+            // Sync vers le SUIVANT (Nouveau actuel -> Ancien suivant)
+            if (qIdx < 3 && new_value !== undefined && new_value !== null) {
+                const nextQ = quarters[qIdx + 1];
+                // Récupérer le "Nouveau" du suivant pour ne pas l'écraser
+                const { data: nextRow } = await supabase.from('water_readings')
+                    .select('new_value').eq('lot_id', lot_id).eq('year', year).eq('quarter', nextQ).maybeSingle();
+
+                await supabase.from('water_readings').upsert({
+                    lot_id, year, quarter: nextQ,
+                    old_value: new_value, // Le nouveau devient l'ancien du suivant
+                    new_value: nextRow?.new_value || 0
+                }, { onConflict: 'lot_id,year,quarter' });
             }
+
+            // Sync vers le PRÉCÉDENT (Ancien actuel -> Nouveau précédent)
+            if (qIdx > 0 && old_value !== undefined && old_value !== null) {
+                const prevQ = quarters[qIdx - 1];
+                // Récupérer l' "Ancien" du précédent pour ne pas l'écraser
+                const { data: prevRow } = await supabase.from('water_readings')
+                    .select('old_value').eq('lot_id', lot_id).eq('year', year).eq('quarter', prevQ).maybeSingle();
+
+                await supabase.from('water_readings').upsert({
+                    lot_id, year, quarter: prevQ,
+                    old_value: prevRow?.old_value || 0,
+                    new_value: old_value // L'ancien devient le nouveau du précédent
+                }, { onConflict: 'lot_id,year,quarter' });
+            }
+
             await loadData(true);
         } catch (err) {
             setError(err.message);
+            throw err;
+        } finally {
+            setSaving(false);
+        }
+    }, [loadData]);
+
+    /**
+     * Sauvegarde une prévision eau (upsert).
+     * @param {Object} data - { lot_id, year, quarter, amount_sub, amount_conso, amount_regul }
+     */
+    const savePrevision = useCallback(async (data) => {
+        setSaving(true);
+        try {
+            const { error: err } = await supabase
+                .from('water_previsions')
+                .upsert(data, { onConflict: 'lot_id,year,quarter' });
+            if (err) throw err;
+            await loadData(true);
+        } catch (err) {
+            setError(err.message);
+            throw err;
         } finally {
             setSaving(false);
         }
@@ -214,6 +255,7 @@ export function useWaterSupabase() {
         currentYear,
         lots: rawLots,
         owners,
+        previsions,
 
         // Status
         loading,
@@ -223,6 +265,7 @@ export function useWaterSupabase() {
         // Actions
         setActiveQuarter,
         saveReading,
+        savePrevision,
         updateMeterNumber,
         updateSettings,
         refresh: loadData

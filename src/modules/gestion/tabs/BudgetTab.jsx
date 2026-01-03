@@ -2,7 +2,7 @@
  * BudgetTab - Onglet Budget & Appels de Fonds
  * Migré pour utiliser le hook useBudget (Phase 3)
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { FileText, Mail, Download, Table2, Settings, Copy } from 'lucide-react';
 import { useToast } from '../../../components/ToastProvider';
 import { fmtMoney } from '../../../utils/formatters';
@@ -45,7 +45,7 @@ export default function BudgetTab() {
         budgetMode,
         divisors,
         owners,
-        waterPrevi,
+        getWaterPrevisions,
         getTotalByCategory,
         computeOwnerCall,
         updateBudgetItem,
@@ -56,6 +56,8 @@ export default function BudgetTab() {
 
     const toast = useToast();
     const [selectedQuarter, setSelectedQuarter] = useState('T1');
+
+    const waterPrevi = useMemo(() => getWaterPrevisions(selectedQuarter), [getWaterPrevisions, selectedQuarter]);
 
     // Rendu des cards de saisie
     const renderBudgetCard = (category) => {
@@ -148,7 +150,7 @@ export default function BudgetTab() {
     const handleCopyTotalColumn = () => {
         const text = owners
             .map(o => {
-                const call = computeOwnerCall(o);
+                const call = computeOwnerCall(o, selectedQuarter);
                 return call.total.toFixed(2);
             })
             .join('\n');
@@ -520,7 +522,7 @@ export default function BudgetTab() {
                         </thead>
                         <tbody className="divide-y divide-gray-100">
                             {owners.map((owner, idx) => {
-                                const call = computeOwnerCall(owner);
+                                const call = computeOwnerCall(owner, selectedQuarter);
                                 const isEven = idx % 2 === 0;
                                 return (
                                     <tr key={owner.id} className={`hover:bg-blue-50/50 transition-colors ${isEven ? 'bg-white' : 'bg-gray-50/50'}`}>

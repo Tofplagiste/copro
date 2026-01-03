@@ -16,6 +16,8 @@ export function useBudgetSupabaseAdapter() {
         budgetItems: budget, // Mapping: budgetItems -> budget
         owners,
         lots,
+        previsions,
+        waterSettings,
         updateBudgetItem: updateItemDb, // Renamed to avoid key clash
         addBudgetItem: addItemDb,
         deleteBudgetItem: deleteItemDb,
@@ -25,9 +27,6 @@ export function useBudgetSupabaseAdapter() {
 
     // 2. État local UI (non persisté en DB)
     const [budgetMode, setBudgetMode] = useState('previ');
-
-    // 3. Eau (Pas encore migré sur Supabase dans ce contexte -> Mock temporaire ou à venir)
-    const waterPrevi = DEFAULT_WATER_PREVI;
 
     // 4. Mapping des Propriétaires (DB snake_case -> UI camelCase)
     //    Now using lot_ids array from owner_lots junction table
@@ -70,9 +69,64 @@ export function useBudgetSupabaseAdapter() {
     }, [budget, budgetMode]);
 
     // Calcul de l'appel pour un propriétaire
-    const computeOwnerCall = useCallback((owner) => {
-        return calculateOwnerCall(owner, budget, divisors, waterPrevi, budgetMode);
-    }, [budget, divisors, waterPrevi, budgetMode]);
+    const computeOwnerCall = useCallback((owner, quarter = 'T1') => {
+        // Construct waterPrevi object for this specific owner/quarter
+        const prevs = previsions || [];
+        let wSubs = 0, wCharges = 0, wReguls = 0;
+
+        const ownerLotIds = owner.lot_ids || [];
+        ownerLotIds.forEach(lid => {
+            const p = prevs.find(x => x.lot_id === lid && x.quarter === quarter);
+            if (p) {
+                wSubs += (p.amount_sub || 0);
+                wCharges += (p.amount_conso || 0);
+                wReguls += (p.amount_regul || 0);
+            }
+        });
+
+        const dynamicWaterPrevi = {
+            subs: { [owner.id]: wSubs },
+            charges: { [owner.id]: wCharges },
+            reguls: { [owner.id]: wReguls }
+        };
+
+        return calculateOwnerCall(owner, budget, divisors, dynamicWaterPrevi, budgetMode);
+    }, [budget, divisors, previsions, budgetMode]);
+
+    // Better implementation of getWaterPrevisions
+    const getWaterPrevisionsByOwner = useCallback((quarter) => {
+        const result = {
+            subs: {},
+            charges: {},
+            reguls: {},
+            annualTotal: waterSettings?.proj_sub && waterSettings?.proj_price // Approx or legacy field
+                ? (waterSettings.proj_sub + (1000 * waterSettings.proj_price)) // Placeholder 
+                : 316.20
+        };
+        if (!owners) return result;
+
+        const prevs = previsions || [];
+
+        owners.forEach(owner => {
+            let wSubs = 0, wCharges = 0, wReguls = 0;
+            const ownerLotIds = owner.lot_ids || [];
+
+            ownerLotIds.forEach(lid => {
+                const p = prevs.find(x => x.lot_id === lid && x.quarter === quarter);
+                if (p) {
+                    wSubs += (p.amount_sub || 0);
+                    wCharges += (p.amount_conso || 0);
+                    wReguls += (p.amount_regul || 0);
+                }
+            });
+
+            result.subs[owner.id] = wSubs;
+            result.charges[owner.id] = wCharges;
+            result.reguls[owner.id] = wReguls;
+        });
+
+        return result;
+    }, [owners, previsions, waterSettings]);
 
     // Wrapper pour updateBudgetItem
     const updateBudgetItem = useCallback((category, index, field, value) => {
@@ -115,7 +169,7 @@ export function useBudgetSupabaseAdapter() {
         // Données
         budget,
         owners: mappedOwners,
-        waterPrevi,
+        getWaterPrevisions: getWaterPrevisionsByOwner,
         divisors,
         budgetMode,
         loading,
